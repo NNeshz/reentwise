@@ -1,0 +1,60 @@
+# NextJS + Elysia + Better Auth + Supabase
+
+![Screenshot del proyecto](./Screenshot.png)
+
+This is a reentwise for a NextJS + Elysia + Better Auth + Supabase project. It uses the following technologies:
+
+- [NextJS](https://nextjs.org/) for the frontend
+- [Elysia](https://elysiajs.com/) for the backend
+- [Better Auth](https://better-auth.com/) for authentication
+- [Supabase](https://supabase.com/) for the database
+
+## Using this example
+
+Run the following command:
+
+```sh
+bun install
+```
+
+## What's inside?
+
+This project includes the following packages/apps:
+
+### Apps and Packages
+
+- `web`: an [Next.js](https://nextjs.org/) app
+- `backend_worker`: an [Elysia](https://elysiajs.com/) app
+- `api`: another [Elysia](https://elysiajs.com/) app
+- `auth`: a custom authentication module using [Better Auth](https://better-auth.com/)
+- `database`: a custom database module using [Supabase](https://supabase.com/) with Drizzle
+
+- `@reentwise/ui`: a stub React component library shared by both `web` and `backend_worker` applications
+- `@reentwise/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
+- `@reentwise/typescript-config`: `tsconfig.json`s used throughout the monorepo
+
+Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+
+### Utilities
+
+This Turborepo has some additional tools already setup for you:
+
+- [TypeScript](https://www.typescriptlang.org/) for static type checking
+- [ESLint](https://eslint.org/) for code linting
+- [Prettier](https://prettier.io) for code formatting
+
+### Develop
+
+To develop all apps and packages, run the following command:
+
+```
+cd reentwise
+
+# Install dependencies
+bun install
+
+# Change the .env.local file with your credentials
+
+# Start the development server
+bun dev
+```
