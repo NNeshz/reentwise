@@ -1,12 +1,12 @@
 import { api } from "@reentwise/api/src";
-import { swagger } from "@elysiajs/swagger";
+import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 
 const app = new Elysia()
   .use(api)
   .use(
-    swagger({
-      path: "/api/swagger",
+    openapi({
+      path: "/openapi",
     })
   )
   .listen(8080);

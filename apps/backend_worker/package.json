@@ -7,11 +7,12 @@
     "check-types": "tsc --noEmit",
     "clean-workspace": "rm -rf node_modules"
   },
-  "dependencies": {
-    "elysia": "latest"
-  },
+  "dependencies": {},
   "devDependencies": {
     "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "elysia": "^1.4.27"
   },
   "module": "src/index.js"
 }
