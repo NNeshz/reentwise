@@ -1,0 +1,1 @@
+export { ownerPropertyRoutes } from "@reentwise/api/src/modules/properties/routes/owner.routes";
