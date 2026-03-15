@@ -3,7 +3,7 @@ import { AppSidebar } from "@/modules/dashboard/components/dashboard-sidebar";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Dashboard | reentwise",
+  title: "Dashboard | Reentwise",
   description: "Dashboard",
 };
 
