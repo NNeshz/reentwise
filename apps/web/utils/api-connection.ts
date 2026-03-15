@@ -1,11 +1,5 @@
-import type { Api as server } from "@reentwise/api/src/index";
-import { treaty } from "@elysiajs/eden";
+import { createApiClient } from "@reentwise/api/src/eden"
 
-export const createApiClient: (
-  url: string,
-) => ReturnType<typeof treaty<server>>["api"] = (url) =>
-  treaty<server>(url, {
-    fetch: {
-      credentials: "include",
-    },
-  }).api;
+export type ApiClient = ReturnType<typeof createApiClient>
+
+export const apiClient: ApiClient = createApiClient(process.env.NEXT_PUBLIC_BACKEND_URL!)

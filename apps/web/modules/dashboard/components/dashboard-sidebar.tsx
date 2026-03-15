@@ -92,7 +92,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">reentwise</span>
+                  <span className="truncate font-medium">Reentwise</span>
                   <span className="truncate text-xs">Dashboard</span>
                 </div>
               </Link>

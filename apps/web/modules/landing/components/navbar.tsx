@@ -83,7 +83,7 @@ export function Navbar() {
                 !isScrolled && "md:text-white",
               )}
             >
-              reentwise
+              Reentwise
             </span>
           </Link>
 
