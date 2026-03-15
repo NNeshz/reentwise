@@ -1,36 +1,17 @@
-import { buttonVariants } from "@reentwise/ui/src/components/button";
-import { cn } from "@reentwise/ui/src/lib/utils";
-import Link from "next/link";
-import { IconBrandGithub, IconArrowRight } from "@tabler/icons-react"
+import { Hero } from "@/modules/landing/components/hero";
+import { About } from "@/modules/landing/components/about";
+import { Stadistics } from "@/modules/landing/components/stadistics";
+import { Faq } from "@/modules/landing/components/faq";
+import { Cta } from "@/modules/landing/components/cta";
 
 export default function Page() {
   return (
-    <div className="h-[100dvh] w-[100dvw] flex flex-col items-center justify-center p-8 space-y-4">
-      <h1 className="text-6xl font-bold text-center">
-        NextJS + Elysia + Better Auth + Supabase
-      </h1>
-      <p className="text-lg text-muted-foreground max-w-2xl text-center leading-relaxed">
-        Un reentwise que combina todo lo moderno de{" "}
-        <span className="text-primary font-semibold">
-          NextJS, Elysia, Better Auth y Supabase
-        </span>{" "}
-        más la calidad de desarrollo con un plus de Typescript.
-      </p>
-      <span className="flex space-x-2">
-        <Link
-          href={"https://github.com/NNeshz/reentwise"}
-          target="_blank"
-          className={cn(
-            buttonVariants({
-              variant: "default",
-              className: "hover:bg-primary/90 hover:cursor-pointer",
-            })
-          )}
-        >
-          <IconBrandGithub />
-          Repositorio
-        </Link>
-      </span>
+    <div className="flex flex-col min-h-screen">
+      <Hero />
+      <About />
+      <Stadistics />
+      <Faq />
+      <Cta />
     </div>
   );
 }
