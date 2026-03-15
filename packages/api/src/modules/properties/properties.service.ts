@@ -7,7 +7,6 @@ import {
   inArray,
   desc,
 } from "@reentwise/database";
-import { status } from "elysia";
 
 export class PropertiesService {
   async getOwnerProperties(ownerId: string) {

@@ -7,8 +7,9 @@
     "clean-workspace": "rm -rf node_modules"
   },
   "dependencies": {
-    "elysia": "latest",
-    "@sinclair/typebox": "^0.34.14"
+    "@elysiajs/eden": "^1.4.8",
+    "@sinclair/typebox": "^0.34.14",
+    "elysia": "^1.4.27"
   },
   "devDependencies": {
     "bun-types": "latest"

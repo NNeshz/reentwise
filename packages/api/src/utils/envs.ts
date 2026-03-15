@@ -11,6 +11,8 @@ const envSchema = t.Object({
   NEXT_PUBLIC_FRONTEND_URL: t.String(),
   GOOGLE_CLIENT_ID: t.String(),
   GOOGLE_CLIENT_SECRET: t.String(),
+  WHATSAPP_API_URL: t.Optional(t.String()),
+  WHATSAPP_API_KEY: t.Optional(t.String()),
 });
 
 type EnvSchema = typeof envSchema.static;
@@ -39,13 +41,15 @@ declare global {
   namespace NodeJS {
     interface ProcessEnv {
       [key: string]: string | undefined;
-      NODE_ENV: "development" | "production";
+
       AUTH_SECRET: string;
       DATABASE_URL: string;
       NEXT_PUBLIC_BACKEND_URL: string;
       NEXT_PUBLIC_FRONTEND_URL: string;
       GOOGLE_CLIENT_ID: string;
       GOOGLE_CLIENT_SECRET: string;
+      WHATSAPP_API_URL?: string;
+      WHATSAPP_API_KEY?: string;
     }
   }
 }
