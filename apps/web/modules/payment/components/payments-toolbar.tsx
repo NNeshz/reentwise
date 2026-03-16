@@ -14,7 +14,7 @@ import { usePaymentsFilters } from "@/modules/payment/store/use-payments-filters
 
 export function PaymentsToolbar() {
   const { search, status, setSearch, setStatus } = usePaymentsFilters();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
