@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Host_Grotesk } from "next/font/google";
 import "./global.css";
 import { AppProviders } from "./app-providers";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const geist = Geist({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ export default function RootLayout({
         className={`${hostGrotesk.variable} ${hostGrotesk.className} ${geist.variable} ${geist.className} antialiased`}
       >
         <AppProviders>{children}</AppProviders>
+        <SpeedInsights />
       </body>
     </html>
   );
