@@ -1,0 +1,54 @@
+# Engram — Memory Protocol
+
+You have persistent memory via MCP tools: `mem_search`, `mem_save`, `mem_update`, `mem_delete`, `mem_suggest_topic_key`, `mem_save_prompt`, `mem_context`, `mem_stats`, `mem_timeline`, `mem_get_observation`, `mem_session_summary`, `mem_session_start`, `mem_session_end`.
+
+## When to save (mandatory)
+
+Call `mem_save` immediately after: bug fix completed; architecture or design decision; non-obvious codebase discovery; config or environment change; established pattern; user preference or constraint learned.
+
+`mem_save` format:
+- **title**: Short, searchable (e.g. "Fixed N+1 in UserList", "Chose Zustand over Redux")
+- **type**: `bugfix` | `decision` | `architecture` | `discovery` | `pattern` | `config` | `preference`
+- **scope**: `project` (default) | `personal`
+- **topic_key** (optional, for evolving topics): stable key like `architecture/auth-model`
+- **content**:
+  ```
+  **What**: One sentence — what was done
+  **Why**: What motivated it
+  **Where**: Files or paths affected
+  **Learned**: Gotchas, edge cases (omit if none)
+  ```
+
+Topic rules: different topics must not overwrite each other; reuse the same `topic_key` to update an evolving topic; if unsure, call `mem_suggest_topic_key` first; use `mem_update` when you have an exact observation ID.
+
+## When to search memory
+
+If the user asks to recall past work ("remember", "recall", "what did we do", etc.):
+1. Call `mem_context` first (recent session history)
+2. If not enough, `mem_search` with keywords
+3. Use `mem_get_observation` for full content when needed
+
+Also search proactively when starting work that might have been done before, or when the user mentions a topic with no local context.
+
+## Session close (mandatory)
+
+Before ending or saying work is done, call `mem_session_summary` with:
+
+```
+## Goal
+## Instructions
+## Discoveries
+## Accomplished
+## Next Steps
+## Relevant Files
+```
+
+## After compaction or context reset
+
+1. Call `mem_session_summary` with the compacted summary if significant work was lost from context
+2. Call `mem_context` to recover prior session context
+3. Then continue
+
+## Minimal reminder
+
+Save proactively after significant work. After context resets, call `mem_context` (and persist with `mem_session_summary` when appropriate) before continuing.
