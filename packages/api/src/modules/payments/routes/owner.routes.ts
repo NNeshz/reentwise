@@ -15,14 +15,20 @@ export const ownerPaymentsRoutes = new Elysia({
   .use(paymentsModule)
   .get(
     "/",
-    ({ query, paymentsService }) => {
+    ({ user, query, paymentsService }) => {
       const now = new Date();
       const month = query?.month ? parseInt(query.month) : now.getMonth() + 1;
       const year = query?.year ? parseInt(query.year) : now.getFullYear();
       const search = query?.search || undefined;
       const status = query?.status || undefined;
 
-      return paymentsService.getPayments(month, year, search, status);
+      return paymentsService.getPayments(
+        user.id,
+        month,
+        year,
+        search,
+        status,
+      );
     },
     {
       authenticated: true,
@@ -31,9 +37,14 @@ export const ownerPaymentsRoutes = new Elysia({
   )
   .post(
     "/:id/pay",
-    ({ params, body, paymentsService }) => {
+    ({ user, params, body, paymentsService }) => {
       const { paymentAmount, method } = body;
-      return paymentsService.payPayment(params.id, paymentAmount, method);
+      return paymentsService.payPayment(
+        user.id,
+        params.id,
+        paymentAmount,
+        method,
+      );
     },
     {
       authenticated: true,
@@ -43,8 +54,8 @@ export const ownerPaymentsRoutes = new Elysia({
   )
   .post(
     "/:id/annul",
-    ({ params, paymentsService }) => {
-      return paymentsService.annulPayment(params.id);
+    ({ user, params, paymentsService }) => {
+      return paymentsService.annulPayment(user.id, params.id);
     },
     {
       authenticated: true,

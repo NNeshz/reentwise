@@ -8,6 +8,7 @@ import {
   payments,
   tenants,
   rooms,
+  properties,
 } from "@reentwise/database";
 import { emailService } from "@reentwise/api/src/modules/email/email.service";
 import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
@@ -63,6 +64,7 @@ export class PaymentsService {
   }
 
   async getPayments(
+    ownerId: string,
     month: number,
     year: number,
     search?: string,
@@ -76,6 +78,7 @@ export class PaymentsService {
       })
       .from(tenants)
       .leftJoin(rooms, eq(tenants.roomId, rooms.id))
+      .leftJoin(properties, eq(rooms.propertyId, properties.id))
       .leftJoin(
         payments,
         and(
@@ -87,6 +90,7 @@ export class PaymentsService {
       )
       .where(
         and(
+          or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
           search
             ? or(
                 ilike(tenants.name, `%${search}%`),
@@ -102,18 +106,33 @@ export class PaymentsService {
       );
   }
 
+  /** Pago perteneciente a un inquilino bajo el alcance del dueño (directo o vía propiedad). */
+  private async getPaymentRowForOwner(ownerId: string, paymentId: string) {
+    const [row] = await db
+      .select({ payment: payments, tenant: tenants })
+      .from(payments)
+      .innerJoin(tenants, eq(payments.tenantId, tenants.id))
+      .leftJoin(rooms, eq(tenants.roomId, rooms.id))
+      .leftJoin(properties, eq(rooms.propertyId, properties.id))
+      .where(
+        and(
+          eq(payments.id, paymentId),
+          or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
+        ),
+      );
+    return row ?? null;
+  }
+
   async payPayment(
+    ownerId: string,
     paymentId: string,
     paymentAmount: number,
     method: "cash" | "transfer" | "deposit",
   ) {
-    // 1. Get current payment
-    const [currentPayment] = await db
-      .select({ payment: payments, tenant: tenants })
-      .from(payments)
-      .innerJoin(tenants, eq(payments.tenantId, tenants.id))
-      .where(eq(payments.id, paymentId));
-
+    const currentPayment = await this.getPaymentRowForOwner(
+      ownerId,
+      paymentId,
+    );
     if (!currentPayment) throw new Error("Payment not found");
 
     const amount = Number(currentPayment.payment.amount);
@@ -175,13 +194,11 @@ export class PaymentsService {
     return updatedPayment;
   }
 
-  async annulPayment(paymentId: string) {
-    const [currentPayment] = await db
-      .select({ payment: payments, tenant: tenants })
-      .from(payments)
-      .innerJoin(tenants, eq(payments.tenantId, tenants.id))
-      .where(eq(payments.id, paymentId));
-
+  async annulPayment(ownerId: string, paymentId: string) {
+    const currentPayment = await this.getPaymentRowForOwner(
+      ownerId,
+      paymentId,
+    );
     if (!currentPayment) throw new Error("Payment not found");
 
     const [annulledPayment] = await db
