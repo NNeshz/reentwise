@@ -13,6 +13,7 @@ import {
   isNull,
   desc,
 } from "@reentwise/database";
+import { emailService } from "@reentwise/api/src/modules/email/email.service";
 
 /** Obtiene el día de pago real para un mes. month: 1-12 (enero=1, dic=12) */
 export function getPaymentDateForMonth(
@@ -27,6 +28,42 @@ export function getPaymentDateForMonth(
 }
 
 export class TenantsService {
+  private async sendTenantCreatedEmailSafe(input: {
+    tenantEmail: string;
+    tenantName: string;
+    paymentDay: number;
+    roomNumber?: string | null;
+  }) {
+    try {
+      const paymentDayLabel =
+        input.paymentDay === 0 ? "ultimo dia de cada mes" : `dia ${input.paymentDay} de cada mes`;
+      const roomLabel = input.roomNumber ? `Cuarto ${input.roomNumber}` : "sin cuarto asignado";
+
+      const response = await emailService.sendHtml({
+        to: input.tenantEmail,
+        subject: "Bienvenido a Reentwise",
+        html: `
+          <h2>Hola ${input.tenantName}, bienvenido(a) a Reentwise</h2>
+          <p>Tu registro fue creado correctamente por el owner.</p>
+          <p><strong>Cuarto:</strong> ${roomLabel}</p>
+          <p><strong>Fecha de pago:</strong> ${paymentDayLabel}</p>
+          <p>Si tienes dudas sobre tu pago, responde a este correo.</p>
+        `,
+        text: `Hola ${input.tenantName}, tu registro en Reentwise fue creado. ${roomLabel}. Fecha de pago: ${paymentDayLabel}.`,
+        tags: [
+          { name: "type", value: "tenant_created" },
+          { name: "module", value: "tenants" },
+        ],
+      });
+
+      if (response.error) {
+        console.error("[Email][Tenants] Error sending welcome email:", response.error);
+      }
+    } catch (error) {
+      console.error("[Email][Tenants] Unexpected error sending welcome email:", error);
+    }
+  }
+
   async getTenants(
     ownerId: string,
     query: {
@@ -213,6 +250,15 @@ export class TenantsService {
         throw new Error("Failed to create tenant");
       }
 
+      const createdTenant = tenantResult[0];
+      if (createdTenant?.email) {
+        await this.sendTenantCreatedEmailSafe({
+          tenantEmail: createdTenant.email,
+          tenantName: createdTenant.name,
+          paymentDay: createdTenant.paymentDay,
+        });
+      }
+
       return tenantResult;
     } catch (error) {
       return {
@@ -310,6 +356,18 @@ export class TenantsService {
         console.log("WhatsApp call" + tenantOwnerId);
       } catch (waError) {
          console.error("[WhatsApp] Error sending welcome message:", waError);
+      }
+
+      if (resultTenant?.email) {
+        const roomInfo = await db.query.rooms.findFirst({
+          where: eq(rooms.id, roomId),
+        });
+        await this.sendTenantCreatedEmailSafe({
+          tenantEmail: resultTenant.email,
+          tenantName: resultTenant.name,
+          paymentDay: resultTenant.paymentDay,
+          roomNumber: roomInfo?.roomNumber ?? null,
+        });
       }
 
       return resultTenant;

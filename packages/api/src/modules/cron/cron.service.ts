@@ -1,8 +1,38 @@
 import { db, eq, and } from "@reentwise/database";
 import { tenants, payments, rooms } from "@reentwise/database";
 import { getPaymentDateForMonth } from "../tenants/tenants.service";
+import { emailService } from "@reentwise/api/src/modules/email/email.service";
 
 export class CronService {
+  private async sendCronEmailSafe(input: {
+    tenantEmail: string;
+    tenantName: string;
+    subject: string;
+    message: string;
+    emailType: "cron_reminder_t5" | "cron_due_today" | "cron_late_t2";
+  }) {
+    try {
+      const response = await emailService.sendHtml({
+        to: input.tenantEmail,
+        subject: input.subject,
+        html: `
+          <h2>Hola ${input.tenantName}</h2>
+          <p>${input.message}</p>
+          <p>Mensaje automatico enviado por Reentwise.</p>
+        `,
+        text: `Hola ${input.tenantName}. ${input.message}`,
+        tags: [
+          { name: "type", value: input.emailType },
+          { name: "module", value: "cron" },
+        ],
+      });
+      if (response.error) {
+        console.error("[Email][Cron] Error sending cron email:", response.error);
+      }
+    } catch (error) {
+      console.error("[Email][Cron] Unexpected error sending cron email:", error);
+    }
+  }
   
   // Función auxiliar para saber cuántos días exactos de diferencia hay
   private getDaysDiff(targetDate: Date, today: Date): number {
@@ -80,6 +110,15 @@ export class CronService {
           tenant.whatsapp,
           `🗓️ *Aviso de reentwise:* Hola ${tenant.name}, te recordamos que en 5 días se vence tu pago de renta por $${room.price}.`
         );
+        if (tenant.email) {
+          await this.sendCronEmailSafe({
+            tenantEmail: tenant.email,
+            tenantName: tenant.name,
+            subject: "Recordatorio de renta (faltan 5 dias)",
+            message: `Te recordamos que en 5 dias vence tu pago de renta por $${room.price}.`,
+            emailType: "cron_reminder_t5",
+          });
+        }
         logs.push(`[T-5] Recordatorio enviado a ${tenant.name}`);
       }
     }
@@ -101,6 +140,15 @@ export class CronService {
           tenant.whatsapp,
           `🚨 *Aviso de reentwise:* Hola ${tenant.name}, hoy es tu fecha límite para pagar tu renta de $${room.price}. Por favor, realiza tu pago para evitar recargos.`
         );
+        if (tenant.email) {
+          await this.sendCronEmailSafe({
+            tenantEmail: tenant.email,
+            tenantName: tenant.name,
+            subject: "Tu renta vence hoy",
+            message: `Hoy es tu fecha limite para pagar tu renta de $${room.price}. Por favor realiza tu pago para evitar recargos.`,
+            emailType: "cron_due_today",
+          });
+        }
         logs.push(`[T=0] Cobro generado y límite enviado a ${tenant.name}`);
       }
     }
@@ -120,6 +168,15 @@ export class CronService {
           tenant.whatsapp,
           `⚠️ *Aviso Importante:* Hola ${tenant.name}, nuestro sistema detecta que tu pago de renta tiene 2 días de atraso. Por favor, regulariza tu situación lo antes posible.`
         );
+        if (tenant.email) {
+          await this.sendCronEmailSafe({
+            tenantEmail: tenant.email,
+            tenantName: tenant.name,
+            subject: "Pago atrasado (2 dias)",
+            message: "Detectamos que tu pago de renta tiene 2 dias de atraso. Por favor regulariza tu situacion lo antes posible.",
+            emailType: "cron_late_t2",
+          });
+        }
         logs.push(`[T+2] Aviso de atraso enviado a ${tenant.name}`);
       }
     }

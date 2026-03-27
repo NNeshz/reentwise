@@ -9,11 +9,52 @@ import {
   tenants,
   rooms,
 } from "@reentwise/database";
+import { emailService } from "@reentwise/api/src/modules/email/email.service";
 
 type PaymentStatusFilter = "pending" | "partial" | "paid";
 
 export class PaymentsService {
   constructor() {}
+
+  private async sendPaymentRegisteredEmailSafe(input: {
+    tenantEmail: string;
+    tenantName: string;
+    paymentId: string;
+    paymentAmount: number;
+    totalAmount: number;
+    newAmountPaid: number;
+    status: "pending" | "partial" | "paid" | "late" | "annulled";
+    method: "cash" | "transfer" | "deposit";
+    month: number;
+    year: number;
+  }) {
+    try {
+      const response = await emailService.sendHtml({
+        to: input.tenantEmail,
+        subject: "Pago registrado en Reentwise",
+        html: `
+          <h2>Hola ${input.tenantName}</h2>
+          <p>Se registro un pago/abono en tu cuenta.</p>
+          <p><strong>Periodo:</strong> ${input.month}/${input.year}</p>
+          <p><strong>Monto abonado:</strong> $${input.paymentAmount.toFixed(2)}</p>
+          <p><strong>Total pagado acumulado:</strong> $${input.newAmountPaid.toFixed(2)} / $${input.totalAmount.toFixed(2)}</p>
+          <p><strong>Estatus:</strong> ${input.status}</p>
+          <p><strong>Metodo:</strong> ${input.method}</p>
+          <p><strong>Referencia:</strong> ${input.paymentId}</p>
+        `,
+        text: `Hola ${input.tenantName}. Se registro un pago/abono para ${input.month}/${input.year}. Abono: $${input.paymentAmount.toFixed(2)}. Acumulado: $${input.newAmountPaid.toFixed(2)} de $${input.totalAmount.toFixed(2)}. Estatus: ${input.status}. Metodo: ${input.method}. Ref: ${input.paymentId}.`,
+        tags: [
+          { name: "type", value: "payment_registered" },
+          { name: "module", value: "payments" },
+        ],
+      });
+      if (response.error) {
+        console.error("[Email][Payments] Error sending payment email:", response.error);
+      }
+    } catch (error) {
+      console.error("[Email][Payments] Unexpected error sending payment email:", error);
+    }
+  }
 
   async getPayments(
     month: number,
@@ -94,6 +135,8 @@ export class PaymentsService {
       .where(eq(payments.id, paymentId))
       .returning();
 
+    if (!updatedPayment) throw new Error("Failed to update payment");
+
     // 2. WhatsApp Evolution API call
     try {
       const tenantOwnerId = currentPayment.tenant.ownerId;
@@ -101,6 +144,21 @@ export class PaymentsService {
       console.log("WhatsApp call" + tenantOwnerId);
     } catch (waError) {
       console.error("[WhatsApp] Error sending receipt:", waError);
+    }
+
+    if (currentPayment.tenant.email) {
+      await this.sendPaymentRegisteredEmailSafe({
+        tenantEmail: currentPayment.tenant.email,
+        tenantName: currentPayment.tenant.name,
+        paymentId: updatedPayment.id,
+        paymentAmount,
+        totalAmount: amount,
+        newAmountPaid,
+        status: newStatus,
+        method,
+        month: updatedPayment.month,
+        year: updatedPayment.year,
+      });
     }
 
     return updatedPayment;
