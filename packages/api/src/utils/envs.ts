@@ -13,6 +13,8 @@ const envSchema = t.Object({
   GOOGLE_CLIENT_SECRET: t.String(),
   WHATSAPP_API_URL: t.Optional(t.String()),
   WHATSAPP_API_KEY: t.Optional(t.String()),
+  RESEND_API_KEY: t.Optional(t.String()),
+  RESEND_FROM: t.Optional(t.String()),
 });
 
 type EnvSchema = typeof envSchema.static;
@@ -50,6 +52,8 @@ declare global {
       GOOGLE_CLIENT_SECRET: string;
       WHATSAPP_API_URL?: string;
       WHATSAPP_API_KEY?: string;
+      RESEND_API_KEY?: string;
+      RESEND_FROM?: string;
     }
   }
 }

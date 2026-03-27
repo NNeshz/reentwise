@@ -61,6 +61,7 @@ export const tenants = pgTable("tenants", {
   roomId: uuid("room_id").references(() => rooms.id),
   name: text("name").notNull(),
   whatsapp: text("whatsapp").notNull(),
+  email: text("email").notNull(),
   paymentDay: integer("payment_day").notNull(),
   deposit: decimal("deposit", { precision: 10, scale: 2 }).default("0.00"),
   startDate: timestamp("start_date").defaultNow(),

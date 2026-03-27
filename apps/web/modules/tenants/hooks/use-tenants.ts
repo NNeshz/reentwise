@@ -40,6 +40,7 @@ export function useCreateTenant(roomId: string) {
     mutationFn: (data: {
       name: string;
       whatsapp: string;
+      email: string;
       paymentDay: number;
       notes?: string;
     }) => tenantsService.createTenant(roomId, data),
@@ -63,6 +64,7 @@ export function useCreateAndAssignTenant(roomId: string) {
     mutationFn: (data: {
       name: string;
       whatsapp: string;
+      email: string;
       paymentDay: number;
       notes?: string;
       firstMonthRent?: number;
@@ -89,6 +91,7 @@ export function useUpdateTenant(roomId: string) {
       tenantId: string;
       name?: string;
       whatsapp?: string;
+      email?: string;
       paymentDay?: number;
       notes?: string;
     }) => tenantsService.updateTenant(roomId, data.tenantId, data),

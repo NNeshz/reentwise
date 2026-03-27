@@ -99,6 +99,10 @@ const formSchema = z.object({
     .string()
     .min(3, "El nombre debe tener al menos 3 caracteres.")
     .max(100, "El nombre no puede exceder 100 caracteres."),
+  email: z
+    .string()
+    .min(1, "El correo electrónico es obligatorio.")
+    .email("Ingresa un correo electrónico válido."),
   countryCode: z.string().min(1, "Selecciona el código de país."),
   phone: z
     .string()
@@ -157,6 +161,7 @@ export function TenantsCreateAndAssignForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      email: "",
       countryCode: "52",
       phone: "",
       paymentDay: 1,
@@ -210,6 +215,7 @@ export function TenantsCreateAndAssignForm({
     const whatsapp = values.countryCode + values.phone.replace(/\D/g, "");
     await createAndAssignTenant.mutateAsync({
       name: values.name.trim(),
+      email: values.email.trim(),
       whatsapp,
       paymentDay: values.paymentDay,
       notes: values.notes?.trim() || undefined,
@@ -241,6 +247,25 @@ export function TenantsCreateAndAssignForm({
                   <Input
                     placeholder="Juan Pérez García"
                     autoComplete="name"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Correo electrónico</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="inquilino@correo.com"
+                    autoComplete="email"
                     {...field}
                   />
                 </FormControl>

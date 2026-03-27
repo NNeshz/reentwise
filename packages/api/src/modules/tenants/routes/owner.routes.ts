@@ -83,6 +83,7 @@ export const ownerTenantsRoutes = new Elysia({
       body: t.Object({
         name: t.String(),
         whatsapp: t.String(),
+        email: t.String(),
         paymentDay: t.Number(),
         notes: t.Optional(t.String()),
       }),
@@ -101,6 +102,7 @@ export const ownerTenantsRoutes = new Elysia({
       body: t.Object({
         name: t.String(),
         whatsapp: t.String(),
+        email: t.String(),
         paymentDay: t.Number(),
         notes: t.Optional(t.String()),
         firstMonthRent: t.Optional(t.Number()),
@@ -164,6 +166,7 @@ export const ownerTenantsRoutes = new Elysia({
       body: t.Object({
         name: t.Optional(t.String()),
         whatsapp: t.Optional(t.String()),
+        email: t.Optional(t.String()),
         paymentDay: t.Optional(t.Number()),
         notes: t.Optional(t.String()),
       }),

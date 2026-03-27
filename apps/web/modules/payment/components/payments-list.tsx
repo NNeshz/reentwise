@@ -6,6 +6,7 @@ import {
   IconBrandWhatsapp,
   IconCash,
 } from "@tabler/icons-react";
+import { Card } from "@reentwise/ui/src/components/card";
 import { Badge } from "@reentwise/ui/src/components/badge";
 import { Button } from "@reentwise/ui/src/components/button";
 import { Skeleton } from "@reentwise/ui/src/components/skeleton";
@@ -35,12 +36,12 @@ type PaymentRow = {
   } | null;
 };
 
-function StatusBadge({ 
+function StatusBadge({
   payment,
   tenant,
   month,
   year,
-}: { 
+}: {
   payment: PaymentRow["payment"];
   tenant: PaymentRow["tenant"];
   month: number;
@@ -48,9 +49,11 @@ function StatusBadge({
 }) {
   if (!payment) {
     const paymentDay = tenant.paymentDay;
-    
-    // The next payment is going to be generated the following month from the current filter
-    const nextMonthDate = new Date(year, month, paymentDay === 0 ? 0 : paymentDay);
+    const nextMonthDate = new Date(
+      year,
+      month,
+      paymentDay === 0 ? 0 : paymentDay,
+    );
     if (paymentDay === 0) {
       nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
       nextMonthDate.setDate(0);
@@ -61,11 +64,9 @@ function StatusBadge({
       month: "long",
     }).format(nextMonthDate);
 
-    const nextPaymentText = `Próximo cobro: ${formattedDate}`;
-
     return (
       <Badge className="border border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-        {nextPaymentText}
+        Próximo cobro: {formattedDate}
       </Badge>
     );
   }
@@ -96,7 +97,7 @@ function StatusBadge({
   );
 }
 
-function TenantCard({
+function PaymentCard({
   row,
   month,
   year,
@@ -112,99 +113,127 @@ function TenantCard({
     payment && payment.status !== "paid" && payment.status !== "annulled";
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent/40 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">{tenant.name}</span>
-          <StatusBadge payment={payment} tenant={tenant} month={month} year={year} />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {room && (
-            <span className="flex items-center gap-1">
-              <IconBuildingSkyscraper className="size-3.5" />
-              Hab. {room.roomNumber}
+    <Card className="overflow-hidden p-0 transition-colors">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">
+              {tenant.name}
             </span>
-          )}
-          <span className="flex items-center gap-1">
-            <IconBrandWhatsapp className="size-3.5" />
-            {tenant.whatsapp}
-          </span>
-        </div>
-      </div>
-
-      {hasPendingDebt && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full sm:w-auto"
-          onClick={() => onRegisterPayment(row)}
-        >
-          <IconCash className="size-4" />
-          Registrar Pago
-        </Button>
-      )}
-    </div>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between rounded-xl border p-4"
-        >
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-3 w-56" />
+            <StatusBadge
+              payment={payment}
+              tenant={tenant}
+              month={month}
+              year={year}
+            />
           </div>
-          <Skeleton className="h-8 w-28" />
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {room && (
+              <span className="flex items-center gap-1">
+                <IconBuildingSkyscraper className="size-3.5" />
+                Hab. {room.roomNumber}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <IconBrandWhatsapp className="size-3.5" />
+              {tenant.whatsapp}
+            </span>
+          </div>
         </div>
-      ))}
-    </div>
+
+        {hasPendingDebt && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => onRegisterPayment(row)}
+          >
+            <IconCash className="size-4" />
+            Registrar Pago
+          </Button>
+        )}
+      </div>
+    </Card>
   );
 }
 
-export function PaymentsGrid() {
+function PaymentCardSkeleton() {
+  return (
+    <Card className="p-0">
+      <div className="flex items-center justify-between p-4">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+        <Skeleton className="h-8 w-28" />
+      </div>
+    </Card>
+  );
+}
+
+export function PaymentsList() {
   const { data, isLoading, isError, refetch } = usePayments();
   const { month, year } = usePaymentsFilters();
   const [selectedRow, setSelectedRow] = React.useState<PaymentRow | null>(null);
 
-  if (isLoading) return <LoadingSkeleton />;
+  const rows = (Array.isArray(data) ? data : []) as PaymentRow[];
 
-  if (isError) {
+  if (isLoading) {
     return (
-      <div className="flex h-[40vh] items-center justify-center text-sm text-destructive">
-        Error al cargar los pagos. Intenta de nuevo.
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <PaymentCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
 
-  const rows = (Array.isArray(data) ? data : []) as PaymentRow[];
+  if (isError) {
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+        <p className="text-sm font-medium text-destructive">
+          Error al cargar los pagos
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Intenta de nuevo más tarde
+        </p>
+      </div>
+    );
+  }
 
   if (rows.length === 0) {
     return (
-      <div className="flex h-[40vh] items-center justify-center text-lg text-muted-foreground">
-        No se encontraron inquilinos
+      <div className="rounded-xl border border-dashed py-16 text-center">
+        <p className="text-sm font-medium text-muted-foreground">
+          No hay pagos que coincidan con los filtros
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Prueba ajustar la búsqueda o los filtros
+        </p>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="space-y-3">
-        {rows.map((row) => (
-          <TenantCard
-            key={row.tenant.id}
-            row={row}
-            month={month}
-            year={year}
-            onRegisterPayment={setSelectedRow}
-          />
-        ))}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          {rows.length} inquilino{rows.length !== 1 ? "s" : ""}
+        </span>
       </div>
+      <ul className="space-y-3" role="list">
+        {rows.map((row) => (
+          <li key={row.tenant.id}>
+            <PaymentCard
+              row={row}
+              month={month}
+              year={year}
+              onRegisterPayment={setSelectedRow}
+            />
+          </li>
+        ))}
+      </ul>
 
       {selectedRow?.payment && (
         <PaymentModal
@@ -217,6 +246,6 @@ export function PaymentsGrid() {
           amountPaid={Number(selectedRow.payment.amountPaid ?? 0)}
         />
       )}
-    </>
+    </div>
   );
 }

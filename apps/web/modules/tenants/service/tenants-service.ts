@@ -33,6 +33,7 @@ export class TenantsService {
     data: {
       name: string;
       whatsapp: string;
+      email: string;
       paymentDay: number;
       notes?: string;
     },
@@ -51,6 +52,7 @@ export class TenantsService {
     data: {
       name: string;
       whatsapp: string;
+      email: string;
       paymentDay: number;
       notes?: string;
     },
@@ -72,6 +74,7 @@ export class TenantsService {
     data: {
       name?: string;
       whatsapp?: string;
+      email?: string;
       paymentDay?: number;
       notes?: string;
     },

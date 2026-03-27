@@ -1,13 +1,13 @@
 import { PaymentsHeader } from "@/modules/payment/components/payments-header";
-import { PaymentsToolbar } from "@/modules/payment/components/payments-toolbar";
-import { PaymentsGrid } from "@/modules/payment/components/payments-grid";
+import { PaymentsFilters } from "@/modules/payment/components/payments-filters";
+import { PaymentsList } from "@/modules/payment/components/payments-list";
 
 export default function PaymentsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PaymentsHeader />
-      <PaymentsToolbar />
-      <PaymentsGrid />
+      <PaymentsFilters />
+      <PaymentsList />
     </div>
   );
 }

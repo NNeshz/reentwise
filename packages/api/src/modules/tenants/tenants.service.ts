@@ -75,6 +75,7 @@ export class TenantsService {
           id: tenants.id,
           name: tenants.name,
           whatsapp: tenants.whatsapp,
+          email: tenants.email,
           paymentDay: tenants.paymentDay,
           notes: tenants.notes,
           roomId: tenants.roomId,
@@ -175,6 +176,7 @@ export class TenantsService {
     body: {
       name: string;
       whatsapp: string;
+      email: string;
       paymentDay: number;
       notes?: string;
     },
@@ -200,6 +202,7 @@ export class TenantsService {
           roomId,
           name: body.name,
           whatsapp: body.whatsapp,
+          email: body.email,
           paymentDay: body.paymentDay,
           notes: body.notes,
         })
@@ -224,6 +227,7 @@ export class TenantsService {
     body: {
       name: string;
       whatsapp: string;
+      email: string;
       paymentDay: number;
       notes?: string;
       firstMonthRent?: number; // 👈 Nuevo: Por si entra a mitad de mes y paga menos
@@ -262,6 +266,7 @@ export class TenantsService {
             roomId,
             name: body.name,
             whatsapp: body.whatsapp,
+            email: body.email,
             paymentDay: body.paymentDay,
             deposit: body.deposit?.toString() ?? "0.00",
             notes: body.notes,
@@ -392,6 +397,7 @@ export class TenantsService {
     body: {
       name?: string;
       whatsapp?: string;
+      email?: string;
       paymentDay?: number;
       notes?: string;
     },
@@ -410,6 +416,7 @@ export class TenantsService {
         .set({
           name: body.name,
           whatsapp: body.whatsapp,
+          email: body.email,
           paymentDay: body.paymentDay,
           notes: body.notes,
         })
