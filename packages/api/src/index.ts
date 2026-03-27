@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import "./utils/envs";
+import { env } from "@reentwise/api/src/utils/envs";
 
 import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
 
@@ -12,13 +13,18 @@ import { ownerTenantsRoutes } from "@reentwise/api/src/modules/tenants/tenants.r
 import { ownerPaymentsRoutes } from "@reentwise/api/src/modules/payments/payments.routes";
 import { cronPaymentsRoutes } from "@reentwise/api/src/modules/cron/cron.routes";
 
+const allowedOrigins = [
+  env.NEXT_PUBLIC_FRONTEND_URL,
+  env.NEXT_PUBLIC_FRONTEND_WWW,
+].filter((origin): origin is string => Boolean(origin));
+
 export const api = new Elysia({
   prefix: "/api",
 })
   .use(betterAuthPlugin)
   .use(
     cors({
-      origin: process.env.NEXT_PUBLIC_FRONTEND_URL,
+      origin: allowedOrigins,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       credentials: true,
       allowedHeaders: ["Authorization", "Content-Type"],

@@ -5,6 +5,11 @@ import { openAPI } from "better-auth/plugins";
 import { db } from "@reentwise/database";
 
 const isProduction = process.env.NODE_ENV === "production";
+const trustedOrigins = [
+  process.env.NEXT_PUBLIC_FRONTEND_URL,
+  process.env.NEXT_PUBLIC_FRONTEND_WWW,
+  process.env.NEXT_PUBLIC_BACKEND_URL,
+].filter(Boolean) as string[];
 
 export const auth = betterAuth({
   appName: "reentwise",
@@ -13,10 +18,7 @@ export const auth = betterAuth({
   }),
   secret: process.env.AUTH_SECRET,
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
-  trustedOrigins: [
-    process.env.NEXT_PUBLIC_FRONTEND_URL as string,
-    process.env.NEXT_PUBLIC_BACKEND_URL as string,
-  ],
+  trustedOrigins,
   emailAndPassword: {
     enabled: false,
   },

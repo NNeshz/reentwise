@@ -9,6 +9,8 @@ const envSchema = t.Object({
   DATABASE_URL: t.String(),
   NEXT_PUBLIC_BACKEND_URL: t.String(),
   NEXT_PUBLIC_FRONTEND_URL: t.String(),
+  NEXT_PUBLIC_FRONTEND_WWW: t.Optional(t.String()),
+  NEXT_PUBLIC_REENTWISE: t.Optional(t.String()),
   GOOGLE_CLIENT_ID: t.String(),
   GOOGLE_CLIENT_SECRET: t.String(),
   WHATSAPP_API_URL: t.Optional(t.String()),
@@ -48,6 +50,8 @@ declare global {
       DATABASE_URL: string;
       NEXT_PUBLIC_BACKEND_URL: string;
       NEXT_PUBLIC_FRONTEND_URL: string;
+      NEXT_PUBLIC_FRONTEND_WWW?: string;
+      NEXT_PUBLIC_REENTWISE?: string;
       GOOGLE_CLIENT_ID: string;
       GOOGLE_CLIENT_SECRET: string;
       WHATSAPP_API_URL?: string;
