@@ -12,6 +12,12 @@ export const user = pgTable("user", {
   phoneNumber: text("phone_number"), // El número del dueño para soporte
   whatsappInstance: text("whatsapp_instance"), // Guardará "reentwise_user_123" por ejemplo
   whatsappStatus: text("whatsapp_status").default("DISCONNECTED"), // CONNECTED, DISCONNECTED, PENDING
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  /** trialing | active | past_due | canceled */
+  subscriptionStatus: text("subscription_status"),
+  /** Básico | Pro | Patrón — límites en frontend */
+  planType: text("plan_type"),
 });
 
 export const session = pgTable("session", {

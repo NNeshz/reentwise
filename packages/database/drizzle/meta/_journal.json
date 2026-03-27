@@ -15,6 +15,13 @@
       "when": 1743084000000,
       "tag": "0001_audits",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743085000000,
+      "tag": "0002_user_stripe",
+      "breakpoints": true
     }
   ]
 }

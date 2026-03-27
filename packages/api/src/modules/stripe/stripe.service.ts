@@ -1,0 +1,197 @@
+import Stripe from "stripe";
+import { db, eq, user } from "@reentwise/database";
+import { env } from "@reentwise/api/src/utils/envs";
+
+/** Valores persistidos en `user.subscription_status` */
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled";
+
+const API_VERSION = "2026-03-25.dahlia" as const;
+
+let stripeSingleton: Stripe | null = null;
+
+function getStripe(): Stripe {
+  const key = env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY no está configurada");
+  }
+  if (!stripeSingleton) {
+    stripeSingleton = new Stripe(key, { apiVersion: API_VERSION });
+  }
+  return stripeSingleton;
+}
+
+export function constructStripeWebhookEvent(
+  rawBody: string,
+  signature: string,
+  endpointSecret: string,
+): Stripe.Event {
+  return getStripe().webhooks.constructEvent(
+    rawBody,
+    signature,
+    endpointSecret,
+  );
+}
+
+function mapStripeSubscriptionStatus(
+  status: Stripe.Subscription.Status,
+): SubscriptionStatus {
+  switch (status) {
+    case "trialing":
+      return "trialing";
+    case "active":
+      return "active";
+    case "past_due":
+      return "past_due";
+    case "canceled":
+      return "canceled";
+    case "unpaid":
+      return "past_due";
+    case "incomplete":
+    case "paused":
+      return "trialing";
+    case "incomplete_expired":
+      return "canceled";
+    default:
+      return "canceled";
+  }
+}
+
+function planTypeFromPriceId(priceId: string | undefined): string | null {
+  if (!priceId) return null;
+  if (priceId === env.STRIPE_PRICE_BASICO) return "Básico";
+  if (priceId === env.STRIPE_PRICE_PRO) return "Pro";
+  if (priceId === env.STRIPE_PRICE_PATRON) return "Patrón";
+  return null;
+}
+
+export class StripeService {
+  async createCheckoutSession(input: { userId: string; priceId: string }) {
+    const stripe = getStripe();
+    const baseUrl = env.NEXT_PUBLIC_FRONTEND_URL.replace(/\/$/, "");
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [{ price: input.priceId, quantity: 1 }],
+      mode: "subscription",
+      subscription_data: {
+        trial_period_days: 30,
+      },
+      client_reference_id: input.userId,
+      success_url: `${baseUrl}/exito`,
+      cancel_url: `${baseUrl}/cancelado`,
+    });
+
+    if (!session.url) {
+      throw new Error("Stripe no devolvió URL de sesión");
+    }
+
+    return { url: session.url };
+  }
+
+  async handleWebhookEvent(event: Stripe.Event) {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await this.onCheckoutSessionCompleted(session);
+        break;
+      }
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await this.onSubscriptionUpdated(subscription);
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await this.onSubscriptionDeleted(subscription);
+        break;
+      }
+      default:
+        console.log(`[Stripe] Evento no manejado: ${event.type}`);
+    }
+  }
+
+  private async onCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+    const userId = session.client_reference_id;
+    if (!userId) {
+      console.warn("[Stripe] checkout.session.completed sin client_reference_id");
+      return;
+    }
+
+    const customerRaw = session.customer;
+    const subscriptionRaw = session.subscription;
+    const customerId =
+      typeof customerRaw === "string" ? customerRaw : customerRaw?.id;
+    const subscriptionId =
+      typeof subscriptionRaw === "string"
+        ? subscriptionRaw
+        : subscriptionRaw?.id;
+
+    if (!customerId || !subscriptionId) {
+      console.warn("[Stripe] checkout sin customer o subscription");
+      return;
+    }
+
+    const stripe = getStripe();
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ["items.data.price"],
+    });
+
+    const priceId = subscription.items.data[0]?.price?.id;
+    const plan = planTypeFromPriceId(priceId);
+
+    await db
+      .update(user)
+      .set({
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscriptionId,
+        subscriptionStatus: mapStripeSubscriptionStatus(subscription.status),
+        ...(plan ? { planType: plan } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, userId));
+  }
+
+  private async onSubscriptionUpdated(subscription: Stripe.Subscription) {
+    const priceId = subscription.items.data[0]?.price?.id;
+    const plan = planTypeFromPriceId(priceId);
+
+    const [row] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.stripeSubscriptionId, subscription.id))
+      .limit(1);
+
+    if (!row) {
+      console.warn(
+        `[Stripe] subscription.updated sin usuario local: ${subscription.id}`,
+      );
+      return;
+    }
+
+    await db
+      .update(user)
+      .set({
+        subscriptionStatus: mapStripeSubscriptionStatus(subscription.status),
+        ...(plan ? { planType: plan } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, row.id));
+  }
+
+  private async onSubscriptionDeleted(subscription: Stripe.Subscription) {
+    await db
+      .update(user)
+      .set({
+        stripeSubscriptionId: null,
+        subscriptionStatus: "canceled",
+        updatedAt: new Date(),
+      })
+      .where(eq(user.stripeSubscriptionId, subscription.id));
+  }
+}
+
+export const stripeService = new StripeService();

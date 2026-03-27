@@ -80,5 +80,16 @@ export const pricingPlans: PricingPlan[] = [
 
 export const pricingPlansCta = {
   label: "Comenzar",
-  href: "/auth" as const,
+  /** Tras login, volver a precios para completar el checkout */
+  href: "/auth?next=/pricing" as const,
 };
+
+/** Misma convención que `STRIPE_PRICE_*` en el backend (IDs públicos de Stripe). */
+export function getStripePriceIdForPlan(id: PricingPlanId): string | undefined {
+  const map: Record<PricingPlanId, string | undefined> = {
+    basic: process.env.NEXT_PUBLIC_STRIPE_PRICE_BASICO,
+    pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO,
+    patron: process.env.NEXT_PUBLIC_STRIPE_PRICE_PATRON,
+  };
+  return map[id];
+}

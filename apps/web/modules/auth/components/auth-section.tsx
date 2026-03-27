@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { AuthForm } from "./auth-form";
 
-export function AuthSection() {
+export function AuthSection({ callbackNext }: { callbackNext?: string }) {
   return (
     <section className="relative w-full h-screen min-h-[600px] flex flex-col justify-center items-center px-4 overflow-hidden">
       {/* Background Image */}
@@ -27,7 +27,7 @@ export function AuthSection() {
       </div>
 
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center">
-        <AuthForm />
+        <AuthForm callbackNext={callbackNext} />
       </div>
     </section>
   );

@@ -10,10 +10,18 @@ import {
 import { IconBrandGoogleFilled } from "@tabler/icons-react";
 import { signInWithGoogle } from "@/utils/auth-connection";
 
+function buildGoogleCallbackUrl(next?: string): string {
+  const base = process.env.NEXT_PUBLIC_FRONTEND_URL!.replace(/\/$/, "");
+  const path =
+    next && next.startsWith("/") ? next : "/dashboard";
+  return `${base}${path}`;
+}
+
 export function AuthForm({
   className,
+  callbackNext,
   ...props
-}: React.ComponentProps<"form">) {
+}: React.ComponentProps<"form"> & { callbackNext?: string }) {
   return (
     <form
       className={cn(
@@ -36,7 +44,7 @@ export function AuthForm({
             variant="outline"
             type="button"
             className="w-full h-12 rounded-full font-medium"
-            onClick={signInWithGoogle}
+            onClick={() => signInWithGoogle(buildGoogleCallbackUrl(callbackNext))}
           >
             <IconBrandGoogleFilled className="w-5 h-5 mr-2 text-foreground" />
             Iniciar sesión con Google

@@ -1,12 +1,14 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import { m } from "framer-motion";
 import { IconCheck, IconMinus } from "@tabler/icons-react";
 import { Button } from "@reentwise/ui/src/components/button";
 import { cn } from "@reentwise/ui/src/lib/utils";
+import { toast } from "sonner";
 import type { PricingPlan } from "../data";
-import { pricingPlansCta } from "../data";
+import { getStripePriceIdForPlan, pricingPlansCta } from "../data";
+import { startStripeCheckout } from "../service/pricing-checkout";
 
 const priceFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -21,6 +23,28 @@ type PricingCardProps = {
 
 export function PricingCard({ plan, index }: PricingCardProps) {
   const featured = Boolean(plan.recommended);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const priceId = getStripePriceIdForPlan(plan.id);
+
+  async function handleCheckout() {
+    if (!priceId) {
+      toast.error(
+        "Falta configurar los price IDs de Stripe (NEXT_PUBLIC_STRIPE_PRICE_* en .env).",
+      );
+      return;
+    }
+    setCheckoutLoading(true);
+    try {
+      await startStripeCheckout(priceId);
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "No se pudo iniciar el checkout",
+      );
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
 
   return (
     <m.div
@@ -102,14 +126,21 @@ export function PricingCard({ plan, index }: PricingCardProps) {
 
       <div className="mt-8">
         <Button
+          type="button"
           className={cn(
             "h-11 w-full rounded-full font-semibold",
             featured && "bg-primary text-primary-foreground hover:bg-primary/90",
           )}
           variant={featured ? "default" : "outline"}
-          asChild
+          disabled={checkoutLoading || !priceId}
+          title={
+            !priceId
+              ? "Configura NEXT_PUBLIC_STRIPE_PRICE_BASICO, PRO y PATRON en .env"
+              : undefined
+          }
+          onClick={handleCheckout}
         >
-          <Link href={pricingPlansCta.href}>{pricingPlansCta.label}</Link>
+          {checkoutLoading ? "Redirigiendo…" : pricingPlansCta.label}
         </Button>
       </div>
     </m.div>

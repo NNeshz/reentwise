@@ -5,5 +5,6 @@ export {
   pricingPlans,
   pricingHeroContent,
   pricingPlansCta,
+  getStripePriceIdForPlan,
 } from "./data";
 export type { PricingPlan, PricingPlanId } from "./data";
