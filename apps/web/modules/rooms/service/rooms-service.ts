@@ -1,7 +1,7 @@
 import { apiClient } from "@/utils/api-connection";
 import type { RoomStatus } from "@/modules/rooms/constants";
 
-export class RoomsService {
+class RoomsService {
   constructor() {}
 
   async getRoomsByPropertyId(propertyId: string) {

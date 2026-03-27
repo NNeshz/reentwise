@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useSyncExternalStore } from "react";
+import { m, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { IconMenu2, IconX } from "@tabler/icons-react";
@@ -17,29 +17,28 @@ const navLinks = [
   { name: "Precios", href: "#" },
 ];
 
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const { data: session } = authClient.useSession();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Use a slightly narrower max-width when scrolled for the desktop pill effect
   return (
     <>
-      <motion.header
+      <m.header
         className={cn(
           "fixed top-0 left-0 right-0 z-50 flex items-center justify-center pt-4 px-4 transition-all duration-300",
         )}
@@ -47,7 +46,7 @@ export function Navbar() {
         animate={{ y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <motion.nav
+        <m.nav
           className={cn(
             "flex items-center justify-between px-3 py-3 w-full rounded-full transition-all duration-300",
             isScrolled
@@ -56,7 +55,6 @@ export function Navbar() {
           )}
           layout
         >
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 z-50">
             <Image
               src="/logo.png"
@@ -65,10 +63,8 @@ export function Navbar() {
               height={24}
               className={cn(
                 "object-contain transition-all",
-                resolvedTheme === "dark"
-                  ? isScrolled || mobileMenuOpen
-                    ? "invert"
-                    : "invert"
+                mounted && resolvedTheme === "dark"
+                  ? "invert"
                   : isScrolled || mobileMenuOpen
                     ? ""
                     : "invert",
@@ -87,7 +83,6 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link
@@ -121,7 +116,6 @@ export function Navbar() {
             </Button>
           </div>
 
-          {/* Mobile Menu Toggle */}
           <button
             className="md:hidden z-50 p-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -134,13 +128,12 @@ export function Navbar() {
               />
             )}
           </button>
-        </motion.nav>
-      </motion.header>
+        </m.nav>
+      </m.header>
 
-      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -149,7 +142,7 @@ export function Navbar() {
           >
             <div className="flex flex-col gap-6 text-xl">
               {navLinks.map((link, i) => (
-                <motion.div
+                <m.div
                   key={link.name}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -162,11 +155,11 @@ export function Navbar() {
                   >
                     {link.name}
                   </Link>
-                </motion.div>
+                </m.div>
               ))}
             </div>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -177,8 +170,8 @@ export function Navbar() {
                   {session ? "Dashboard" : "Comenzar gratis"}
                 </Link>
               </Button>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
     </>

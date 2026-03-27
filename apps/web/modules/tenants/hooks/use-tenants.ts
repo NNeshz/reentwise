@@ -23,40 +23,6 @@ export const useTenantsQuery = () => {
   });
 };
 
-export const useTenants = (roomId: string) => {
-  return useQuery({
-    queryKey: [...TENANTS_KEY, roomId],
-    queryFn: () => tenantsService.getRoomTenants(roomId),
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
-    enabled: !!roomId,
-  });
-};
-
-export function useCreateTenant(roomId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: {
-      name: string;
-      whatsapp: string;
-      email: string;
-      paymentDay: number;
-      notes?: string;
-    }) => tenantsService.createTenant(roomId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["properties"] });
-      toast.success("Inquilino asignado correctamente");
-    },
-    onError: (error: Error) => {
-      toast.error("Error al asignar el inquilino");
-      console.error(error);
-    },
-  });
-}
-
 export function useCreateAndAssignTenant(roomId: string) {
   const queryClient = useQueryClient();
 
@@ -83,37 +49,14 @@ export function useCreateAndAssignTenant(roomId: string) {
   });
 }
 
-export function useUpdateTenant(roomId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: {
-      tenantId: string;
-      name?: string;
-      whatsapp?: string;
-      email?: string;
-      paymentDay?: number;
-      notes?: string;
-    }) => tenantsService.updateTenant(roomId, data.tenantId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...TENANTS_KEY, roomId] });
-      toast.success("Inquilino actualizado correctamente");
-    },
-    onError: (error: Error) => {
-      toast.error("Error al actualizar el inquilino");
-      console.error(error);
-    },
-  });
-}
-
-export function useDeleteTenant(roomId: string) {
+export function useDeleteTenant() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (tenantId: string) =>
-      tenantsService.deleteTenant(roomId, tenantId),
+      tenantsService.deleteTenantById(tenantId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...TENANTS_KEY, roomId] });
+      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       toast.success("Inquilino eliminado correctamente");
@@ -122,6 +65,14 @@ export function useDeleteTenant(roomId: string) {
       toast.error("Error al eliminar el inquilino");
       console.error(error);
     },
+  });
+}
+
+export function useTenantPayments(tenantId: string | null) {
+  return useQuery({
+    queryKey: [...TENANTS_KEY, "payments", tenantId],
+    queryFn: () => tenantsService.getPaymentsByTenant(tenantId!),
+    enabled: !!tenantId,
   });
 }
 
@@ -147,20 +98,20 @@ export function useReassignTenant(roomId: string) {
   });
 }
 
-export function useUnassignTenant(roomId: string) {
+export function useUnassignTenant() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (tenantId: string) =>
-      tenantsService.unassignTenant(roomId, tenantId),
+    mutationFn: (data: { roomId: string; tenantId: string }) =>
+      tenantsService.unassignTenant(data.roomId, data.tenantId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...TENANTS_KEY, roomId] });
+      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["properties"] });
-      toast.success("Inquilino desasignado correctamente");
+      toast.success("Inquilino desvinculado correctamente");
     },
     onError: (error: Error) => {
-      toast.error("Error al desasignar el inquilino");
+      toast.error("Error al desvincular el inquilino");
       console.error(error);
     },
   });

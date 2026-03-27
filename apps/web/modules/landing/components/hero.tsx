@@ -2,21 +2,20 @@
 
 import Image from "next/image";
 import { Button } from "@reentwise/ui/src/components/button";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export function Hero() {
   return (
     <section className="relative w-full h-screen min-h-[600px] flex flex-col justify-end pb-24 px-4 overflow-hidden">
-      {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
           src="/images/hero-bg.avif"
           alt="Modern real estate home"
           fill
           priority
+          sizes="100vw"
           className="object-cover object-center"
         />
-        {/* Subtle Noise Overlay */}
         <div
           className="absolute inset-0 mix-blend-overlay pointer-events-none opacity-40"
           style={{
@@ -24,12 +23,11 @@ export function Hero() {
             backgroundRepeat: "repeat",
           }}
         />
-        {/* Dark overlay for better text readability (reduced opacity) */}
         <div className="absolute inset-0 bg-black/20 bg-linear-to-t from-black/50 to-transparent pointer-events-none" />
       </div>
 
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center">
-        <motion.h1
+        <m.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -38,9 +36,9 @@ export function Hero() {
           Gestiona tus rentas
           <br />
           en piloto automático
-        </motion.h1>
+        </m.h1>
 
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
@@ -48,9 +46,9 @@ export function Hero() {
         >
           reentwise se encarga de los recordatorios de pago y recibos por WhatsApp
           para que tú solo te preocupes por ver crecer tu patrimonio.
-        </motion.p>
+        </m.p>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
@@ -68,7 +66,7 @@ export function Hero() {
           >
             Ver como funciona
           </Button>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

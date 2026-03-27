@@ -1,13 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export function About() {
   return (
     <section className="w-full bg-background py-24 px-4 min-h-[80vh] flex flex-col items-center justify-center">
       {/* Main Animated Statement */}
       <div className="w-full max-w-5xl mx-auto flex items-center justify-center text-center">
-        <motion.h2
+        <m.h2
           className="text-3xl md:text-4xl lg:text-5xl font-normal tracking-tight text-foreground leading-[1.2]"
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -16,7 +16,7 @@ export function About() {
         >
           Profesionaliza la renta de tus propiedades con automatización de
           cobranza por WhatsApp y control total de tus ingresos.
-        </motion.h2>
+        </m.h2>
       </div>
     </section>
   );

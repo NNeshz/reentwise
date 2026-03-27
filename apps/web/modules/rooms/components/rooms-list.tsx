@@ -42,8 +42,8 @@ export function RoomsList({ propertyId }: { propertyId: string }) {
   if (isLoading) {
     return (
       <div className="mt-4 space-y-3">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="rounded-xl border-border">
+        {["skeleton-1", "skeleton-2", "skeleton-3"].map((key) => (
+          <Card key={key} className="rounded-xl border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 import { apiClient } from "@/utils/api-connection";
 
-export class PropertiesService {
+class PropertiesService {
   async createProperty(data: { name: string; address?: string }) {
     const response = await apiClient.properties.owner.post({
       name: data.name,

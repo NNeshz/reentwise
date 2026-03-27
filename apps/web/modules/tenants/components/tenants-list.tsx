@@ -22,6 +22,9 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { TenantDetailSheet } from "@/modules/tenants/components/tenant-detail-sheet";
+import { TenantPaymentsSheet } from "@/modules/tenants/components/tenant-payments-sheet";
+import { TenantDeleteDialog } from "@/modules/tenants/components/tenant-delete-dialog";
+import { TenantUnassignDialog } from "@/modules/tenants/components/tenant-unassign-dialog";
 
 type Tenant = {
   id: string;
@@ -33,12 +36,17 @@ type Tenant = {
   room: { id: string; roomNumber: string } | null;
 };
 
+type DialogTarget = {
+  tenant: Tenant;
+  action: "details" | "payments" | "unassign" | "delete";
+};
+
 function TenantCard({
   tenant,
-  onViewDetails,
+  onAction,
 }: {
   tenant: Tenant;
-  onViewDetails: (tenant: Tenant) => void;
+  onAction: (target: DialogTarget) => void;
 }) {
   const hasRoom = !!tenant.roomId;
 
@@ -73,11 +81,15 @@ function TenantCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => onViewDetails(tenant)}>
+              <DropdownMenuItem
+                onSelect={() => onAction({ tenant, action: "details" })}
+              >
                 <IconEye className="size-4" />
                 Ver detalles
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => onAction({ tenant, action: "payments" })}
+              >
                 <IconCash className="size-4" />
                 Ver pagos
               </DropdownMenuItem>
@@ -85,12 +97,18 @@ function TenantCard({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               {hasRoom && (
-                <DropdownMenuItem variant="destructive">
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => onAction({ tenant, action: "unassign" })}
+                >
                   <IconUnlink className="size-4" />
                   Desvincular
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem variant="destructive">
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={() => onAction({ tenant, action: "delete" })}
+              >
                 <IconTrash className="size-4" />
                 Eliminar
               </DropdownMenuItem>
@@ -119,11 +137,17 @@ function TenantCardSkeleton() {
 
 export function TenantsList() {
   const { data, isLoading, error } = useTenantsQuery();
-  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
 
   const tenants = (data?.tenants ?? []) as Tenant[];
   const pagination = data?.pagination;
   const totalProducts = pagination?.totalProducts ?? 0;
+
+  const activeTenant = dialogTarget?.tenant ?? null;
+
+  function closeDialog() {
+    setDialogTarget(null);
+  }
 
   if (isLoading) {
     return (
@@ -169,16 +193,45 @@ export function TenantsList() {
       <ul className="space-y-3" role="list">
         {tenants.map((tenant) => (
           <li key={tenant.id}>
-            <TenantCard tenant={tenant} onViewDetails={setSelectedTenant} />
+            <TenantCard tenant={tenant} onAction={setDialogTarget} />
           </li>
         ))}
       </ul>
 
       <TenantDetailSheet
-        tenant={selectedTenant}
-        open={!!selectedTenant}
+        tenant={activeTenant}
+        open={dialogTarget?.action === "details"}
         onOpenChange={(open) => {
-          if (!open) setSelectedTenant(null);
+          if (!open) closeDialog();
+        }}
+      />
+
+      <TenantPaymentsSheet
+        tenantId={activeTenant?.id ?? null}
+        tenantName={activeTenant?.name ?? ""}
+        open={dialogTarget?.action === "payments"}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      />
+
+      <TenantUnassignDialog
+        tenantId={activeTenant?.id ?? null}
+        tenantName={activeTenant?.name ?? ""}
+        roomId={activeTenant?.roomId ?? null}
+        roomNumber={activeTenant?.room?.roomNumber ?? ""}
+        open={dialogTarget?.action === "unassign"}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      />
+
+      <TenantDeleteDialog
+        tenantId={activeTenant?.id ?? null}
+        tenantName={activeTenant?.name ?? ""}
+        open={dialogTarget?.action === "delete"}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
         }}
       />
     </div>

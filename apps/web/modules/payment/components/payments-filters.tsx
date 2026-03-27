@@ -64,11 +64,13 @@ function MonthYearPicker({
   onYearChange: (year: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [viewYear, setViewYear] = useState(year);
+  const [viewYearOverride, setViewYearOverride] = useState<number | null>(null);
+  const viewYear = viewYearOverride ?? year;
 
-  useEffect(() => {
-    if (open) setViewYear(year);
-  }, [open, year]);
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (nextOpen) setViewYearOverride(null);
+  }
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -80,10 +82,11 @@ function MonthYearPicker({
     onMonthChange(m);
     onYearChange(viewYear);
     setOpen(false);
+    setViewYearOverride(null);
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="outline" className="justify-start gap-2 font-normal">
           <CalendarIcon className="size-4 text-muted-foreground" />
@@ -95,7 +98,7 @@ function MonthYearPicker({
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => setViewYear((y) => y - 1)}
+            onClick={() => setViewYearOverride((viewYearOverride ?? year) - 1)}
           >
             <ChevronLeftIcon className="size-4" />
           </Button>
@@ -103,7 +106,7 @@ function MonthYearPicker({
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => setViewYear((y) => y + 1)}
+            onClick={() => setViewYearOverride((viewYearOverride ?? year) + 1)}
           >
             <ChevronRightIcon className="size-4" />
           </Button>

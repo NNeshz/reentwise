@@ -11,6 +11,7 @@ import {
   count,
   isNotNull,
   isNull,
+  desc,
 } from "@reentwise/database";
 
 /** Obtiene el día de pago real para un mes. month: 1-12 (enero=1, dic=12) */
@@ -493,6 +494,94 @@ export class TenantsService {
         .returning();
 
       return tenantResult;
+    } catch (error) {
+      return {
+        message:
+          error instanceof Error ? error.message : "An unknown error occurred",
+        status: 500,
+      };
+    }
+  }
+
+  async deleteTenantById(tenantId: string, ownerId: string) {
+    try {
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, tenantId),
+      });
+
+      if (!tenant) {
+        throw new Error("Tenant not found");
+      }
+
+      if (tenant.ownerId !== ownerId) {
+        const roomOwner = tenant.roomId
+          ? await db
+              .select({ ownerId: properties.ownerId })
+              .from(rooms)
+              .leftJoin(properties, eq(rooms.propertyId, properties.id))
+              .where(eq(rooms.id, tenant.roomId))
+          : [];
+        if (roomOwner[0]?.ownerId !== ownerId) {
+          throw new Error("Not authorized to delete this tenant");
+        }
+      }
+
+      const [deleted] = await db
+        .delete(tenants)
+        .where(eq(tenants.id, tenantId))
+        .returning();
+
+      if (!deleted) {
+        throw new Error("Failed to delete tenant");
+      }
+
+      if (tenant.roomId) {
+        await db
+          .update(rooms)
+          .set({ status: "vacant" })
+          .where(eq(rooms.id, tenant.roomId));
+      }
+
+      return deleted;
+    } catch (error) {
+      return {
+        message:
+          error instanceof Error ? error.message : "An unknown error occurred",
+        status: 500,
+      };
+    }
+  }
+
+  async getPaymentsByTenant(tenantId: string, ownerId: string) {
+    try {
+      const tenant = await db.query.tenants.findFirst({
+        where: eq(tenants.id, tenantId),
+      });
+
+      if (!tenant) {
+        throw new Error("Tenant not found");
+      }
+
+      if (tenant.ownerId !== ownerId) {
+        const roomOwner = tenant.roomId
+          ? await db
+              .select({ ownerId: properties.ownerId })
+              .from(rooms)
+              .leftJoin(properties, eq(rooms.propertyId, properties.id))
+              .where(eq(rooms.id, tenant.roomId))
+          : [];
+        if (roomOwner[0]?.ownerId !== ownerId) {
+          throw new Error("Not authorized to view this tenant's payments");
+        }
+      }
+
+      const result = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.tenantId, tenantId))
+        .orderBy(desc(payments.year), desc(payments.month));
+
+      return { payments: result };
     } catch (error) {
       return {
         message:

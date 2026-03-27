@@ -1,6 +1,6 @@
 import { apiClient } from "@/utils/api-connection";
 
-export class TenantsService {
+class TenantsService {
   async getTenants(params: {
     search?: string;
     status?: "pending" | "partial" | "paid" | "late" | "annulled";
@@ -55,6 +55,8 @@ export class TenantsService {
       email: string;
       paymentDay: number;
       notes?: string;
+      firstMonthRent?: number;
+      deposit?: number;
     },
   ) {
     const response = await apiClient.tenants.owner
@@ -122,6 +124,73 @@ export class TenantsService {
     const response = await apiClient.tenants.owner
       .unassign({ roomId })({ tenantId })
       .put({});
+
+    if (response.error) {
+      throw response.error.value;
+    }
+
+    return response.data;
+  }
+
+  async deleteTenantById(tenantId: string) {
+    const owner = apiClient.tenants.owner as unknown as Record<
+      string,
+      {
+        delete: (
+          opts?: Record<string, unknown>,
+        ) => Promise<{ data: unknown; error: { value: unknown } | null }>;
+      }
+    >;
+    const byId = owner["by-id"] as unknown as (params: {
+      tenantId: string;
+    }) => {
+      delete: (
+        opts?: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { value: unknown } | null }>;
+    };
+    const response = await byId({ tenantId }).delete({});
+
+    if (response.error) {
+      throw response.error.value;
+    }
+
+    return response.data;
+  }
+
+  async getPaymentsByTenant(tenantId: string) {
+    const owner = apiClient.tenants.owner as unknown as Record<
+      string,
+      {
+        get: (
+          opts?: Record<string, unknown>,
+        ) => Promise<{ data: unknown; error: { value: unknown } | null }>;
+      }
+    >;
+    const paymentsEndpoint = owner["payments"] as unknown as (params: {
+      tenantId: string;
+    }) => {
+      get: (
+        opts?: Record<string, unknown>,
+      ) => Promise<{
+        data: {
+          payments: Array<{
+            id: string;
+            tenantId: string;
+            amount: string;
+            amountPaid: string | null;
+            method: string | null;
+            status: string | null;
+            month: number;
+            year: number;
+            paidAt: string | null;
+            isAnnulled: boolean | null;
+            createdAt: string | null;
+          }>;
+        };
+        error: { value: unknown } | null;
+      }>;
+    };
+    const response = await paymentsEndpoint({ tenantId }).get();
 
     if (response.error) {
       throw response.error.value;

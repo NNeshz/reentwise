@@ -50,16 +50,19 @@ export function RoomsDetails({
   const activeTenant = room?.tenants?.[0];
 
   const { mutate: unassignTenant, isPending: isUnassigning } =
-    useUnassignTenant(roomId);
+    useUnassignTenant();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const handleUnassign = () => {
     if (!activeTenant) return;
-    unassignTenant(activeTenant.id, {
-      onSuccess: () => {
-        setIsAlertOpen(false);
+    unassignTenant(
+      { roomId, tenantId: activeTenant.id },
+      {
+        onSuccess: () => {
+          setIsAlertOpen(false);
+        },
       },
-    });
+    );
   };
 
   return (

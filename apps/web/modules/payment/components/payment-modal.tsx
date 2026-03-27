@@ -99,7 +99,6 @@ export function PaymentModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                autoFocus
               />
             </div>
 

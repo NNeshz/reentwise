@@ -184,4 +184,28 @@ export const ownerTenantsRoutes = new Elysia({
         id: t.String(),
       }),
     },
+  )
+  .delete(
+    "/by-id/:tenantId",
+    ({ params, user, tenantsService }) => {
+      return tenantsService.deleteTenantById(params.tenantId, user.id);
+    },
+    {
+      authenticated: true,
+      params: t.Object({
+        tenantId: t.String(),
+      }),
+    },
+  )
+  .get(
+    "/payments/:tenantId",
+    ({ params, user, tenantsService }) => {
+      return tenantsService.getPaymentsByTenant(params.tenantId, user.id);
+    },
+    {
+      authenticated: true,
+      params: t.Object({
+        tenantId: t.String(),
+      }),
+    },
   );

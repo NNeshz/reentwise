@@ -43,12 +43,11 @@ export function AuthForm({
           </Button>
           <FieldDescription className="text-center text-xs pt-4 text-balance leading-relaxed">
             Al continuar, aceptas nuestros{" "}
-            <a
-              href="#"
-              className="font-semibold text-primary underline-offset-4 hover:underline"
+            <span
+              className="font-semibold text-primary underline-offset-4 hover:underline cursor-pointer"
             >
               Términos de servicio
-            </a>{" "}
+            </span>{" "}
             y crearás una cuenta automáticamente si aún no tienes una.
           </FieldDescription>
         </Field>

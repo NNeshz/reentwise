@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Button } from "@reentwise/ui/src/components/button";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { IconCrown } from "@tabler/icons-react";
 
 export function Stadistics() {
@@ -13,7 +13,7 @@ export function Stadistics() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           {/* Text Content */}
           <div className="flex flex-col items-start text-left space-y-6 max-w-xl">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -23,9 +23,9 @@ export function Stadistics() {
               <span className="text-sm font-medium text-muted-foreground">
                 Automatización
               </span>
-            </motion.div>
+            </m.div>
 
-            <motion.h2
+            <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -33,9 +33,9 @@ export function Stadistics() {
               className="text-4xl md:text-5xl font-host-grotesk font-medium tracking-tight text-foreground leading-[1.1] text-balance"
             >
               Recupera tu tiempo y garantiza el pago puntual de tus rentas
-            </motion.h2>
+            </m.h2>
 
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -45,9 +45,9 @@ export function Stadistics() {
               Nuestra plataforma se encarga del trabajo manual. Notificamos a
               tus inquilinos, conciliamos los pagos y brindamos recibos
               automáticamente.
-            </motion.p>
+            </m.p>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -67,11 +67,11 @@ export function Stadistics() {
               >
                 Agendar demo
               </Button>
-            </motion.div>
+            </m.div>
           </div>
 
           {/* Image */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: false, amount: 0.2 }}
@@ -85,12 +85,12 @@ export function Stadistics() {
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Bottom Section: Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
@@ -102,9 +102,9 @@ export function Stadistics() {
             <span className="text-sm md:text-base text-muted-foreground md:text-right max-w-[170px]">
               Rentas cobradas exitosamente
             </span>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
@@ -117,9 +117,9 @@ export function Stadistics() {
             <span className="text-sm md:text-base text-muted-foreground md:text-right max-w-[170px]">
               Tasa de pago puntual lograda
             </span>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
@@ -132,9 +132,9 @@ export function Stadistics() {
             <span className="text-sm md:text-base text-muted-foreground md:text-right max-w-[170px]">
               Ahorradas al mes por usuario
             </span>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false, amount: 0.2 }}
@@ -147,7 +147,7 @@ export function Stadistics() {
             <span className="text-sm md:text-base text-muted-foreground md:text-right max-w-[170px]">
               Propietarios felices
             </span>
-          </motion.div>
+          </m.div>
         </div>
       </div>
     </section>

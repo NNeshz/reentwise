@@ -15,8 +15,3 @@ export const signInWithGoogle = async () => {
 
   return response.data
 };
-
-export const getSession = async () => {
-  const response = await authClient.getSession()
-  return response.data?.user;
-};

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { IconVectorBezier2 } from "@tabler/icons-react";
 import { Badge } from "@reentwise/ui/src/components/badge";
 import {
@@ -51,7 +51,7 @@ export function Faq() {
         {/* Top Header Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           <div className="flex flex-col items-start space-y-6 max-w-xl">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -61,9 +61,9 @@ export function Faq() {
               <span className="text-sm font-medium text-muted-foreground">
                 Funcionalidades principales
               </span>
-            </motion.div>
+            </m.div>
 
-            <motion.h2
+            <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -71,11 +71,11 @@ export function Faq() {
               className="text-4xl md:text-5xl font-host-grotesk font-medium tracking-tight text-foreground leading-[1.1] text-balance"
             >
               Todo lo que necesitas para cobrar tus rentas sin estrés
-            </motion.h2>
+            </m.h2>
           </div>
 
           <div className="flex flex-col items-start lg:items-end justify-center h-full space-y-6">
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -84,9 +84,9 @@ export function Faq() {
             >
               Herramientas diseñadas para que los propietarios y administradores
               tengan control absoluto de su tiempo e ingresos.
-            </motion.p>
+            </m.p>
 
-            <motion.button
+            <m.button
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -94,12 +94,12 @@ export function Faq() {
               className="rounded-full bg-primary text-primary-foreground px-8 py-3 text-base font-semibold hover:bg-primary/90 transition-colors"
             >
               Comenzar gratis
-            </motion.button>
+            </m.button>
           </div>
         </div>
 
         {/* Accordion Section */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.2 }}
@@ -155,7 +155,7 @@ export function Faq() {
               </AccordionItem>
             ))}
           </Accordion>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

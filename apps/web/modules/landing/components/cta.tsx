@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Button } from "@reentwise/ui/src/components/button";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { IconHeart } from "@tabler/icons-react";
 
 export function Cta() {
@@ -15,6 +15,7 @@ export function Cta() {
           alt="Modern real estate home"
           fill
           priority
+          sizes="100vw"
           className="object-cover object-center"
         />
         {/* Subtle Noise Overlay */}
@@ -32,7 +33,7 @@ export function Cta() {
 
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center mt-20">
         {/* Badge */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.2 }}
@@ -40,9 +41,9 @@ export function Cta() {
         >
           <IconHeart className="w-4 h-4 text-white" />
           <span className="text-sm font-medium text-white">Empieza hoy</span>
-        </motion.div>
+        </m.div>
 
-        <motion.h2
+        <m.h2
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.2 }}
@@ -52,9 +53,9 @@ export function Cta() {
           ¿Listo para cobrar
           <br />
           tus rentas a tiempo?
-        </motion.h2>
+        </m.h2>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.2 }}
@@ -73,7 +74,7 @@ export function Cta() {
           >
             Ver demo
           </Button>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

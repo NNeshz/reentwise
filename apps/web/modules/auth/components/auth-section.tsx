@@ -11,6 +11,7 @@ export function AuthSection() {
           alt="Modern real estate home"
           fill
           priority
+          sizes="100vw"
           className="object-cover object-center"
         />
         {/* Subtle Noise Overlay */}

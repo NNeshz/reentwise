@@ -1,6 +1,6 @@
 import { apiClient } from "@/utils/api-connection";
 
-export class PaymentService {
+class PaymentService {
   async getPayments(params: {
     month: number;
     year: number;
