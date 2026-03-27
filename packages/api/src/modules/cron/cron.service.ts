@@ -2,36 +2,41 @@ import { db, eq, and } from "@reentwise/database";
 import { tenants, payments, rooms } from "@reentwise/database";
 import { getPaymentDateForMonth } from "../tenants/tenants.service";
 import { emailService } from "@reentwise/api/src/modules/email/email.service";
+import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
 
 export class CronService {
   private async sendCronEmailSafe(input: {
+    tenantId: string;
     tenantEmail: string;
     tenantName: string;
     subject: string;
     message: string;
     emailType: "cron_reminder_t5" | "cron_due_today" | "cron_late_t2";
   }) {
-    try {
-      const response = await emailService.sendHtml({
-        to: input.tenantEmail,
-        subject: input.subject,
-        html: `
+    await auditsService.withEmailAudit(
+      {
+        tenantId: input.tenantId,
+        tenantName: input.tenantName,
+        note: input.subject,
+      },
+      () =>
+        emailService.sendHtml({
+          to: input.tenantEmail,
+          subject: input.subject,
+          html: `
           <h2>Hola ${input.tenantName}</h2>
           <p>${input.message}</p>
           <p>Mensaje automatico enviado por Reentwise.</p>
         `,
-        text: `Hola ${input.tenantName}. ${input.message}`,
-        tags: [
-          { name: "type", value: input.emailType },
-          { name: "module", value: "cron" },
-        ],
-      });
-      if (response.error) {
-        console.error("[Email][Cron] Error sending cron email:", response.error);
-      }
-    } catch (error) {
-      console.error("[Email][Cron] Unexpected error sending cron email:", error);
-    }
+          text: `Hola ${input.tenantName}. ${input.message}`,
+          tags: [
+            { name: "type", value: input.emailType },
+            { name: "module", value: "cron" },
+          ],
+        }),
+      (err) =>
+        console.error("[Email][Cron] Error sending cron email:", err),
+    );
   }
   
   // Función auxiliar para saber cuántos días exactos de diferencia hay
@@ -90,7 +95,6 @@ export class CronService {
   private async processTenant(tenant: any, room: any, targetDate: Date, diffDays: number, logs: string[]) {
     const targetMonth = targetDate.getMonth() + 1;
     const targetYear = targetDate.getFullYear();
-    const tenantOwnerId = tenant.ownerId;
 
     // Buscar si ya existe el registro de pago para este mes
     const existingPayment = await db.query.payments.findFirst({
@@ -106,12 +110,12 @@ export class CronService {
       // Solo mandamos el mensaje si NO han pagado por adelantado
       if (!existingPayment || (existingPayment.status !== "paid" && existingPayment.status !== "annulled")) {
         await this.sendWhatsAppSafe(
-          tenantOwnerId,
-          tenant.whatsapp,
-          `🗓️ *Aviso de reentwise:* Hola ${tenant.name}, te recordamos que en 5 días se vence tu pago de renta por $${room.price}.`
+          tenant,
+          `🗓️ *Aviso de reentwise:* Hola ${tenant.name}, te recordamos que en 5 días se vence tu pago de renta por $${room.price}.`,
         );
         if (tenant.email) {
           await this.sendCronEmailSafe({
+            tenantId: tenant.id,
             tenantEmail: tenant.email,
             tenantName: tenant.name,
             subject: "Recordatorio de renta (faltan 5 dias)",
@@ -136,12 +140,12 @@ export class CronService {
         });
 
         await this.sendWhatsAppSafe(
-          tenantOwnerId,
-          tenant.whatsapp,
-          `🚨 *Aviso de reentwise:* Hola ${tenant.name}, hoy es tu fecha límite para pagar tu renta de $${room.price}. Por favor, realiza tu pago para evitar recargos.`
+          tenant,
+          `🚨 *Aviso de reentwise:* Hola ${tenant.name}, hoy es tu fecha límite para pagar tu renta de $${room.price}. Por favor, realiza tu pago para evitar recargos.`,
         );
         if (tenant.email) {
           await this.sendCronEmailSafe({
+            tenantId: tenant.id,
             tenantEmail: tenant.email,
             tenantName: tenant.name,
             subject: "Tu renta vence hoy",
@@ -164,12 +168,12 @@ export class CronService {
           .where(eq(payments.id, existingPayment.id));
 
         await this.sendWhatsAppSafe(
-          tenantOwnerId,
-          tenant.whatsapp,
-          `⚠️ *Aviso Importante:* Hola ${tenant.name}, nuestro sistema detecta que tu pago de renta tiene 2 días de atraso. Por favor, regulariza tu situación lo antes posible.`
+          tenant,
+          `⚠️ *Aviso Importante:* Hola ${tenant.name}, nuestro sistema detecta que tu pago de renta tiene 2 días de atraso. Por favor, regulariza tu situación lo antes posible.`,
         );
         if (tenant.email) {
           await this.sendCronEmailSafe({
+            tenantId: tenant.id,
             tenantEmail: tenant.email,
             tenantName: tenant.name,
             subject: "Pago atrasado (2 dias)",
@@ -182,12 +186,37 @@ export class CronService {
     }
   }
 
-  private async sendWhatsAppSafe(tenantOwnerId: string, phone: string, message: string) {
-    try {
-      console.log("WhatsApp call" + tenantOwnerId + " to " + phone + " with message " + message);
-    } catch (waError) {
-      console.error(`[WhatsApp Cron] Error sending message to ${phone}:`, waError);
-    }
+  private async sendWhatsAppSafe(
+    tenant: {
+      id: string;
+      name: string;
+      ownerId: string | null;
+      whatsapp: string;
+    },
+    message: string,
+  ) {
+    await auditsService.withWhatsAppAudit(
+      {
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        note: message.slice(0, 160),
+      },
+      async () => {
+        console.log(
+          "WhatsApp call" +
+            tenant.ownerId +
+            " to " +
+            tenant.whatsapp +
+            " with message " +
+            message,
+        );
+      },
+      (err) =>
+        console.error(
+          `[WhatsApp Cron] Error sending message to ${tenant.whatsapp}:`,
+          err,
+        ),
+    );
   }
 }
 

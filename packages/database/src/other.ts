@@ -7,6 +7,7 @@ import {
   decimal,
   pgEnum,
   boolean,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { user } from "./schema";
 
@@ -30,6 +31,23 @@ export const roomStatusEnum = pgEnum("room_status", [
   "maintenance",
   "reserved",
 ]);
+
+/** Canal del evento (correo vs WhatsApp). */
+export const auditChannelEnum = pgEnum("audit_channel", ["email", "whatsapp"]);
+
+/**
+ * Estado del envío: pendiente → enviando → enviado (o fallo).
+ * Valores cortos para filas pequeñas en tablas con muchos registros.
+ */
+export const auditStatusEnum = pgEnum("audit_status", [
+  "pending",
+  "sending",
+  "sent",
+  "failed",
+]);
+
+export type AuditChannel = (typeof auditChannelEnum.enumValues)[number];
+export type AuditStatus = (typeof auditStatusEnum.enumValues)[number];
 
 export const properties = pgTable("properties", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -89,4 +107,22 @@ export const payments = pgTable("payments", {
   annulledAt: timestamp("annulled_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+/**
+ * Registro mínimo de auditoría de envíos (email/WhatsApp).
+ * `tenantName` es snapshot para listar sin join; `note` corto (asunto, error, etc.).
+ */
+export const audits = pgTable("audits", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id),
+  tenantName: varchar("tenant_name", { length: 64 }).notNull(),
+  channel: auditChannelEnum("channel").notNull(),
+  status: auditStatusEnum("status").notNull(),
+  loggedAt: timestamp("logged_at", { mode: "date", withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  note: varchar("note", { length: 160 }).notNull(),
 });

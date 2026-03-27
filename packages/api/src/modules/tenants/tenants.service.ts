@@ -14,6 +14,7 @@ import {
   desc,
 } from "@reentwise/database";
 import { emailService } from "@reentwise/api/src/modules/email/email.service";
+import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
 
 /** Obtiene el día de pago real para un mes. month: 1-12 (enero=1, dic=12) */
 export function getPaymentDateForMonth(
@@ -29,39 +30,42 @@ export function getPaymentDateForMonth(
 
 export class TenantsService {
   private async sendTenantCreatedEmailSafe(input: {
+    tenantId: string;
     tenantEmail: string;
     tenantName: string;
     paymentDay: number;
     roomNumber?: string | null;
   }) {
-    try {
-      const paymentDayLabel =
-        input.paymentDay === 0 ? "ultimo dia de cada mes" : `dia ${input.paymentDay} de cada mes`;
-      const roomLabel = input.roomNumber ? `Cuarto ${input.roomNumber}` : "sin cuarto asignado";
+    const paymentDayLabel =
+      input.paymentDay === 0 ? "ultimo dia de cada mes" : `dia ${input.paymentDay} de cada mes`;
+    const roomLabel = input.roomNumber ? `Cuarto ${input.roomNumber}` : "sin cuarto asignado";
 
-      const response = await emailService.sendHtml({
-        to: input.tenantEmail,
-        subject: "Bienvenido a Reentwise",
-        html: `
+    await auditsService.withEmailAudit(
+      {
+        tenantId: input.tenantId,
+        tenantName: input.tenantName,
+        note: "Bienvenido a Reentwise",
+      },
+      () =>
+        emailService.sendHtml({
+          to: input.tenantEmail,
+          subject: "Bienvenido a Reentwise",
+          html: `
           <h2>Hola ${input.tenantName}, bienvenido(a) a Reentwise</h2>
           <p>Tu registro fue creado correctamente por el owner.</p>
           <p><strong>Cuarto:</strong> ${roomLabel}</p>
           <p><strong>Fecha de pago:</strong> ${paymentDayLabel}</p>
           <p>Si tienes dudas sobre tu pago, responde a este correo.</p>
         `,
-        text: `Hola ${input.tenantName}, tu registro en Reentwise fue creado. ${roomLabel}. Fecha de pago: ${paymentDayLabel}.`,
-        tags: [
-          { name: "type", value: "tenant_created" },
-          { name: "module", value: "tenants" },
-        ],
-      });
-
-      if (response.error) {
-        console.error("[Email][Tenants] Error sending welcome email:", response.error);
-      }
-    } catch (error) {
-      console.error("[Email][Tenants] Unexpected error sending welcome email:", error);
-    }
+          text: `Hola ${input.tenantName}, tu registro en Reentwise fue creado. ${roomLabel}. Fecha de pago: ${paymentDayLabel}.`,
+          tags: [
+            { name: "type", value: "tenant_created" },
+            { name: "module", value: "tenants" },
+          ],
+        }),
+      (err) =>
+        console.error("[Email][Tenants] Error sending welcome email:", err),
+    );
   }
 
   async getTenants(
@@ -253,6 +257,7 @@ export class TenantsService {
       const createdTenant = tenantResult[0];
       if (createdTenant?.email) {
         await this.sendTenantCreatedEmailSafe({
+          tenantId: createdTenant.id,
           tenantEmail: createdTenant.email,
           tenantName: createdTenant.name,
           paymentDay: createdTenant.paymentDay,
@@ -351,18 +356,25 @@ export class TenantsService {
 
       const { newTenant: resultTenant, tenantOwnerId } = result;
 
-      // 5. Enviamos el WhatsApp de Bienvenida (fuera de la transacción para no bloquear la DB si la API de WA tarda)
-      try {
-        console.log("WhatsApp call" + tenantOwnerId);
-      } catch (waError) {
-         console.error("[WhatsApp] Error sending welcome message:", waError);
-      }
+      await auditsService.withWhatsAppAudit(
+        {
+          tenantId: resultTenant.id,
+          tenantName: resultTenant.name,
+          note: "Bienvenida inquilino nuevo",
+        },
+        async () => {
+          console.log("WhatsApp call" + tenantOwnerId);
+        },
+        (err) =>
+          console.error("[WhatsApp] Error sending welcome message:", err),
+      );
 
       if (resultTenant?.email) {
         const roomInfo = await db.query.rooms.findFirst({
           where: eq(rooms.id, roomId),
         });
         await this.sendTenantCreatedEmailSafe({
+          tenantId: resultTenant.id,
           tenantEmail: resultTenant.email,
           tenantName: resultTenant.name,
           paymentDay: resultTenant.paymentDay,

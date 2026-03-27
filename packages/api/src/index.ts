@@ -11,6 +11,7 @@ import { ownerPropertyRoutes } from "@reentwise/api/src/modules/properties/prope
 import { ownerRoomsRoutes } from "@reentwise/api/src/modules/rooms/rooms.routes";
 import { ownerTenantsRoutes } from "@reentwise/api/src/modules/tenants/tenants.routes";
 import { ownerPaymentsRoutes } from "@reentwise/api/src/modules/payments/payments.routes";
+import { ownerAuditsRoutes } from "@reentwise/api/src/modules/audits/audits.routes";
 import { cronPaymentsRoutes } from "@reentwise/api/src/modules/cron/cron.routes";
 
 const allowedOrigins = [
@@ -36,5 +37,6 @@ export const api = new Elysia({
   .use(ownerRoomsRoutes)
   .use(ownerTenantsRoutes)
   .use(ownerPaymentsRoutes)
+  .use(ownerAuditsRoutes)
 
 export type Api = typeof api;
