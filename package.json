@@ -7,11 +7,11 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
-    "shadcn": "bun --filter @cleely/ui shadcn",
-    "db:generate": "bun --filter @cleely/database db:generate",
-    "db:migrate": "bun --filter @cleely/database db:migrate",
-    "db:push": "bun --filter @cleely/database db:push",
-    "db:studio": "bun --filter @cleely/database db:studio",
+    "shadcn": "bun --filter @reentwise/ui shadcn",
+    "db:generate": "bun --filter @reentwise/database db:generate",
+    "db:migrate": "bun --filter @reentwise/database db:migrate",
+    "db:push": "bun --filter @reentwise/database db:push",
+    "db:studio": "bun --filter @reentwise/database db:studio",
     "clean-workspaces": "turbo clean-workspace && rm -rf node_modules"
   },
   "devDependencies": {

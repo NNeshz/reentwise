@@ -1,0 +1,34 @@
+# Dependencias y artefactos locales
+**/node_modules
+**/.turbo
+**/coverage
+**/dist
+**/.next
+**/out
+**/build
+
+# Entorno (no copiar secretos)
+**/.env
+**/.env.*
+!.env.example
+
+# Git y editor
+.git
+.gitignore
+.cursor
+**/.DS_Store
+
+# Logs y cachés
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Frontend: solo package.json para el workspace (ver Dockerfile)
+apps/web/*
+!apps/web/package.json
+
+packages/ui/*
+!packages/ui/package.json
+
+fly.toml

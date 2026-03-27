@@ -5,7 +5,11 @@ function getDatabaseUrl(): string {
   if (directUrl) return directUrl;
 
   const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) throw new Error("DATABASE_URL is required");
+  if (!dbUrl) {
+    throw new Error(
+      "DATABASE_URL or DIRECT_URL is required (p. ej. fly secrets set DATABASE_URL=... antes de fly deploy).",
+    );
+  }
 
   // If using pgbouncer (port 6543), convert to direct connection (port 5432)
   if (dbUrl.includes(":6543")) {

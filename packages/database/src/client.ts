@@ -9,8 +9,17 @@ function getDatabaseUrl(): string {
   return dbUrl;
 }
 
-// For query purposes
-const queryClient = postgres(getDatabaseUrl());
+function isPoolerUrl(url: string): boolean {
+  return (
+    url.includes(":6543") || /[?&]pgbouncer=true/i.test(url)
+  );
+}
+
+// Supabase pooler / PgBouncer (modo transacción): prepared statements desactivados
+const dbUrl = getDatabaseUrl();
+const queryClient = postgres(dbUrl, {
+  prepare: !isPoolerUrl(dbUrl),
+});
 
 export const db = drizzle(queryClient, { schema: { ...schema, ...otherSchema } });
 

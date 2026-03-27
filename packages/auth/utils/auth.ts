@@ -4,6 +4,8 @@ import { openAPI } from "better-auth/plugins";
 
 import { db } from "@reentwise/database";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const auth = betterAuth({
   appName: "reentwise",
   database: drizzleAdapter(db, {
@@ -28,6 +30,9 @@ export const auth = betterAuth({
   advanced: {
     crossSubDomainCookies: {
       enabled: true,
+      // IMPORTANTE: Esto se usa en producción para que las cookies se compartan entre los subdominios
+      // En desarrollo, se puede omitir este campo
+      domain: isProduction ? process.env.NEXT_PUBLIC_REENTWISE : undefined,
     },
   },
   plugins: [
