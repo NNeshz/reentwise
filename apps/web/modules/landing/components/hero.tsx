@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@reentwise/ui/src/components/button";
 import { m } from "framer-motion";
 
@@ -63,8 +64,9 @@ export function Hero() {
           <Button
             size="lg"
             className="w-full sm:w-auto rounded-full px-8 text-lg font-semibold h-14 bg-white/20 hover:bg-white/30 text-white backdrop-blur-md"
+            asChild
           >
-            Ver como funciona
+            <Link href="/howitworks">Ver como funciona</Link>
           </Button>
         </m.div>
       </div>

@@ -11,10 +11,9 @@ import { useTheme } from "next-themes";
 import { authClient } from "@reentwise/auth/client";
 
 const navLinks = [
-  { name: "Cómo funciona", href: "#" },
-  { name: "Funcionalidades", href: "#" },
-  { name: "Testimonios", href: "#" },
-  { name: "Precios", href: "#" },
+  { name: "Cómo funciona", href: "/howitworks" },
+  { name: "Testimonios", href: "/testimonials" },
+  { name: "Precios", href: "/pricing" },
 ];
 
 const subscribe = () => () => {};

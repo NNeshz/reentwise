@@ -39,7 +39,7 @@ export function Footer() {
             <ul className="flex flex-col gap-3">
               <li>
                 <Link
-                  href="#"
+                  href="/howitworks"
                   className="text-base text-foreground hover:text-primary transition-colors"
                 >
                   Cómo funciona
@@ -47,15 +47,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
-                  className="text-base text-foreground hover:text-primary transition-colors"
-                >
-                  Funcionalidades
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
+                  href="/testimonials"
                   className="text-base text-foreground hover:text-primary transition-colors"
                 >
                   Testimonios
@@ -63,7 +55,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/pricing"
                   className="text-base text-foreground hover:text-primary transition-colors"
                 >
                   Precios
