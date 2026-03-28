@@ -1,5 +1,13 @@
-import { Resend, type CreateEmailResponse } from "resend";
+import {
+  Resend,
+  type CreateEmailResponse,
+  type EmailReceivedEvent,
+  type WebhookEventPayload,
+} from "resend";
 import { env } from "@reentwise/api/src/utils/envs";
+
+/** Cliente mínimo para verificación Svix de webhooks (no requiere API key). */
+const resendWebhooks = new Resend();
 
 export type SendHtmlEmailInput = {
   to: string | string[];
@@ -41,6 +49,47 @@ export class EmailService {
     this.client = env.RESEND_API_KEY
       ? new Resend(env.RESEND_API_KEY)
       : null;
+  }
+
+  /**
+   * Verifica la firma Svix y devuelve el evento tipado.
+   * @see https://resend.com/docs/webhooks/verify-webhooks-requests
+   */
+  verifyWebhook(
+    rawBody: string,
+    svix: { id: string; timestamp: string; signature: string },
+  ): WebhookEventPayload {
+    const secret = env.RESEND_WEBHOOK_SECRET;
+    if (!secret) {
+      throw new Error("RESEND_WEBHOOK_SECRET no está configurada");
+    }
+    return resendWebhooks.webhooks.verify({
+      payload: rawBody,
+      headers: svix,
+      webhookSecret: secret,
+    });
+  }
+
+  /**
+   * Punto de extensión para correos entrantes. El webhook solo trae metadatos;
+   * para cuerpo/adjuntos usa la API de received emails de Resend.
+   * @see https://resend.com/docs/dashboard/receiving/get-email-content
+   */
+  async handleWebhookEvent(event: WebhookEventPayload): Promise<void> {
+    if (event.type === "email.received") {
+      await this.onEmailReceived(event);
+    }
+  }
+
+  private async onEmailReceived(event: EmailReceivedEvent): Promise<void> {
+    if (env.NODE_ENV === "development") {
+      console.info("[email.received]", {
+        email_id: event.data.email_id,
+        to: event.data.to,
+        subject: event.data.subject,
+        attachmentCount: event.data.attachments.length,
+      });
+    }
   }
 
   async sendHtml(input: SendHtmlEmailInput): Promise<CreateEmailResponse> {

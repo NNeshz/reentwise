@@ -14,6 +14,7 @@ import { ownerPaymentsRoutes } from "@reentwise/api/src/modules/payments/payment
 import { ownerAuditsRoutes } from "@reentwise/api/src/modules/audits/audits.routes";
 import { cronPaymentsRoutes } from "@reentwise/api/src/modules/cron/cron.routes";
 import { stripeRoutes } from "@reentwise/api/src/modules/stripe/stripe.routes";
+import { emailRoutes } from "@reentwise/api/src/modules/email/email.routes";
 
 const allowedOrigins = [
   env.NEXT_PUBLIC_FRONTEND_URL,
@@ -34,6 +35,7 @@ export const api = new Elysia({
   )
   .use(cronPaymentsRoutes)
   .use(stripeRoutes)
+  .use(emailRoutes)
   .use(pingRoutes)
   .use(ownerPropertyRoutes)
   .use(ownerRoomsRoutes)

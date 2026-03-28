@@ -17,6 +17,8 @@ const envSchema = t.Object({
   WHATSAPP_API_KEY: t.Optional(t.String()),
   RESEND_API_KEY: t.Optional(t.String()),
   RESEND_FROM: t.Optional(t.String()),
+  /** Signing secret del webhook en Resend (Svix); requerido para `POST /api/email/webhook`. */
+  RESEND_WEBHOOK_SECRET: t.Optional(t.String()),
   STRIPE_SECRET_KEY: t.Optional(t.String()),
   STRIPE_WEBHOOK_SECRET: t.Optional(t.String()),
   STRIPE_PRICE_BASICO: t.Optional(t.String()),
@@ -63,6 +65,7 @@ declare global {
       WHATSAPP_API_KEY?: string;
       RESEND_API_KEY?: string;
       RESEND_FROM?: string;
+      RESEND_WEBHOOK_SECRET?: string;
       STRIPE_SECRET_KEY?: string;
       STRIPE_WEBHOOK_SECRET?: string;
       STRIPE_PRICE_BASICO?: string;
