@@ -7,6 +7,7 @@ import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
 
 import { pingRoutes } from "@reentwise/api/src/modules/ping/ping.routes";
 
+import { ownerMetricsRoutes } from "@reentwise/api/src/modules/metrics/metrics.routes";
 import { ownerPropertyRoutes } from "@reentwise/api/src/modules/properties/properties.routes";
 import { ownerRoomsRoutes } from "@reentwise/api/src/modules/rooms/rooms.routes";
 import { ownerTenantsRoutes } from "@reentwise/api/src/modules/tenants/tenants.routes";
@@ -42,5 +43,6 @@ export const api = new Elysia({
   .use(ownerTenantsRoutes)
   .use(ownerPaymentsRoutes)
   .use(ownerAuditsRoutes)
+  .use(ownerMetricsRoutes)
 
 export type Api = typeof api;
