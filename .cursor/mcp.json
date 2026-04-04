@@ -3,6 +3,9 @@
     "engram": {
       "command": "engram",
       "args": ["mcp"]
+    },
+    "kapso": {
+      "url": "https://docs.kapso.ai/mcp"
     }
   }
 }

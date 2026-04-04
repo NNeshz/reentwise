@@ -13,12 +13,16 @@ const envSchema = t.Object({
   NEXT_PUBLIC_REENTWISE: t.Optional(t.String()),
   GOOGLE_CLIENT_ID: t.String(),
   GOOGLE_CLIENT_SECRET: t.String(),
-  WHATSAPP_API_URL: t.Optional(t.String()),
-  WHATSAPP_API_KEY: t.Optional(t.String()),
+  // Kapso variables
+  KAPSO_API_KEY: t.String(),
+  KAPSO_PHONE_NUMBER_ID: t.String(),
+  // Kapso template variables
+  KAPSO_WELCOME_TEMPLATE_NAME: t.String(),
+  // Resend email variables
   RESEND_API_KEY: t.Optional(t.String()),
   RESEND_FROM: t.Optional(t.String()),
-  /** Signing secret del webhook en Resend (Svix); requerido para `POST /api/email/webhook`. */
   RESEND_WEBHOOK_SECRET: t.Optional(t.String()),
+  // Stripe payment variables
   STRIPE_SECRET_KEY: t.Optional(t.String()),
   STRIPE_WEBHOOK_SECRET: t.Optional(t.String()),
   STRIPE_PRICE_BASICO: t.Optional(t.String()),
@@ -61,8 +65,9 @@ declare global {
       NEXT_PUBLIC_REENTWISE?: string;
       GOOGLE_CLIENT_ID: string;
       GOOGLE_CLIENT_SECRET: string;
-      WHATSAPP_API_URL?: string;
-      WHATSAPP_API_KEY?: string;
+      KAPSO_API_KEY: string;
+      KAPSO_PHONE_NUMBER_ID: string;
+      KAPSO_WELCOME_TEMPLATE_NAME: string;
       RESEND_API_KEY?: string;
       RESEND_FROM?: string;
       RESEND_WEBHOOK_SECRET?: string;

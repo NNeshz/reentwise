@@ -15,8 +15,13 @@ import {
 } from "@reentwise/database";
 import { emailService } from "@reentwise/api/src/modules/email/email.service";
 import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
+import {
+  sendKapsoTemplate,
+  normalizeKapsoRecipient,
+  kapsoBodyParametersFromStrings,
+} from "@reentwise/api/src/modules/kapso/kapso.service";
+import { env } from "@reentwise/api/src/utils/envs";
 
-/** Obtiene el día de pago real para un mes. month: 1-12 (enero=1, dic=12) */
 export function getPaymentDateForMonth(
   year: number,
   month: number,
@@ -26,6 +31,24 @@ export function getPaymentDateForMonth(
   const lastDay = new Date(year, month, 0).getDate();
   if (paymentDay === 0) return lastDay;
   return Math.min(paymentDay, lastDay);
+}
+
+/** Parámetros {{1}}–{{4}} del template de bienvenida WhatsApp (Kapso). */
+function buildTenantWelcomeTemplateParameters(input: {
+  tenantName: string;
+  roomNumber: string;
+  monthlyRent: string | number;
+  paymentDay: number;
+}): string[] {
+  const roomLabel = `Cuarto ${input.roomNumber}`;
+  const amount = Number(input.monthlyRent);
+  const rentFormatted = new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  }).format(Number.isFinite(amount) ? amount : 0);
+  const paymentDayText =
+    input.paymentDay === 0 ? "el último día" : String(input.paymentDay);
+  return [input.tenantName, roomLabel, rentFormatted, paymentDayText];
 }
 
 export class TenantsService {
@@ -231,11 +254,19 @@ export class TenantsService {
       }
 
       const roomOwnerRes = await db
-        .select({ ownerId: properties.ownerId })
+        .select({
+          ownerId: properties.ownerId,
+          roomNumber: rooms.roomNumber,
+          price: rooms.price,
+        })
         .from(rooms)
         .leftJoin(properties, eq(rooms.propertyId, properties.id))
         .where(eq(rooms.id, roomId));
-      const tenantOwnerId = roomOwnerRes[0]?.ownerId || null;
+      const roomRow = roomOwnerRes[0];
+      if (!roomRow) {
+        throw new Error("Room not found");
+      }
+      const tenantOwnerId = roomRow.ownerId || null;
 
       const tenantResult = await db
         .insert(tenants)
@@ -250,19 +281,43 @@ export class TenantsService {
         })
         .returning();
 
-      if (!tenantResult) {
+      if (!tenantResult?.length) {
         throw new Error("Failed to create tenant");
       }
 
-      const createdTenant = tenantResult[0];
-      if (createdTenant?.email) {
+      const createdTenant = tenantResult[0]!;
+      if (createdTenant.email) {
         await this.sendTenantCreatedEmailSafe({
           tenantId: createdTenant.id,
           tenantEmail: createdTenant.email,
           tenantName: createdTenant.name,
           paymentDay: createdTenant.paymentDay,
+          roomNumber: roomRow.roomNumber,
         });
       }
+
+      const templateParams = buildTenantWelcomeTemplateParameters({
+        tenantName: createdTenant.name,
+        roomNumber: roomRow.roomNumber,
+        monthlyRent: roomRow.price,
+        paymentDay: createdTenant.paymentDay,
+      });
+
+      await auditsService.withWhatsAppAudit(
+        {
+          tenantId: createdTenant.id,
+          tenantName: createdTenant.name,
+          note: "Bienvenida inquilino nuevo",
+        },
+        () =>
+          sendKapsoTemplate({
+            to: normalizeKapsoRecipient(body.whatsapp),
+            templateName: env.KAPSO_WELCOME_TEMPLATE_NAME,
+            components: kapsoBodyParametersFromStrings(templateParams),
+          }),
+        (err) =>
+          console.error("[WhatsApp][Tenants] Error enviando bienvenida:", err),
+      );
 
       return tenantResult;
     } catch (error) {
@@ -282,8 +337,8 @@ export class TenantsService {
       email: string;
       paymentDay: number;
       notes?: string;
-      firstMonthRent?: number; // 👈 Nuevo: Por si entra a mitad de mes y paga menos
-      deposit?: number; // 👈 Nuevo: Depósito de garantía
+      firstMonthRent?: number;
+      deposit?: number; 
     },
   ) {
     try {
@@ -293,11 +348,13 @@ export class TenantsService {
         );
       }
 
-      // ⚡️ INICIA LA TRANSACCIÓN: Todo esto se ejecuta como un solo bloque indestructible
       const result = await db.transaction(async (tx) => {
-        // 1. Obtenemos el dueño y el precio real del cuarto (por seguridad, lo leemos de la DB, no del frontend)
         const roomData = await tx
-          .select({ ownerId: properties.ownerId, price: rooms.price })
+          .select({
+            ownerId: properties.ownerId,
+            price: rooms.price,
+            roomNumber: rooms.roomNumber,
+          })
           .from(rooms)
           .leftJoin(properties, eq(rooms.propertyId, properties.id))
           .where(eq(rooms.id, roomId));
@@ -310,7 +367,6 @@ export class TenantsService {
         const tenantOwnerId = room.ownerId;
         const roomPrice = Number(room.price);
 
-        // 2. Creamos al inquilino
         const [newTenant] = await tx
           .insert(tenants)
           .values({
@@ -329,32 +385,43 @@ export class TenantsService {
           throw new Error("Failed to create tenant");
         }
 
-        // 3. Marcamos el cuarto como ocupado
         await tx
           .update(rooms)
           .set({ status: "occupied", updatedAt: new Date() })
           .where(eq(rooms.id, roomId));
 
-        // 4. Generamos el PRIMER COBRO opcional si el usuario activó la fracción del primer mes
         if (body.firstMonthRent !== undefined) {
           const currentDate = new Date();
           await tx.insert(payments).values({
             tenantId: newTenant.id,
             amount: body.firstMonthRent.toString(),
-            month: currentDate.getMonth() + 1, // En JS los meses son 0-11
+            month: currentDate.getMonth() + 1, 
             year: currentDate.getFullYear(),
             status: "pending",
           });
         }
 
-        return { newTenant, tenantOwnerId }; // Devolvemos el inquilino creado y el dueño
+        return { newTenant };
       });
 
       if (!result) {
         throw new Error("Transaction failed");
       }
 
-      const { newTenant: resultTenant, tenantOwnerId } = result;
+      const { newTenant: resultTenant } = result;
+
+      const roomForWelcome = await db.query.rooms.findFirst({
+        where: eq(rooms.id, roomId),
+      });
+      const welcomeRoomNumber = roomForWelcome?.roomNumber ?? "";
+      const welcomeRent = roomForWelcome?.price ?? "0";
+
+      const templateParams = buildTenantWelcomeTemplateParameters({
+        tenantName: resultTenant.name,
+        roomNumber: welcomeRoomNumber || "—",
+        monthlyRent: welcomeRent,
+        paymentDay: resultTenant.paymentDay,
+      });
 
       await auditsService.withWhatsAppAudit(
         {
@@ -362,23 +429,23 @@ export class TenantsService {
           tenantName: resultTenant.name,
           note: "Bienvenida inquilino nuevo",
         },
-        async () => {
-          console.log("WhatsApp call" + tenantOwnerId);
-        },
+        () =>
+          sendKapsoTemplate({
+            to: normalizeKapsoRecipient(resultTenant.whatsapp),
+            templateName: env.KAPSO_WELCOME_TEMPLATE_NAME,
+            components: kapsoBodyParametersFromStrings(templateParams),
+          }),
         (err) =>
           console.error("[WhatsApp] Error sending welcome message:", err),
       );
 
       if (resultTenant?.email) {
-        const roomInfo = await db.query.rooms.findFirst({
-          where: eq(rooms.id, roomId),
-        });
         await this.sendTenantCreatedEmailSafe({
           tenantId: resultTenant.id,
           tenantEmail: resultTenant.email,
           tenantName: resultTenant.name,
           paymentDay: resultTenant.paymentDay,
-          roomNumber: roomInfo?.roomNumber ?? null,
+          roomNumber: roomForWelcome?.roomNumber ?? null,
         });
       }
 
@@ -409,7 +476,6 @@ export class TenantsService {
         );
       }
 
-      // Fetch the tenant's current assignment to handle room status toggle
       const tenantRecord = await db.query.tenants.findFirst({
         where: eq(tenants.id, tenantId),
       });
@@ -420,7 +486,6 @@ export class TenantsService {
 
       const oldRoomId = tenantRecord.roomId;
 
-      // Update tenant
       const updatePayload: Partial<typeof tenants.$inferInsert> = {
         roomId,
       };
@@ -438,13 +503,11 @@ export class TenantsService {
         throw new Error("Failed to reassign tenant");
       }
 
-      // Update new room to occupied
       await db
         .update(rooms)
         .set({ status: "occupied" })
         .where(eq(rooms.id, roomId));
 
-      // Update old room to vacant if they were coming from a different room
       if (oldRoomId && oldRoomId !== roomId) {
         await db
           .update(rooms)
@@ -518,7 +581,6 @@ export class TenantsService {
         throw new Error("Failed to delete tenant");
       }
 
-      // Automatically mark the room as vacant since tenant was removed
       await db
         .update(rooms)
         .set({ status: "vacant" })
@@ -556,7 +618,6 @@ export class TenantsService {
         throw new Error("Failed to unassign tenant");
       }
 
-      // Automatically mark the room as vacant since tenant was removed
       await db
         .update(rooms)
         .set({ status: "vacant" })
