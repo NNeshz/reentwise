@@ -12,6 +12,7 @@
     "db:migrate": "bun --filter @reentwise/database db:migrate",
     "db:push": "bun --filter @reentwise/database db:push",
     "db:studio": "bun --filter @reentwise/database db:studio",
+    "db:devreset": "bun --filter @reentwise/database db:devreset",
     "clean-workspaces": "turbo clean-workspace && rm -rf node_modules"
   },
   "devDependencies": {
