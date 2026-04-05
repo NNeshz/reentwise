@@ -4,7 +4,7 @@ import { AuditsList } from "@/modules/audits/components/audits-list";
 
 export default function AuditsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <AuditsHeader />
       <AuditsFilters />
       <AuditsList />

@@ -1,18 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Badge } from "@reentwise/ui/src/components/badge";
 import { Button } from "@reentwise/ui/src/components/button";
-import { Card } from "@reentwise/ui/src/components/card";
 import { Skeleton } from "@reentwise/ui/src/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@reentwise/ui/src/components/table";
 import {
   IconBrandWhatsapp,
   IconChevronLeft,
@@ -26,6 +17,10 @@ import type {
   AuditRow,
   AuditStatus,
 } from "@/modules/audits/service/audits-service";
+
+/** Columnas alineadas entre cabecera y filas; ancho mínimo para scroll horizontal en pantallas angostas. */
+const AUDITS_GRID_CLASS =
+  "grid w-full min-w-[640px] grid-cols-[11rem_6.5rem_6.5rem_9rem_minmax(0,1fr)] gap-x-3 gap-y-1 items-start";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("es-MX", {
   year: "numeric",
@@ -67,19 +62,26 @@ function statusStyles(status: AuditStatus): string {
   }
 }
 
-function rowAccent(status: AuditStatus): string {
-  switch (status) {
-    case "sent":
-      return "border-l-emerald-500";
-    case "failed":
-      return "border-l-orange-500";
-    case "sending":
-      return "border-l-amber-500";
-    case "pending":
-      return "border-l-slate-400";
-    default:
-      return "border-l-transparent";
-  }
+function AuditsTableHeader() {
+  return (
+    <div className={cn(AUDITS_GRID_CLASS, "py-2.5")}>
+      <div className="font-mono text-xs font-normal uppercase tracking-wide text-muted-foreground">
+        Fecha / hora
+      </div>
+      <div className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+        Canal
+      </div>
+      <div className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+        Estado
+      </div>
+      <div className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+        Inquilino
+      </div>
+      <div className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+        Nota
+      </div>
+    </div>
+  );
 }
 
 function AuditRowView({ row }: { row: AuditRow }) {
@@ -92,13 +94,11 @@ function AuditRowView({ row }: { row: AuditRow }) {
   }, [row.loggedAt]);
 
   return (
-    <TableRow
-      className={cn("border-l-4 bg-card/30 text-sm", rowAccent(row.status))}
-    >
-      <TableCell className="align-top font-mono text-xs text-muted-foreground">
-        {formattedTime}
-      </TableCell>
-      <TableCell className="align-top">
+    <li className="py-3 text-sm">
+      <div className={AUDITS_GRID_CLASS}>
+        <span className="font-mono text-xs text-muted-foreground">
+          {formattedTime}
+        </span>
         <span className="inline-flex items-center gap-1.5">
           {row.channel === "whatsapp" ? (
             <IconBrandWhatsapp
@@ -110,36 +110,53 @@ function AuditRowView({ row }: { row: AuditRow }) {
           )}
           <span className="capitalize">{row.channel}</span>
         </span>
-      </TableCell>
-      <TableCell className="align-top">
         <Badge
           variant="outline"
-          className={cn("font-medium", statusStyles(row.status))}
+          className={cn("w-fit font-medium", statusStyles(row.status))}
         >
           {statusLabel(row.status)}
         </Badge>
-      </TableCell>
-      <TableCell className="max-w-[140px] align-top">
-        <span className="line-clamp-2 font-medium text-foreground">
-          {row.tenantName}
+        <span className="min-w-0 font-medium text-foreground">
+          <span className="line-clamp-2">{row.tenantName}</span>
         </span>
-      </TableCell>
-      <TableCell className="max-w-[min(40vw,280px)] align-top whitespace-normal">
-        <span className="line-clamp-3 text-xs leading-snug text-muted-foreground">
-          {row.note || "—"}
+        <span className="min-w-0 text-xs leading-snug text-muted-foreground">
+          <span className="line-clamp-3 whitespace-normal">
+            {row.note || "—"}
+          </span>
         </span>
-      </TableCell>
-    </TableRow>
+      </div>
+    </li>
   );
 }
 
-function TableSkeleton() {
+function AuditsListFrame({ children }: { children: ReactNode }) {
+  return <div className="overflow-x-auto bg-transparent">{children}</div>;
+}
+
+function AuditsListSkeleton() {
   return (
-    <div className="space-y-2">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full rounded-md" />
-      ))}
-    </div>
+    <AuditsListFrame>
+      <div className={cn(AUDITS_GRID_CLASS, "px-3 py-2.5")}>
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-14" />
+        <Skeleton className="h-3 w-14" />
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-16" />
+      </div>
+      <ul className="flex flex-col gap-1" role="list">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <li key={i} className="px-3 py-3">
+            <div className={AUDITS_GRID_CLASS}>
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-full max-w-md" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </AuditsListFrame>
   );
 }
 
@@ -151,16 +168,12 @@ export function AuditsList() {
   const pagination = data?.pagination;
 
   if (isLoading) {
-    return (
-      <Card className="border-border/60 bg-muted/20 p-4">
-        <TableSkeleton />
-      </Card>
-    );
+    return <AuditsListSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+      <div className="rounded-xl bg-destructive/5 p-6 text-center">
         <p className="text-sm font-medium text-destructive">
           No se pudieron cargar las auditorías
         </p>
@@ -173,7 +186,7 @@ export function AuditsList() {
 
   if (audits.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border/80 bg-muted/10 py-16 text-center">
+      <div className="rounded-xl bg-muted/10 py-16 text-center">
         <p className="text-sm font-medium text-muted-foreground">
           No hay registros con estos filtros
         </p>
@@ -194,34 +207,14 @@ export function AuditsList() {
         </span>
       </div>
 
-      <Card className="overflow-hidden border-border/70 bg-muted/15 p-0 shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-border/80 hover:bg-transparent">
-              <TableHead className="w-[200px] font-mono text-xs uppercase tracking-wide text-muted-foreground">
-                Fecha / hora
-              </TableHead>
-              <TableHead className="w-[120px] text-xs uppercase tracking-wide text-muted-foreground">
-                Canal
-              </TableHead>
-              <TableHead className="w-[120px] text-xs uppercase tracking-wide text-muted-foreground">
-                Estado
-              </TableHead>
-              <TableHead className="min-w-[140px] text-xs uppercase tracking-wide text-muted-foreground">
-                Inquilino
-              </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
-                Nota
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {audits.map((row) => (
-              <AuditRowView key={row.id} row={row} />
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <AuditsListFrame>
+        <AuditsTableHeader />
+        <ul className="flex flex-col gap-1" role="list">
+          {audits.map((row) => (
+            <AuditRowView key={row.id} row={row} />
+          ))}
+        </ul>
+      </AuditsListFrame>
 
       {pagination && pagination.totalPages > 0 && (
         <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
