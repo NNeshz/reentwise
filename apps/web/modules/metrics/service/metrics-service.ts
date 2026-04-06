@@ -1,5 +1,6 @@
 import { apiClient } from "@/utils/api-connection";
 import type {
+  MetricsCardsApiSuccess,
   MetricsCardsQuery,
   MetricsCardsResponse,
 } from "@reentwise/api/src/modules/metrics/types/metrics.types";
@@ -23,7 +24,8 @@ class MetricsService {
       throw response.error.value;
     }
 
-    return response.data as MetricsCardsResponse;
+    const body = response.data as MetricsCardsApiSuccess;
+    return body.data;
   }
 }
 

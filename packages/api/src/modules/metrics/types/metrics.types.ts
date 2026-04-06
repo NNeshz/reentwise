@@ -59,3 +59,11 @@ export type MetricsCardsResponse = {
     outstandingBalance: MetricCard;
   };
 };
+
+/** GET /metrics/owner/cards — success envelope. */
+export type MetricsCardsApiSuccess = {
+  success: true;
+  status: 200;
+  message: string;
+  data: MetricsCardsResponse;
+};

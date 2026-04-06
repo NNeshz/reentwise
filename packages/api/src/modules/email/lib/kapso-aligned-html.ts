@@ -1,6 +1,6 @@
 /**
- * Cuerpos de correo (Resend) alineados con el orden y significado de las variables
- * de las plantillas Kapso en `kapso.templates.ts` (mismo texto guía que {{1}}…{{n}}).
+ * HTML/text subjects for Resend — same field meanings as WhatsApp body params in
+ * `kapso/kapso.templates.ts` ({{1}}…{{n}} order).
  */
 import type {
   KapsoReminder7dParams,
@@ -9,7 +9,7 @@ import type {
   KapsoAbonoRecivedParams,
   KapsoPaymentCompletedParams,
   KapsoExpirationNoticeParams,
-} from "@reentwise/api/src/modules/kapso/kapso.service";
+} from "@reentwise/api/src/modules/kapso/kapso.templates";
 
 function esc(s: string): string {
   return s

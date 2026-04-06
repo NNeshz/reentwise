@@ -1,3 +1,8 @@
+/**
+ * WhatsApp (Meta/Kapso) outbound templates and HTTP send.
+ * Companion Resend HTML for the same logical messages lives in
+ * `email/lib/kapso-aligned-html.ts`.
+ */
 import type { SendTemplatePayload } from "./kapso.meta";
 
 export type { SendTemplatePayload, TemplateComponent, TemplateParameter } from "./kapso.meta";

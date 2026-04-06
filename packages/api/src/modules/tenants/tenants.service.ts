@@ -24,7 +24,7 @@ import {
   kapsoBodyReminderConfirmation,
   kapsoTemplateName,
 } from "@reentwise/api/src/modules/kapso/kapso.service";
-import { emailWelcomeConfirmation } from "@reentwise/api/src/modules/messaging/kapso-aligned-emails";
+import { emailWelcomeConfirmation } from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
 
 export function getPaymentDateForMonth(
   year: number,

@@ -1,1 +1,1 @@
-export { ownerMetricsRoutes } from "@reentwise/api/src/modules/metrics/routes/owner.route";
+export { ownerMetricsRoutes } from "@reentwise/api/src/modules/metrics/routes/owner.routes";

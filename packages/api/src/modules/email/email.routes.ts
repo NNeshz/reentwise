@@ -2,8 +2,8 @@ import Elysia from "elysia";
 import { emailWebhookRoutes } from "@reentwise/api/src/modules/email/routes/webhook.routes";
 
 /**
- * Rutas relacionadas con correo. El webhook usa cuerpo en bruto (JSON string) para la firma Svix.
- * URL del endpoint en Resend: `{NEXT_PUBLIC_BACKEND_URL}/api/email/webhook`
+ * Email routes. Webhook uses raw string body for Svix verification.
+ * Resend URL: `{NEXT_PUBLIC_BACKEND_URL}/api/email/webhook`
  */
 export const emailRoutes = new Elysia({
   name: "emailRoutes",

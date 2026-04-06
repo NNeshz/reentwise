@@ -3,6 +3,7 @@ import {
   count,
   db,
   eq,
+  inArray,
   isNull,
   planLimits,
   properties,
@@ -47,8 +48,17 @@ export function getEffectivePlanTier(row: {
   return "freemium";
 }
 
+/** Resolved owner + tier + row from `plan_limits` (same shape as `getLimitsContext`). */
+export type OwnerPlanLimitsContext = {
+  user: typeof user.$inferSelect;
+  effectiveTier: PlanTier;
+  limits: typeof planLimits.$inferSelect;
+};
+
 export class PlanLimitsService {
-  async getLimitsContext(ownerId: string) {
+  async getLimitsContext(
+    ownerId: string,
+  ): Promise<OwnerPlanLimitsContext | null> {
     const [u] = await db
       .select()
       .from(user)
@@ -63,6 +73,54 @@ export class PlanLimitsService {
       .limit(1);
     if (!limits) return null;
     return { user: u, effectiveTier, limits };
+  }
+
+  /**
+   * Batch-resolve plan limits for many owners (one user query + one plan_limits query per distinct tier).
+   * Use from cron instead of calling `getLimitsContext` per tenant row.
+   */
+  async getLimitsContexts(
+    ownerIds: string[],
+  ): Promise<Map<string, OwnerPlanLimitsContext>> {
+    const unique = [...new Set(ownerIds.filter(Boolean))];
+    const out = new Map<string, OwnerPlanLimitsContext>();
+    if (unique.length === 0) return out;
+
+    const usersFound = await db
+      .select()
+      .from(user)
+      .where(inArray(user.id, unique));
+
+    const byId = new Map(usersFound.map((u) => [u.id, u]));
+    const tiersNeeded = new Set<PlanTier>();
+    for (const id of unique) {
+      const row = byId.get(id);
+      if (row) tiersNeeded.add(getEffectivePlanTier(row));
+    }
+
+    const tierList = [...tiersNeeded];
+    const limitsRows =
+      tierList.length === 0
+        ? []
+        : await db
+            .select()
+            .from(planLimits)
+            .where(inArray(planLimits.tier, tierList));
+
+    const limitsByTier = new Map(
+      limitsRows.map((row) => [row.tier, row] as const),
+    );
+
+    for (const id of unique) {
+      const u = byId.get(id);
+      if (!u) continue;
+      const effectiveTier = getEffectivePlanTier(u);
+      const limits = limitsByTier.get(effectiveTier);
+      if (!limits) continue;
+      out.set(id, { user: u, effectiveTier, limits });
+    }
+
+    return out;
   }
 
   async assertCanCreateProperty(

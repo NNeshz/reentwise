@@ -1,5 +1,10 @@
 import { Elysia, t } from "elysia";
 import { cronModule } from "@reentwise/api/src/modules/cron/cron.module";
+import {
+  cronDailySuccessResponseSchema,
+  cronDailyUnauthorizedSchema,
+  cronDailyErrorSchema,
+} from "@reentwise/api/src/modules/cron/cron.schema";
 
 export const cronPaymentsRoutes = new Elysia({
   name: "cronPaymentsRoutes",
@@ -12,7 +17,11 @@ export const cronPaymentsRoutes = new Elysia({
       const authHeader = headers.authorization;
       if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         set.status = 401;
-        return { success: false, message: "No autorizado" };
+        return {
+          success: false as const,
+          status: 401 as const,
+          message: "No autorizado",
+        };
       }
 
       try {
@@ -21,7 +30,8 @@ export const cronPaymentsRoutes = new Elysia({
         const executionLogs = await cronService.runDailyTasks();
 
         return {
-          success: true,
+          success: true as const,
+          status: 200 as const,
           message: "Rutina diaria completada",
           tasksExecuted: executionLogs.length,
           logs: executionLogs,
@@ -30,7 +40,8 @@ export const cronPaymentsRoutes = new Elysia({
         console.error("Error en el Cron Job:", error);
         set.status = 500;
         return {
-          success: false,
+          success: false as const,
+          status: 500 as const,
           message: "Error interno al ejecutar el cron",
           error:
             error instanceof Error ? error.message : "Error desconocido",
@@ -41,8 +52,14 @@ export const cronPaymentsRoutes = new Elysia({
       headers: t.Object({
         authorization: t.Optional(t.String()),
       }),
+      response: {
+        200: cronDailySuccessResponseSchema,
+        401: cronDailyUnauthorizedSchema,
+        500: cronDailyErrorSchema,
+      },
       detail: {
-        summary: "Ejecuta las revisiones de pagos (T-5, T=0, T+2)",
+        summary:
+          "Ejecuta revisiones diarias (T-7, T-3, día de pago, +2 mora) y mensajería",
         tags: ["Cron Jobs"],
       },
     },

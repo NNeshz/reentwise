@@ -30,7 +30,7 @@ import {
 import {
   emailAbonoReceived,
   emailPaymentCompleted,
-} from "@reentwise/api/src/modules/messaging/kapso-aligned-emails";
+} from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
 
 type PaymentStatusFilter = "pending" | "partial" | "paid";
 

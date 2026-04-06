@@ -6,11 +6,16 @@ import {
   properties,
   user,
 } from "@reentwise/database";
-import { getPaymentDateForMonth } from "../tenants/tenants.service";
-import { emailService } from "@reentwise/api/src/modules/email/email.service";
+import { getPaymentDateForMonth } from "@reentwise/api/src/modules/tenants/tenants.service";
+import {
+  planLimitsService,
+  type OwnerPlanLimitsContext,
+} from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
+import {
+  cronReminderNotePrefix,
+  type CronReminderKind,
+} from "@reentwise/api/src/modules/audits/lib/cron-reminder-prefix";
 import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
-import { cronReminderNotePrefix } from "@reentwise/api/src/modules/audits/lib/cron-reminder-prefix";
-import { planLimitsService } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
 import {
   sendKapsoTemplate,
   normalizeKapsoRecipient,
@@ -28,31 +33,12 @@ import {
   emailReminder3d,
   emailReminderToday,
   emailExpirationNotice,
-} from "@reentwise/api/src/modules/messaging/kapso-aligned-emails";
-
-function dateYmd(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+} from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
+import { dateYmd } from "@reentwise/api/src/modules/cron/utils/date-ymd";
+import { buildReminderTriggersForDay } from "@reentwise/api/src/modules/cron/lib/reminder-triggers";
+import { dispatchCronReminderAudits } from "@reentwise/api/src/modules/cron/lib/dispatch-reminder-audits";
 
 export class CronService {
-  private getDaysDiff(targetDate: Date, today: Date): number {
-    const _target = new Date(
-      targetDate.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate(),
-    );
-    const _today = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    );
-    const diffTime = _target.getTime() - _today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
-
   async runDailyTasks() {
     const today = new Date();
     const logs: string[] = [];
@@ -70,46 +56,25 @@ export class CronService {
       .innerJoin(user, eq(properties.ownerId, user.id))
       .where(eq(rooms.status, "occupied"));
 
+    const limitsByOwner = await planLimitsService.getLimitsContexts(
+      activeRows.map((r) => r.property.ownerId),
+    );
+
     for (const { tenant, room, property, owner } of activeRows) {
-      const thisMonthDay = getPaymentDateForMonth(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        tenant.paymentDay,
-      );
-      const thisMonthDate = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        thisMonthDay,
-      );
+      const limitsCtx = limitsByOwner.get(property.ownerId);
+      if (!limitsCtx) {
+        logs.push(`[skip] sin contexto de plan owner=${property.ownerId}`);
+        continue;
+      }
 
-      const nextMonth = today.getMonth() + 1;
-      const nextMonthYear = nextMonth > 11 ? today.getFullYear() + 1 : today.getFullYear();
-      const nextMonthIndex = nextMonth > 11 ? 0 : nextMonth;
-      const nextMonthDay = getPaymentDateForMonth(
-        nextMonthYear,
-        nextMonthIndex + 1,
-        tenant.paymentDay,
-      );
-      const nextMonthDate = new Date(nextMonthYear, nextMonthIndex, nextMonthDay);
-
-      const diffThisMonth = this.getDaysDiff(thisMonthDate, today);
-      const diffNextMonth = this.getDaysDiff(nextMonthDate, today);
-
-      const triggers: { targetDate: Date; kind: "t7" | "t3" | "t0" | "late" }[] =
-        [];
-      if (diffThisMonth === 7) triggers.push({ targetDate: thisMonthDate, kind: "t7" });
-      if (diffNextMonth === 7) triggers.push({ targetDate: nextMonthDate, kind: "t7" });
-      if (diffThisMonth === 3) triggers.push({ targetDate: thisMonthDate, kind: "t3" });
-      if (diffNextMonth === 3) triggers.push({ targetDate: nextMonthDate, kind: "t3" });
-      if (diffThisMonth === 0) triggers.push({ targetDate: thisMonthDate, kind: "t0" });
-      if (diffThisMonth === -2) triggers.push({ targetDate: thisMonthDate, kind: "late" });
-
+      const triggers = buildReminderTriggersForDay(today, tenant.paymentDay);
       for (const t of triggers) {
         await this.processTenant(
           tenant,
           room,
           property,
           owner,
+          limitsCtx,
           t.targetDate,
           t.kind,
           logs,
@@ -125,19 +90,14 @@ export class CronService {
     room: typeof rooms.$inferSelect,
     property: typeof properties.$inferSelect,
     owner: typeof user.$inferSelect,
+    limitsCtx: OwnerPlanLimitsContext,
     targetDate: Date,
-    kind: "t7" | "t3" | "t0" | "late",
+    kind: CronReminderKind,
     logs: string[],
   ) {
     const targetMonth = targetDate.getMonth() + 1;
     const targetYear = targetDate.getFullYear();
     const ymd = dateYmd(targetDate);
-
-    const limitsCtx = await planLimitsService.getLimitsContext(property.ownerId);
-    if (!limitsCtx) {
-      logs.push(`[skip] sin contexto de plan owner=${property.ownerId}`);
-      return;
-    }
     const { limits } = limitsCtx;
 
     if (kind === "t7" && !limits.allowReminderT7) return;
@@ -159,7 +119,8 @@ export class CronService {
 
     const paidOrAnnulled =
       existingPayment &&
-      (existingPayment.status === "paid" || existingPayment.status === "annulled");
+      (existingPayment.status === "paid" ||
+        existingPayment.status === "annulled");
 
     const propertyLabel = formatKapsoPropertyLabel({
       propertyName: property.name,
@@ -180,7 +141,12 @@ export class CronService {
       amountFormatted,
     };
 
-    const notePrefix = cronReminderNotePrefix(kind, ymd, tenant.id);
+    const noteBase = cronReminderNotePrefix(kind, ymd, tenant.id);
+    const tenantChannels = {
+      id: tenant.id,
+      name: tenant.name,
+      email: tenant.email,
+    };
 
     if (kind === "t7" || kind === "t3") {
       if (paidOrAnnulled) return;
@@ -192,46 +158,21 @@ export class CronService {
       const templateKey = kind === "t7" ? "reminder_7d" : "reminder_3d";
       const emailFn = kind === "t7" ? emailReminder7d : emailReminder3d;
 
-      await auditsService.withWhatsAppAudit(
-        {
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          note: `${notePrefix}|wa`,
-        },
-        () =>
+      await dispatchCronReminderAudits({
+        tenant: tenantChannels,
+        noteBase,
+        sendKapso: () =>
           sendKapsoTemplate({
             to: normalizeKapsoRecipient(tenant.whatsapp),
             templateName: kapsoTemplateName(templateKey),
             components: body,
           }),
-        (err) =>
-          console.error(`[Cron][WA][${kind}] ${tenant.name}:`, err),
-      );
-
-      if (tenant.email) {
-        const { subject, html, text } = emailFn(baseParams);
-        await auditsService.withEmailAudit(
-          {
-            tenantId: tenant.id,
-            tenantName: tenant.name,
-            note: `${notePrefix}|email`,
-          },
-          () =>
-            emailService.sendHtml({
-              to: tenant.email,
-              subject,
-              html,
-              text,
-              tags: [
-                { name: "type", value: `cron_reminder_${kind}` },
-                { name: "module", value: "cron" },
-              ],
-              idempotencyKey: `${notePrefix}|email`,
-            }),
-          (err) =>
-            console.error(`[Cron][Email][${kind}] ${tenant.name}:`, err),
-        );
-      }
+        email: {
+          build: () => emailFn(baseParams),
+          typeTag: `cron_reminder_${kind}`,
+        },
+        logKind: kind,
+      });
 
       logs.push(`[${kind.toUpperCase()}] Recordatorio a ${tenant.name}`);
       return;
@@ -257,52 +198,27 @@ export class CronService {
         amountFormatted,
       };
 
-      await auditsService.withWhatsAppAudit(
-        {
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          note: `${notePrefix}|wa`,
-        },
-        () =>
+      await dispatchCronReminderAudits({
+        tenant: tenantChannels,
+        noteBase,
+        sendKapso: () =>
           sendKapsoTemplate({
             to: normalizeKapsoRecipient(tenant.whatsapp),
             templateName: kapsoTemplateName("reminder_today"),
             components: kapsoBodyReminderToday(todayParams),
           }),
-        (err) =>
-          console.error(`[Cron][WA][t0] ${tenant.name}:`, err),
-      );
-
-      if (tenant.email) {
-        const { subject, html, text } = emailReminderToday(todayParams);
-        await auditsService.withEmailAudit(
-          {
-            tenantId: tenant.id,
-            tenantName: tenant.name,
-            note: `${notePrefix}|email`,
-          },
-          () =>
-            emailService.sendHtml({
-              to: tenant.email,
-              subject,
-              html,
-              text,
-              tags: [
-                { name: "type", value: "cron_reminder_t0" },
-                { name: "module", value: "cron" },
-              ],
-              idempotencyKey: `${notePrefix}|email`,
-            }),
-          (err) =>
-            console.error(`[Cron][Email][t0] ${tenant.name}:`, err),
-        );
-      }
+        email: {
+          build: () => emailReminderToday(todayParams),
+          typeTag: "cron_reminder_t0",
+        },
+        logKind: "t0",
+      });
 
       logs.push(`[T0] Día de pago / cobro generado para ${tenant.name}`);
       return;
     }
 
-    // late (mora): solo planes con cadencia de pago completa (mismo flag que "hoy")
+    // late: +2d mora; same cadence flag as "today"
     if (
       existingPayment &&
       (existingPayment.status === "pending" ||
@@ -327,46 +243,21 @@ export class CronService {
         ),
       };
 
-      await auditsService.withWhatsAppAudit(
-        {
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          note: `${notePrefix}|wa`,
-        },
-        () =>
+      await dispatchCronReminderAudits({
+        tenant: tenantChannels,
+        noteBase,
+        sendKapso: () =>
           sendKapsoTemplate({
             to: normalizeKapsoRecipient(tenant.whatsapp),
             templateName: kapsoTemplateName("expiration_notice"),
             components: kapsoBodyExpirationNotice(expParams),
           }),
-        (err) =>
-          console.error(`[Cron][WA][late] ${tenant.name}:`, err),
-      );
-
-      if (tenant.email) {
-        const { subject, html, text } = emailExpirationNotice(expParams);
-        await auditsService.withEmailAudit(
-          {
-            tenantId: tenant.id,
-            tenantName: tenant.name,
-            note: `${notePrefix}|email`,
-          },
-          () =>
-            emailService.sendHtml({
-              to: tenant.email,
-              subject,
-              html,
-              text,
-              tags: [
-                { name: "type", value: "cron_expiration_late" },
-                { name: "module", value: "cron" },
-              ],
-              idempotencyKey: `${notePrefix}|email`,
-            }),
-          (err) =>
-            console.error(`[Cron][Email][late] ${tenant.name}:`, err),
-        );
-      }
+        email: {
+          build: () => emailExpirationNotice(expParams),
+          typeTag: "cron_expiration_late",
+        },
+        logKind: "late",
+      });
 
       logs.push(`[LATE] Aviso mora a ${tenant.name}`);
     }

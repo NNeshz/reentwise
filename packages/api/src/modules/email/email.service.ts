@@ -5,40 +5,15 @@ import {
   type WebhookEventPayload,
 } from "resend";
 import { env } from "@reentwise/api/src/utils/envs";
+import type { SendHtmlEmailInput } from "@reentwise/api/src/modules/email/lib/send-html-email.types";
+import { resendConfigErrorResponse } from "@reentwise/api/src/modules/email/lib/resend-config-error";
+import { resendWebhookVerifier } from "@reentwise/api/src/modules/email/lib/resend-webhook-verifier";
 
-/** Cliente mínimo para verificación Svix de webhooks (no requiere API key). */
-const resendWebhooks = new Resend();
-
-export type SendHtmlEmailInput = {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-  replyTo?: string | string[];
-  cc?: string | string[];
-  bcc?: string | string[];
-  idempotencyKey?: string;
-  tags?: { name: string; value: string }[];
-  scheduledAt?: string;
-  headers?: Record<string, string>;
-  /** Overrides `RESEND_FROM`; must use a verified domain in production (not `onboarding@resend.dev`). */
-  from?: string;
-};
-
-function configError(
-  message: string,
-  name: NonNullable<CreateEmailResponse["error"]>["name"],
-): CreateEmailResponse {
-  return {
-    data: null,
-    error: { message, statusCode: null, name },
-    headers: null,
-  };
-}
+export type { SendHtmlEmailInput } from "@reentwise/api/src/modules/email/lib/send-html-email.types";
 
 /**
- * Resend-backed email sending. Uses `RESEND_API_KEY` and optional default `RESEND_FROM`.
- * Prefer `idempotencyKey` (e.g. `welcome-user/<userId>`) for safe retries.
+ * Resend-backed outbound email (`RESEND_API_KEY`, default `RESEND_FROM`).
+ * Use `idempotencyKey` for safe retries (e.g. `welcome-user/<userId>`).
  *
  * @see https://resend.com/docs
  */
@@ -51,10 +26,7 @@ export class EmailService {
       : null;
   }
 
-  /**
-   * Verifica la firma Svix y devuelve el evento tipado.
-   * @see https://resend.com/docs/webhooks/verify-webhooks-requests
-   */
+  /** Svix verify; throws if secret missing or signature invalid. */
   verifyWebhook(
     rawBody: string,
     svix: { id: string; timestamp: string; signature: string },
@@ -63,7 +35,7 @@ export class EmailService {
     if (!secret) {
       throw new Error("RESEND_WEBHOOK_SECRET no está configurada");
     }
-    return resendWebhooks.webhooks.verify({
+    return resendWebhookVerifier.webhooks.verify({
       payload: rawBody,
       headers: svix,
       webhookSecret: secret,
@@ -71,8 +43,7 @@ export class EmailService {
   }
 
   /**
-   * Punto de extensión para correos entrantes. El webhook solo trae metadatos;
-   * para cuerpo/adjuntos usa la API de received emails de Resend.
+   * Inbound hook entrypoint; extend `onEmailReceived` for content via Resend received API.
    * @see https://resend.com/docs/dashboard/receiving/get-email-content
    */
   async handleWebhookEvent(event: WebhookEventPayload): Promise<void> {
@@ -95,13 +66,13 @@ export class EmailService {
   async sendHtml(input: SendHtmlEmailInput): Promise<CreateEmailResponse> {
     const from = input.from ?? env.RESEND_FROM;
     if (!this.client) {
-      return configError(
+      return resendConfigErrorResponse(
         "RESEND_API_KEY is not configured",
         "missing_api_key",
       );
     }
     if (!from) {
-      return configError(
+      return resendConfigErrorResponse(
         "RESEND_FROM is not set and no from was provided",
         "missing_required_field",
       );
