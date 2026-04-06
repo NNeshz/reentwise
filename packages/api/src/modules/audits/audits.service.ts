@@ -13,6 +13,14 @@ import {
   type AuditChannel,
   type AuditStatus,
 } from "@reentwise/database";
+import {
+  cronReminderNotePrefix,
+  type CronReminderKind,
+} from "@reentwise/api/src/modules/audits/lib/cron-reminder-prefix";
+import type { ResendLikeResponse } from "@reentwise/api/src/modules/audits/lib/resend-types";
+import { buildListPagination } from "@reentwise/api/src/modules/audits/utils/pagination";
+
+export type { CronReminderKind } from "@reentwise/api/src/modules/audits/lib/cron-reminder-prefix";
 
 export type CreateAuditInput = {
   tenantId: string;
@@ -23,26 +31,11 @@ export type CreateAuditInput = {
   loggedAt?: Date;
 };
 
-type ResendLikeResponse = {
-  error?: { message?: string | null } | null;
-};
-
-/** Prefijo estable para idempotencia de recordatorios cron (note ≤ 160). */
-export function cronReminderNotePrefix(
-  kind: "t7" | "t3" | "t0" | "late",
-  targetDateYmd: string,
-  tenantId: string,
-): string {
-  return `cron|${kind}|${targetDateYmd}|${tenantId}`;
-}
-
 export class AuditsService {
-  /**
-   * Evita doble envío si el job diario se ejecuta más de una vez para el mismo ciclo.
-   */
+  /** Idempotent guard when the daily cron runs more than once for the same cycle. */
   async hasCronReminderForDate(
     tenantId: string,
-    kind: "t7" | "t3" | "t0" | "late",
+    kind: CronReminderKind,
     targetDateYmd: string,
   ): Promise<boolean> {
     const prefix = cronReminderNotePrefix(kind, targetDateYmd, tenantId);
@@ -97,8 +90,8 @@ export class AuditsService {
   }
 
   /**
-   * Registra sending → sent/failed para correo (Resend).
-   * No relanza errores del envío; solo consola como antes.
+   * Wraps email send: audit row goes sending → sent/failed (Resend).
+   * Does not rethrow send errors; logs via `logError` like before.
    */
   async withEmailAudit(
     ctx: { tenantId: string; tenantName: string; note: string },
@@ -143,9 +136,7 @@ export class AuditsService {
     }
   }
 
-  /**
-   * Registra sending → sent/failed para WhatsApp (integración futura o stub).
-   */
+  /** WhatsApp send wrapper: sending → sent/failed (future integration / stub). */
   async withWhatsAppAudit(
     ctx: { tenantId: string; tenantName: string; note: string },
     send: () => Promise<void>,
@@ -191,8 +182,8 @@ export class AuditsService {
   }
 
   /**
-   * Lista auditorías visibles para el dueño: inquilinos con `ownerId` directo
-   * o asignados a un cuarto de una propiedad suya (misma regla que `getTenants`).
+   * Owner-visible audits: tenants with direct `ownerId` or room on owner property
+   * (same scope rule as `getTenants`).
    */
   async getAuditsForOwner(
     ownerId: string,
@@ -235,8 +226,6 @@ export class AuditsService {
       .where(whereClause);
 
     const totalItems = Number(countRow?.total ?? 0);
-    const totalPages =
-      totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
 
     const rows = await db
       .select({
@@ -261,14 +250,8 @@ export class AuditsService {
       message: "Audits retrieved successfully",
       status: 200,
       audits: rows,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems,
-        itemsPerPage: limit,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      count: rows.length,
+      pagination: buildListPagination(page, limit, totalItems),
     };
   }
 }

@@ -18,6 +18,7 @@ export type AuditsListResponse = {
   message: string;
   status: number;
   audits: AuditRow[];
+  count: number;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -25,6 +26,8 @@ export type AuditsListResponse = {
     itemsPerPage: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
+    nextPage: number | null;
+    previousPage: number | null;
   };
 };
 

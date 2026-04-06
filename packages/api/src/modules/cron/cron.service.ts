@@ -8,10 +8,8 @@ import {
 } from "@reentwise/database";
 import { getPaymentDateForMonth } from "../tenants/tenants.service";
 import { emailService } from "@reentwise/api/src/modules/email/email.service";
-import {
-  auditsService,
-  cronReminderNotePrefix,
-} from "@reentwise/api/src/modules/audits/audits.service";
+import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
+import { cronReminderNotePrefix } from "@reentwise/api/src/modules/audits/lib/cron-reminder-prefix";
 import { planLimitsService } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
 import {
   sendKapsoTemplate,

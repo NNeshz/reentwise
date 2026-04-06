@@ -1,6 +1,6 @@
 import { t } from "elysia";
 
-/** Query string params llegan como string; `page`/`limit` se parsean en la ruta. */
+/** Query strings; `page` / `limit` parsed in route via `parseAuditsListQuery`. */
 export const getAuditsQuerySchema = t.Object({
   page: t.Optional(t.String()),
   limit: t.Optional(t.String()),
