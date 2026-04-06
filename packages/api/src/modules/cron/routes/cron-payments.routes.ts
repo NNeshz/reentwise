@@ -5,6 +5,7 @@ import {
   cronDailyUnauthorizedSchema,
   cronDailyErrorSchema,
 } from "@reentwise/api/src/modules/cron/cron.schema";
+import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
 
 export const cronPaymentsRoutes = new Elysia({
   name: "cronPaymentsRoutes",
@@ -17,11 +18,7 @@ export const cronPaymentsRoutes = new Elysia({
       const authHeader = headers.authorization;
       if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         set.status = 401;
-        return {
-          success: false as const,
-          status: 401 as const,
-          message: "No autorizado",
-        };
+        return apiError(401, "No autorizado");
       }
 
       try {
@@ -29,23 +26,16 @@ export const cronPaymentsRoutes = new Elysia({
 
         const executionLogs = await cronService.runDailyTasks();
 
-        return {
-          success: true as const,
-          status: 200 as const,
-          message: "Rutina diaria completada",
+        return apiSuccess("Rutina diaria completada", {
           tasksExecuted: executionLogs.length,
           logs: executionLogs,
-        };
+        });
       } catch (error) {
         console.error("Error en el Cron Job:", error);
         set.status = 500;
-        return {
-          success: false as const,
-          status: 500 as const,
-          message: "Error interno al ejecutar el cron",
-          error:
-            error instanceof Error ? error.message : "Error desconocido",
-        };
+        const detail =
+          error instanceof Error ? error.message : "Error desconocido";
+        return apiError(500, `Error interno al ejecutar el cron: ${detail}`);
       }
     },
     {

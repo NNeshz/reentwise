@@ -1,17 +1,13 @@
 import { t } from "elysia";
+import {
+  apiSuccessEnvelopeSchema,
+  apiErrorEnvelopeSchema,
+} from "@reentwise/api/src/utils/api-envelope.schema";
 
-export const pingSuccessSchema = t.Object({
-  success: t.Literal(true),
-  status: t.Literal(200),
-  message: t.String(),
-  data: t.Object({
+export const pingSuccessSchema = apiSuccessEnvelopeSchema(
+  t.Object({
     now: t.Optional(t.Any()),
   }),
-});
+);
 
-export const pingFailureSchema = t.Object({
-  success: t.Literal(false),
-  status: t.Literal(503),
-  message: t.String(),
-  error: t.String(),
-});
+export const pingFailureSchema = apiErrorEnvelopeSchema(503);

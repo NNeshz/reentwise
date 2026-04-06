@@ -1,18 +1,8 @@
 import { t } from "elysia";
-
-const envelopeOk = t.Object({
-  success: t.Literal(true),
-  status: t.Literal(200),
-  message: t.String(),
-  data: t.Any(),
-});
-
-const err = (code: number) =>
-  t.Object({
-    success: t.Literal(false),
-    status: t.Literal(code),
-    message: t.String(),
-  });
+import {
+  apiSuccessAnyDataSchema,
+  apiErrorEnvelopeSchema,
+} from "@reentwise/api/src/utils/api-envelope.schema";
 
 export const tenantsListQuerySchema = t.Object({
   search: t.Optional(t.String()),
@@ -92,11 +82,11 @@ export const tenantRoomIdTenantIdParamsSchema = t.Object({
   id: t.String(),
 });
 
-export const tenantsSuccessSchema = envelopeOk;
-export const tenantsError400Schema = err(400);
-export const tenantsError403Schema = err(403);
-export const tenantsError404Schema = err(404);
-export const tenantsError500Schema = err(500);
+export const tenantsSuccessSchema = apiSuccessAnyDataSchema;
+export const tenantsError400Schema = apiErrorEnvelopeSchema(400);
+export const tenantsError403Schema = apiErrorEnvelopeSchema(403);
+export const tenantsError404Schema = apiErrorEnvelopeSchema(404);
+export const tenantsError500Schema = apiErrorEnvelopeSchema(500);
 
 export const tenantsListResponse = {
   200: tenantsSuccessSchema,

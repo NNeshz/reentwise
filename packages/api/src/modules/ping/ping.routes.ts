@@ -4,6 +4,7 @@ import {
   pingSuccessSchema,
   pingFailureSchema,
 } from "@reentwise/api/src/modules/ping/ping.schema";
+import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
 
 export const pingRoutes = new Elysia({
   name: "pingRoutes",
@@ -16,19 +17,9 @@ export const pingRoutes = new Elysia({
       const result = await pingService.ping();
       if (!result.ok) {
         set.status = 503;
-        return {
-          success: false as const,
-          status: 503 as const,
-          message: "Database unreachable",
-          error: result.error,
-        };
+        return apiError(503, result.error ?? "Database unreachable");
       }
-      return {
-        success: true as const,
-        status: 200 as const,
-        message: "reentwise is running",
-        data: { now: result.now },
-      };
+      return apiSuccess("reentwise is running", { now: result.now });
     },
     {
       response: {

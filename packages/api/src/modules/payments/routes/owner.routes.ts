@@ -12,7 +12,23 @@ import {
   paymentPaySuccessSchema,
   paymentAnnulSuccessSchema,
   paymentNotFoundSchema,
+  paymentServerErrorSchema,
 } from "@reentwise/api/src/modules/payments/payments.schema";
+import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+
+function mapPaymentsRouteError(
+  e: unknown,
+  set: { status?: number | string },
+) {
+  if (e instanceof PaymentNotFoundError) {
+    set.status = 404;
+    return apiError(404, e.message);
+  }
+  const message =
+    e instanceof Error ? e.message : "Error al procesar el pago";
+  set.status = 500;
+  return apiError(500, message);
+}
 
 export const ownerPaymentsRoutes = new Elysia({
   name: "ownerPaymentsRoutes",
@@ -22,29 +38,32 @@ export const ownerPaymentsRoutes = new Elysia({
   .use(paymentsModule)
   .get(
     "/",
-    async ({ user, query, paymentsService }) => {
-      const { month, year } = parsePaymentsListQuery(query);
-      const search = query.search?.trim() || undefined;
-      const status = query.status as PaymentStatusFilter | undefined;
-      const data = await paymentsService.getPayments(
-        user.id,
-        month,
-        year,
-        search,
-        status,
-      );
-      return {
-        success: true as const,
-        status: 200 as const,
-        message: "Payments retrieved successfully",
-        data,
-      };
+    async ({ user, query, paymentsService, set }) => {
+      try {
+        const { month, year } = parsePaymentsListQuery(query);
+        const search = query.search?.trim() || undefined;
+        const status = query.status as PaymentStatusFilter | undefined;
+        const data = await paymentsService.getPayments(
+          user.id,
+          month,
+          year,
+          search,
+          status,
+        );
+        return apiSuccess("Payments retrieved successfully", data);
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : "Error al listar pagos";
+        set.status = 500;
+        return apiError(500, message);
+      }
     },
     {
       authenticated: true,
       query: getPaymentsQuerySchema,
       response: {
         200: paymentsListSuccessSchema,
+        500: paymentServerErrorSchema,
       },
     },
   )
@@ -58,22 +77,9 @@ export const ownerPaymentsRoutes = new Elysia({
           body.paymentAmount,
           body.method,
         );
-        return {
-          success: true as const,
-          status: 200 as const,
-          message: "Payment updated successfully",
-          data,
-        };
+        return apiSuccess("Payment updated successfully", data);
       } catch (e) {
-        if (e instanceof PaymentNotFoundError) {
-          set.status = 404;
-          return {
-            success: false as const,
-            status: 404 as const,
-            message: e.message,
-          };
-        }
-        throw e;
+        return mapPaymentsRouteError(e, set);
       }
     },
     {
@@ -83,6 +89,7 @@ export const ownerPaymentsRoutes = new Elysia({
       response: {
         200: paymentPaySuccessSchema,
         404: paymentNotFoundSchema,
+        500: paymentServerErrorSchema,
       },
     },
   )
@@ -91,22 +98,9 @@ export const ownerPaymentsRoutes = new Elysia({
     async ({ user, params, paymentsService, set }) => {
       try {
         const data = await paymentsService.annulPayment(user.id, params.id);
-        return {
-          success: true as const,
-          status: 200 as const,
-          message: "Payment annulled successfully",
-          data,
-        };
+        return apiSuccess("Payment annulled successfully", data);
       } catch (e) {
-        if (e instanceof PaymentNotFoundError) {
-          set.status = 404;
-          return {
-            success: false as const,
-            status: 404 as const,
-            message: e.message,
-          };
-        }
-        throw e;
+        return mapPaymentsRouteError(e, set);
       }
     },
     {
@@ -115,6 +109,7 @@ export const ownerPaymentsRoutes = new Elysia({
       response: {
         200: paymentAnnulSuccessSchema,
         404: paymentNotFoundSchema,
+        500: paymentServerErrorSchema,
       },
     },
   );

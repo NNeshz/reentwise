@@ -1,18 +1,8 @@
 import { t } from "elysia";
-
-const envelopeOk = t.Object({
-  success: t.Literal(true),
-  status: t.Literal(200),
-  message: t.String(),
-  data: t.Any(),
-});
-
-const err = (code: number) =>
-  t.Object({
-    success: t.Literal(false),
-    status: t.Literal(code),
-    message: t.String(),
-  });
+import {
+  apiSuccessAnyDataSchema,
+  apiErrorEnvelopeSchema,
+} from "@reentwise/api/src/utils/api-envelope.schema";
 
 export const roomsPropertyParamsSchema = t.Object({
   propertyId: t.String(),
@@ -39,10 +29,10 @@ export const updateRoomStatusBodySchema = t.Object({
   status: t.String(),
 });
 
-export const roomsListSuccessSchema = envelopeOk;
-export const roomDetailSuccessSchema = envelopeOk;
-export const roomMutationSuccessSchema = envelopeOk;
-export const roomNotFoundSchema = err(404);
-export const roomPlanLimitSchema = err(402);
-export const roomBadRequestSchema = err(400);
-export const roomServerErrorSchema = err(500);
+export const roomsListSuccessSchema = apiSuccessAnyDataSchema;
+export const roomDetailSuccessSchema = apiSuccessAnyDataSchema;
+export const roomMutationSuccessSchema = apiSuccessAnyDataSchema;
+export const roomNotFoundSchema = apiErrorEnvelopeSchema(404);
+export const roomPlanLimitSchema = apiErrorEnvelopeSchema(402);
+export const roomBadRequestSchema = apiErrorEnvelopeSchema(400);
+export const roomServerErrorSchema = apiErrorEnvelopeSchema(500);

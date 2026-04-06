@@ -1,4 +1,8 @@
 import { t } from "elysia";
+import {
+  apiSuccessEnvelopeSchema,
+  apiErrorEnvelopeSchema,
+} from "@reentwise/api/src/utils/api-envelope.schema";
 
 export const metricsCardsPresetSchema = t.Union([
   t.Literal("today"),
@@ -49,15 +53,10 @@ const metricsCardsPayloadSchema = t.Object({
   }),
 });
 
-export const metricsCardsSuccessSchema = t.Object({
-  success: t.Literal(true),
-  status: t.Literal(200),
-  message: t.String(),
-  data: metricsCardsPayloadSchema,
-});
+export const metricsCardsSuccessSchema = apiSuccessEnvelopeSchema(
+  metricsCardsPayloadSchema,
+);
 
-export const metricsCardsBadRequestSchema = t.Object({
-  success: t.Literal(false),
-  status: t.Literal(400),
-  message: t.String(),
-});
+export const metricsCardsBadRequestSchema = apiErrorEnvelopeSchema(400);
+
+export const metricsCardsServerErrorSchema = apiErrorEnvelopeSchema(500);

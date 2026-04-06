@@ -1,21 +1,16 @@
 import { t } from "elysia";
+import {
+  apiSuccessEnvelopeSchema,
+  apiErrorEnvelopeSchema,
+} from "@reentwise/api/src/utils/api-envelope.schema";
 
 /** POST /email/webhook — verified and handled. */
-export const emailWebhookSuccessSchema = t.Object({
-  success: t.Literal(true),
-  status: t.Literal(200),
-  message: t.String(),
-  received: t.Literal(true),
-});
+export const emailWebhookSuccessSchema = apiSuccessEnvelopeSchema(
+  t.Object({
+    received: t.Literal(true),
+  }),
+);
 
-export const emailWebhookBadRequestSchema = t.Object({
-  success: t.Literal(false),
-  status: t.Literal(400),
-  message: t.String(),
-});
+export const emailWebhookBadRequestSchema = apiErrorEnvelopeSchema(400);
 
-export const emailWebhookServerErrorSchema = t.Object({
-  success: t.Literal(false),
-  status: t.Literal(500),
-  message: t.String(),
-});
+export const emailWebhookServerErrorSchema = apiErrorEnvelopeSchema(500);

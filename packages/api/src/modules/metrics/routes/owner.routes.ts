@@ -7,7 +7,23 @@ import {
   metricsCardsQuerySchema,
   metricsCardsSuccessSchema,
   metricsCardsBadRequestSchema,
+  metricsCardsServerErrorSchema,
 } from "@reentwise/api/src/modules/metrics/metrics.schema";
+import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+
+function mapMetricsRouteError(
+  e: unknown,
+  set: { status?: number | string },
+) {
+  if (e instanceof MetricsQueryError) {
+    set.status = 400;
+    return apiError(400, e.message);
+  }
+  const message =
+    e instanceof Error ? e.message : "Error al obtener las métricas";
+  set.status = 500;
+  return apiError(500, message);
+}
 
 export const ownerMetricsRoutes = new Elysia({
   name: "ownerMetricsRoutes",
@@ -25,22 +41,9 @@ export const ownerMetricsRoutes = new Elysia({
       };
       try {
         const data = await metricsService.getCardsMetrics(user.id, q);
-        return {
-          success: true as const,
-          status: 200 as const,
-          message: "Metrics retrieved successfully",
-          data,
-        };
+        return apiSuccess("Metrics retrieved successfully", data);
       } catch (e) {
-        if (e instanceof MetricsQueryError) {
-          set.status = 400;
-          return {
-            success: false as const,
-            status: 400 as const,
-            message: e.message,
-          };
-        }
-        throw e;
+        return mapMetricsRouteError(e, set);
       }
     },
     {
@@ -49,6 +52,7 @@ export const ownerMetricsRoutes = new Elysia({
       response: {
         200: metricsCardsSuccessSchema,
         400: metricsCardsBadRequestSchema,
+        500: metricsCardsServerErrorSchema,
       },
     },
   );

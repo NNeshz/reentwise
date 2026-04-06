@@ -7,6 +7,7 @@ import {
   emailWebhookBadRequestSchema,
   emailWebhookServerErrorSchema,
 } from "@reentwise/api/src/modules/email/email.schema";
+import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
 
 export const emailWebhookRoutes = new Elysia({
   name: "emailWebhookRoutes",
@@ -18,20 +19,14 @@ export const emailWebhookRoutes = new Elysia({
       const headers = parseSvixHeaders(request);
       if (!headers) {
         set.status = 400;
-        return {
-          success: false as const,
-          status: 400 as const,
-          message:
-            "Faltan cabeceras Svix (svix-id, svix-timestamp, svix-signature)",
-        };
+        return apiError(
+          400,
+          "Faltan cabeceras Svix (svix-id, svix-timestamp, svix-signature)",
+        );
       }
       if (!env.RESEND_WEBHOOK_SECRET) {
         set.status = 500;
-        return {
-          success: false as const,
-          status: 500 as const,
-          message: "RESEND_WEBHOOK_SECRET no configurada",
-        };
+        return apiError(500, "RESEND_WEBHOOK_SECRET no configurada");
       }
 
       let event;
@@ -40,20 +35,19 @@ export const emailWebhookRoutes = new Elysia({
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         set.status = 400;
-        return {
-          success: false as const,
-          status: 400 as const,
-          message: `Webhook inválido: ${message}`,
-        };
+        return apiError(400, `Webhook inválido: ${message}`);
       }
 
-      await emailService.handleWebhookEvent(event);
-      return {
-        success: true as const,
-        status: 200 as const,
-        message: "Webhook procesado",
-        received: true as const,
-      };
+      try {
+        await emailService.handleWebhookEvent(event);
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : "Error al procesar el webhook";
+        set.status = 500;
+        return apiError(500, message);
+      }
+
+      return apiSuccess("Webhook procesado", { received: true as const });
     },
     {
       response: {

@@ -247,8 +247,6 @@ export class AuditsService {
       .offset(offset);
 
     return {
-      message: "Audits retrieved successfully",
-      status: 200,
       audits: rows,
       count: rows.length,
       pagination: buildListPagination(page, limit, totalItems),

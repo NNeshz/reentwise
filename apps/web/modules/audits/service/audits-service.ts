@@ -15,8 +15,6 @@ export type AuditRow = {
 };
 
 export type AuditsListResponse = {
-  message: string;
-  status: number;
   audits: AuditRow[];
   count: number;
   pagination: {
@@ -30,6 +28,10 @@ export type AuditsListResponse = {
     previousPage: number | null;
   };
 };
+
+function unwrap(raw: unknown): any {
+  return (raw as { data: any }).data;
+}
 
 class AuditsService {
   async getAudits(params: {
@@ -52,7 +54,7 @@ class AuditsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data) as AuditsListResponse;
   }
 }
 

@@ -1,5 +1,6 @@
 import { Elysia, status } from "elysia";
 import { auth } from "@reentwise/auth/index";
+import { apiError } from "@reentwise/api/src/utils/api-envelope";
 
 export const betterAuthPlugin = new Elysia({ name: "better-auth-plugin" })
   .mount(auth.handler)
@@ -10,7 +11,9 @@ export const betterAuthPlugin = new Elysia({ name: "better-auth-plugin" })
           headers,
         });
 
-        if (!session) return status(401, "Unauthorized");
+        if (!session) {
+          return status(401, apiError(401, "No autorizado"));
+        }
 
         return {
           user: session.user,

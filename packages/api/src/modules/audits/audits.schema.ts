@@ -1,4 +1,9 @@
 import { t } from "elysia";
+import {
+  apiSuccessEnvelopeSchema,
+  apiErrorEnvelopeSchema,
+  listPaginationMetaSchema,
+} from "@reentwise/api/src/utils/api-envelope.schema";
 
 /** Query strings; `page` / `limit` parsed in route via `parseAuditsListQuery`. */
 export const getAuditsQuerySchema = t.Object({
@@ -17,3 +22,29 @@ export const getAuditsQuerySchema = t.Object({
     ]),
   ),
 });
+
+const auditRowSchema = t.Object({
+  id: t.String(),
+  tenantId: t.String(),
+  tenantName: t.String(),
+  channel: t.Union([t.Literal("email"), t.Literal("whatsapp")]),
+  status: t.Union([
+    t.Literal("pending"),
+    t.Literal("sending"),
+    t.Literal("sent"),
+    t.Literal("failed"),
+  ]),
+  loggedAt: t.Union([t.String(), t.Date()]),
+  note: t.String(),
+});
+
+const auditsListDataSchema = t.Object({
+  audits: t.Array(auditRowSchema),
+  count: t.Number(),
+  pagination: listPaginationMetaSchema,
+});
+
+export const auditsListSuccessSchema =
+  apiSuccessEnvelopeSchema(auditsListDataSchema);
+
+export const auditsServerErrorSchema = apiErrorEnvelopeSchema(500);
