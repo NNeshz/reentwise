@@ -5,6 +5,7 @@ import {
   or,
   desc,
   count,
+  like,
   audits,
   tenants,
   rooms,
@@ -26,7 +27,34 @@ type ResendLikeResponse = {
   error?: { message?: string | null } | null;
 };
 
+/** Prefijo estable para idempotencia de recordatorios cron (note ≤ 160). */
+export function cronReminderNotePrefix(
+  kind: "t7" | "t3" | "t0" | "late",
+  targetDateYmd: string,
+  tenantId: string,
+): string {
+  return `cron|${kind}|${targetDateYmd}|${tenantId}`;
+}
+
 export class AuditsService {
+  /**
+   * Evita doble envío si el job diario se ejecuta más de una vez para el mismo ciclo.
+   */
+  async hasCronReminderForDate(
+    tenantId: string,
+    kind: "t7" | "t3" | "t0" | "late",
+    targetDateYmd: string,
+  ): Promise<boolean> {
+    const prefix = cronReminderNotePrefix(kind, targetDateYmd, tenantId);
+    const [row] = await db
+      .select({ c: count() })
+      .from(audits)
+      .where(
+        and(eq(audits.tenantId, tenantId), like(audits.note, `${prefix}%`)),
+      );
+    return Number(row?.c ?? 0) > 0;
+  }
+
   async create(input: CreateAuditInput) {
     const [row] = await db
       .insert(audits)

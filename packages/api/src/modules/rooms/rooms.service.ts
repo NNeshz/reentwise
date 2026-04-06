@@ -8,6 +8,7 @@ import {
   desc,
   asc,
 } from "@reentwise/database";
+import { planLimitsService } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
 
 export class RoomsService {
   async getPropertyRooms(propertyId: string) {
@@ -60,6 +61,7 @@ export class RoomsService {
   }
 
   async createRoom(
+    ownerId: string,
     propertyId: string,
     body: {
       roomNumber: string;
@@ -68,6 +70,14 @@ export class RoomsService {
     },
   ) {
     try {
+      const limitCheck = await planLimitsService.assertCanCreateRoom(
+        ownerId,
+        propertyId,
+      );
+      if (!limitCheck.ok) {
+        return { message: limitCheck.message, status: 402 };
+      }
+
       const roomResult = await db
         .insert(rooms)
         .values({

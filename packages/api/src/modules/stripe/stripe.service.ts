@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { db, eq, user } from "@reentwise/database";
+import type { PlanTier } from "@reentwise/database";
 import { env } from "@reentwise/api/src/utils/envs";
 
 /** Valores persistidos en `user.subscription_status` */
@@ -60,12 +61,20 @@ function mapStripeSubscriptionStatus(
   }
 }
 
-function planTypeFromPriceId(priceId: string | undefined): string | null {
+function planTierFromPriceId(priceId: string | undefined): PlanTier | null {
   if (!priceId) return null;
-  if (priceId === env.STRIPE_PRICE_BASICO) return "Básico";
-  if (priceId === env.STRIPE_PRICE_PRO) return "Pro";
-  if (priceId === env.STRIPE_PRICE_PATRON) return "Patrón";
+  if (priceId === env.STRIPE_PRICE_BASICO) return "basico";
+  if (priceId === env.STRIPE_PRICE_PRO) return "pro";
+  if (priceId === env.STRIPE_PRICE_PATRON) return "patron";
   return null;
+}
+
+function periodEndFromSubscription(
+  subscription: Stripe.Subscription,
+): Date | null {
+  const end = subscription.items.data[0]?.current_period_end;
+  if (typeof end !== "number") return null;
+  return new Date(end * 1000);
 }
 
 export class StripeService {
@@ -109,6 +118,25 @@ export class StripeService {
         await this.onSubscriptionDeleted(subscription);
         break;
       }
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subRaw = invoice.parent?.subscription_details?.subscription;
+        const subId =
+          typeof subRaw === "string" ? subRaw : subRaw?.id ?? null;
+        if (subId) {
+          await db
+            .update(user)
+            .set({
+              subscriptionStatus: "past_due",
+              updatedAt: new Date(),
+            })
+            .where(eq(user.stripeSubscriptionId, subId));
+        }
+        console.warn(
+          `[Stripe] invoice.payment_failed subscription=${subId ?? "?"}`,
+        );
+        break;
+      }
       default:
         console.log(`[Stripe] Evento no manejado: ${event.type}`);
     }
@@ -141,7 +169,7 @@ export class StripeService {
     });
 
     const priceId = subscription.items.data[0]?.price?.id;
-    const plan = planTypeFromPriceId(priceId);
+    const tier = planTierFromPriceId(priceId);
 
     await db
       .update(user)
@@ -149,7 +177,9 @@ export class StripeService {
         stripeCustomerId: customerId,
         stripeSubscriptionId: subscriptionId,
         subscriptionStatus: mapStripeSubscriptionStatus(subscription.status),
-        ...(plan ? { planType: plan } : {}),
+        ...(tier ? { planTier: tier } : {}),
+        stripePriceId: priceId ?? null,
+        subscriptionCurrentPeriodEnd: periodEndFromSubscription(subscription),
         updatedAt: new Date(),
       })
       .where(eq(user.id, userId));
@@ -157,7 +187,7 @@ export class StripeService {
 
   private async onSubscriptionUpdated(subscription: Stripe.Subscription) {
     const priceId = subscription.items.data[0]?.price?.id;
-    const plan = planTypeFromPriceId(priceId);
+    const tier = planTierFromPriceId(priceId);
 
     const [row] = await db
       .select({ id: user.id })
@@ -176,7 +206,9 @@ export class StripeService {
       .update(user)
       .set({
         subscriptionStatus: mapStripeSubscriptionStatus(subscription.status),
-        ...(plan ? { planType: plan } : {}),
+        ...(tier ? { planTier: tier } : {}),
+        stripePriceId: priceId ?? null,
+        subscriptionCurrentPeriodEnd: periodEndFromSubscription(subscription),
         updatedAt: new Date(),
       })
       .where(eq(user.id, row.id));
@@ -188,6 +220,9 @@ export class StripeService {
       .set({
         stripeSubscriptionId: null,
         subscriptionStatus: "canceled",
+        planTier: "freemium",
+        stripePriceId: null,
+        subscriptionCurrentPeriodEnd: null,
         updatedAt: new Date(),
       })
       .where(eq(user.stripeSubscriptionId, subscription.id));

@@ -18,9 +18,13 @@ import { auditsService } from "@reentwise/api/src/modules/audits/audits.service"
 import {
   sendKapsoTemplate,
   normalizeKapsoRecipient,
-  kapsoBodyParametersFromStrings,
+  formatKapsoPropertyLabel,
+  formatKapsoCurrencyMx,
+  formatKapsoPaymentCutoffDay,
+  kapsoBodyReminderConfirmation,
+  kapsoTemplateName,
 } from "@reentwise/api/src/modules/kapso/kapso.service";
-import { env } from "@reentwise/api/src/utils/envs";
+import { emailWelcomeConfirmation } from "@reentwise/api/src/modules/messaging/kapso-aligned-emails";
 
 export function getPaymentDateForMonth(
   year: number,
@@ -33,35 +37,26 @@ export function getPaymentDateForMonth(
   return Math.min(paymentDay, lastDay);
 }
 
-/** Parámetros {{1}}–{{4}} del template de bienvenida WhatsApp (Kapso). */
-function buildTenantWelcomeTemplateParameters(input: {
-  tenantName: string;
-  roomNumber: string;
-  monthlyRent: string | number;
-  paymentDay: number;
-}): string[] {
-  const roomLabel = `Cuarto ${input.roomNumber}`;
-  const amount = Number(input.monthlyRent);
-  const rentFormatted = new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(Number.isFinite(amount) ? amount : 0);
-  const paymentDayText =
-    input.paymentDay === 0 ? "el último día" : String(input.paymentDay);
-  return [input.tenantName, roomLabel, rentFormatted, paymentDayText];
-}
-
 export class TenantsService {
   private async sendTenantCreatedEmailSafe(input: {
     tenantId: string;
     tenantEmail: string;
     tenantName: string;
     paymentDay: number;
+    propertyName?: string | null;
     roomNumber?: string | null;
+    monthlyRentFormatted: string;
   }) {
-    const paymentDayLabel =
-      input.paymentDay === 0 ? "ultimo dia de cada mes" : `dia ${input.paymentDay} de cada mes`;
-    const roomLabel = input.roomNumber ? `Cuarto ${input.roomNumber}` : "sin cuarto asignado";
+    const propertyLabel = formatKapsoPropertyLabel({
+      propertyName: input.propertyName,
+      roomNumber: input.roomNumber?.trim() || "—",
+    });
+    const { subject, html, text } = emailWelcomeConfirmation({
+      tenantName: input.tenantName,
+      propertyLabel,
+      monthlyRentFormatted: input.monthlyRentFormatted,
+      paymentCutoffDayLabel: formatKapsoPaymentCutoffDay(input.paymentDay),
+    });
 
     await auditsService.withEmailAudit(
       {
@@ -72,19 +67,14 @@ export class TenantsService {
       () =>
         emailService.sendHtml({
           to: input.tenantEmail,
-          subject: "Bienvenido a Reentwise",
-          html: `
-          <h2>Hola ${input.tenantName}, bienvenido(a) a Reentwise</h2>
-          <p>Tu registro fue creado correctamente por el owner.</p>
-          <p><strong>Cuarto:</strong> ${roomLabel}</p>
-          <p><strong>Fecha de pago:</strong> ${paymentDayLabel}</p>
-          <p>Si tienes dudas sobre tu pago, responde a este correo.</p>
-        `,
-          text: `Hola ${input.tenantName}, tu registro en Reentwise fue creado. ${roomLabel}. Fecha de pago: ${paymentDayLabel}.`,
+          subject,
+          html,
+          text,
           tags: [
             { name: "type", value: "tenant_created" },
             { name: "module", value: "tenants" },
           ],
+          idempotencyKey: `welcome-email-${input.tenantId}`,
         }),
       (err) =>
         console.error("[Email][Tenants] Error sending welcome email:", err),
@@ -258,6 +248,7 @@ export class TenantsService {
           ownerId: properties.ownerId,
           roomNumber: rooms.roomNumber,
           price: rooms.price,
+          propertyName: properties.name,
         })
         .from(rooms)
         .leftJoin(properties, eq(rooms.propertyId, properties.id))
@@ -292,15 +283,23 @@ export class TenantsService {
           tenantEmail: createdTenant.email,
           tenantName: createdTenant.name,
           paymentDay: createdTenant.paymentDay,
+          propertyName: roomRow.propertyName,
           roomNumber: roomRow.roomNumber,
+          monthlyRentFormatted: formatKapsoCurrencyMx(roomRow.price),
         });
       }
 
-      const templateParams = buildTenantWelcomeTemplateParameters({
-        tenantName: createdTenant.name,
+      const propertyLabel = formatKapsoPropertyLabel({
+        propertyName: roomRow.propertyName,
         roomNumber: roomRow.roomNumber,
-        monthlyRent: roomRow.price,
-        paymentDay: createdTenant.paymentDay,
+      });
+      const welcomeComponents = kapsoBodyReminderConfirmation({
+        tenantName: createdTenant.name,
+        propertyLabel,
+        monthlyRentFormatted: formatKapsoCurrencyMx(roomRow.price),
+        paymentCutoffDayLabel: formatKapsoPaymentCutoffDay(
+          createdTenant.paymentDay,
+        ),
       });
 
       await auditsService.withWhatsAppAudit(
@@ -312,8 +311,8 @@ export class TenantsService {
         () =>
           sendKapsoTemplate({
             to: normalizeKapsoRecipient(body.whatsapp),
-            templateName: env.KAPSO_WELCOME_TEMPLATE_NAME,
-            components: kapsoBodyParametersFromStrings(templateParams),
+            templateName: kapsoTemplateName("reminder_confirmation"),
+            components: welcomeComponents,
           }),
         (err) =>
           console.error("[WhatsApp][Tenants] Error enviando bienvenida:", err),
@@ -354,6 +353,7 @@ export class TenantsService {
             ownerId: properties.ownerId,
             price: rooms.price,
             roomNumber: rooms.roomNumber,
+            propertyName: properties.name,
           })
           .from(rooms)
           .leftJoin(properties, eq(rooms.propertyId, properties.id))
@@ -401,26 +401,36 @@ export class TenantsService {
           });
         }
 
-        return { newTenant };
+        return {
+          newTenant,
+          welcomePropertyName: room.propertyName,
+          welcomeRoomNumber: room.roomNumber,
+          welcomeRent: room.price,
+        };
       });
 
       if (!result) {
         throw new Error("Transaction failed");
       }
 
-      const { newTenant: resultTenant } = result;
+      const {
+        newTenant: resultTenant,
+        welcomePropertyName,
+        welcomeRoomNumber,
+        welcomeRent,
+      } = result;
 
-      const roomForWelcome = await db.query.rooms.findFirst({
-        where: eq(rooms.id, roomId),
-      });
-      const welcomeRoomNumber = roomForWelcome?.roomNumber ?? "";
-      const welcomeRent = roomForWelcome?.price ?? "0";
-
-      const templateParams = buildTenantWelcomeTemplateParameters({
-        tenantName: resultTenant.name,
+      const propertyLabel = formatKapsoPropertyLabel({
+        propertyName: welcomePropertyName,
         roomNumber: welcomeRoomNumber || "—",
-        monthlyRent: welcomeRent,
-        paymentDay: resultTenant.paymentDay,
+      });
+      const welcomeComponents = kapsoBodyReminderConfirmation({
+        tenantName: resultTenant.name,
+        propertyLabel,
+        monthlyRentFormatted: formatKapsoCurrencyMx(welcomeRent),
+        paymentCutoffDayLabel: formatKapsoPaymentCutoffDay(
+          resultTenant.paymentDay,
+        ),
       });
 
       await auditsService.withWhatsAppAudit(
@@ -432,8 +442,8 @@ export class TenantsService {
         () =>
           sendKapsoTemplate({
             to: normalizeKapsoRecipient(resultTenant.whatsapp),
-            templateName: env.KAPSO_WELCOME_TEMPLATE_NAME,
-            components: kapsoBodyParametersFromStrings(templateParams),
+            templateName: kapsoTemplateName("reminder_confirmation"),
+            components: welcomeComponents,
           }),
         (err) =>
           console.error("[WhatsApp] Error sending welcome message:", err),
@@ -445,7 +455,9 @@ export class TenantsService {
           tenantEmail: resultTenant.email,
           tenantName: resultTenant.name,
           paymentDay: resultTenant.paymentDay,
-          roomNumber: roomForWelcome?.roomNumber ?? null,
+          propertyName: welcomePropertyName,
+          roomNumber: welcomeRoomNumber ?? null,
+          monthlyRentFormatted: formatKapsoCurrencyMx(welcomeRent),
         });
       }
 

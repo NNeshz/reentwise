@@ -1,3 +1,4 @@
+export * from "./src/plan-enums";
 export * from "./src/schema";
 export * from "./src/other";
 export * from "./src/client";

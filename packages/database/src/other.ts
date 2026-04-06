@@ -10,6 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { user } from "./schema";
+import { planTierEnum, roomsLimitModeEnum } from "./plan-enums";
 
 export const paymentStatusEnum = pgEnum("payment_status", [
   "pending",
@@ -49,6 +50,21 @@ export const auditStatusEnum = pgEnum("audit_status", [
 export type AuditChannel = (typeof auditChannelEnum.enumValues)[number];
 export type AuditStatus = (typeof auditStatusEnum.enumValues)[number];
 
+/** Límites y flags de mensajería por tier (semilla en migración). */
+export const planLimits = pgTable("plan_limits", {
+  tier: planTierEnum("tier").primaryKey(),
+  maxProperties: integer("max_properties").notNull(),
+  maxRooms: integer("max_rooms").notNull(),
+  roomsLimitMode: roomsLimitModeEnum("rooms_limit_mode").notNull(),
+  allowReminderT7: boolean("allow_reminder_t7").notNull(),
+  allowReminderT3: boolean("allow_reminder_t3").notNull(),
+  allowReminderToday: boolean("allow_reminder_today").notNull(),
+  allowEmailPaymentRegistered: boolean("allow_email_payment_registered").notNull(),
+  allowWhatsappPaymentReceipt: boolean(
+    "allow_whatsapp_payment_receipt",
+  ).notNull(),
+});
+
 export const properties = pgTable("properties", {
   id: uuid("id").defaultRandom().primaryKey(),
   ownerId: text("owner_id")
@@ -56,6 +72,10 @@ export const properties = pgTable("properties", {
     .references(() => user.id),
   name: text("name").notNull(),
   address: text("address"),
+  archivedAt: timestamp("archived_at", {
+    mode: "date",
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -69,6 +89,10 @@ export const rooms = pgTable("rooms", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
   status: roomStatusEnum("status").default("vacant"),
+  archivedAt: timestamp("archived_at", {
+    mode: "date",
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -23,7 +23,7 @@ function getDatabaseUrl(): string {
 }
 
 export default defineConfig({
-  schema: ["./src/schema.ts", "./src/other.ts"],
+  schema: ["./src/plan-enums.ts", "./src/schema.ts", "./src/other.ts"],
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {

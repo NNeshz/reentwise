@@ -16,8 +16,14 @@ const envSchema = t.Object({
   // Kapso variables
   KAPSO_API_KEY: t.String(),
   KAPSO_PHONE_NUMBER_ID: t.String(),
-  // Kapso template variables
+  // Kapso template variables (nombres en Meta; por defecto los canónicos reentwise_*)
   KAPSO_WELCOME_TEMPLATE_NAME: t.String(),
+  KAPSO_TEMPLATE_REMINDER_7D: t.String(),
+  KAPSO_TEMPLATE_REMINDER_3D: t.String(),
+  KAPSO_TEMPLATE_REMINDER_TODAY: t.String(),
+  KAPSO_TEMPLATE_ABONO_RECIVED: t.String(),
+  KAPSO_TEMPLATE_PAYMENT_COMPLETED: t.String(),
+  KAPSO_TEMPLATE_EXPIRATION_NOTICE: t.String(),
   // Resend email variables
   RESEND_API_KEY: t.Optional(t.String()),
   RESEND_FROM: t.Optional(t.String()),
@@ -35,6 +41,23 @@ type EnvSchema = typeof envSchema.static;
 const processEnv = {
   ...process.env,
   NODE_ENV: process.env.NODE_ENV || "development",
+  KAPSO_WELCOME_TEMPLATE_NAME:
+    process.env.KAPSO_WELCOME_TEMPLATE_NAME ??
+    "reentwise_reminder_confirmation",
+  KAPSO_TEMPLATE_REMINDER_7D:
+    process.env.KAPSO_TEMPLATE_REMINDER_7D ?? "reentwise_reminder_7d",
+  KAPSO_TEMPLATE_REMINDER_3D:
+    process.env.KAPSO_TEMPLATE_REMINDER_3D ?? "reentwise_reminder_3d",
+  KAPSO_TEMPLATE_REMINDER_TODAY:
+    process.env.KAPSO_TEMPLATE_REMINDER_TODAY ?? "reentwise_reminder_today",
+  KAPSO_TEMPLATE_ABONO_RECIVED:
+    process.env.KAPSO_TEMPLATE_ABONO_RECIVED ?? "reentwise_abono_recived",
+  KAPSO_TEMPLATE_PAYMENT_COMPLETED:
+    process.env.KAPSO_TEMPLATE_PAYMENT_COMPLETED ??
+    "reentwise_payment_completed",
+  KAPSO_TEMPLATE_EXPIRATION_NOTICE:
+    process.env.KAPSO_TEMPLATE_EXPIRATION_NOTICE ??
+    "reentwise_expiration_notice",
 };
 // Valida las variables de entorno
 const validateEnv = () => {
@@ -68,6 +91,12 @@ declare global {
       KAPSO_API_KEY: string;
       KAPSO_PHONE_NUMBER_ID: string;
       KAPSO_WELCOME_TEMPLATE_NAME: string;
+      KAPSO_TEMPLATE_REMINDER_7D: string;
+      KAPSO_TEMPLATE_REMINDER_3D: string;
+      KAPSO_TEMPLATE_REMINDER_TODAY: string;
+      KAPSO_TEMPLATE_ABONO_RECIVED: string;
+      KAPSO_TEMPLATE_PAYMENT_COMPLETED: string;
+      KAPSO_TEMPLATE_EXPIRATION_NOTICE: string;
       RESEND_API_KEY?: string;
       RESEND_FROM?: string;
       RESEND_WEBHOOK_SECRET?: string;

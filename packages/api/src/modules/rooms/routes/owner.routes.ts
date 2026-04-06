@@ -36,7 +36,7 @@ export const ownerRoomsRoutes = new Elysia({
   .post(
     "/:propertyId",
     ({ user, params, body, roomsService }) => {
-      return roomsService.createRoom(params.propertyId, body);
+      return roomsService.createRoom(user.id, params.propertyId, body);
     },
     {
       authenticated: true,

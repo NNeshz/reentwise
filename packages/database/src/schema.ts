@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, varchar } from "drizzle-orm/pg-core";
+import { planTierEnum } from "./plan-enums";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -8,16 +9,23 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-  // Puedes agregar campos extra para el dueño aquí
-  phoneNumber: text("phone_number"), // El número del dueño para soporte
-  whatsappInstance: text("whatsapp_instance"), // Guardará "reentwise_user_123" por ejemplo
-  whatsappStatus: text("whatsapp_status").default("DISCONNECTED"), // CONNECTED, DISCONNECTED, PENDING
+  phoneNumber: text("phone_number"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   /** trialing | active | past_due | canceled */
   subscriptionStatus: text("subscription_status"),
-  /** Básico | Pro | Patrón — límites en frontend */
-  planType: text("plan_type"),
+  planTier: planTierEnum("plan_tier").notNull().default("freemium"),
+  subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end", {
+    mode: "date",
+    withTimezone: true,
+  }),
+  stripePriceId: text("stripe_price_id"),
+  /** ISO 4217; null = default de producto (p. ej. MXN) */
+  currency: varchar("currency", { length: 3 }),
+  timezone: text("timezone"),
+  locale: text("locale"),
+  businessName: text("business_name"),
+  taxId: text("tax_id"),
 });
 
 export const session = pgTable("session", {

@@ -7,6 +7,7 @@ import {
   inArray,
   desc,
 } from "@reentwise/database";
+import { planLimitsService } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
 
 export class PropertiesService {
   async getOwnerProperties(ownerId: string) {
@@ -120,6 +121,13 @@ export class PropertiesService {
     body: { name: string; address?: string },
   ) {
     try {
+      const limitCheck = await planLimitsService.assertCanCreateProperty(
+        ownerId,
+      );
+      if (!limitCheck.ok) {
+        return { message: limitCheck.message, status: 402 };
+      }
+
       const [propertyResult] = await db
         .insert(properties)
         .values({

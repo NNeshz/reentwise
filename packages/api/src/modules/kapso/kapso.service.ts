@@ -1,3 +1,43 @@
+import type { SendTemplatePayload } from "./kapso.meta";
+
+export type { SendTemplatePayload, TemplateComponent, TemplateParameter } from "./kapso.meta";
+export {
+  kapsoBodyParametersFromStrings,
+} from "./kapso.meta";
+
+export {
+  KAPSO_DEFAULT_TEMPLATE_NAMES,
+  type KapsoLogicalTemplateKey,
+  formatKapsoCurrencyMx,
+  formatKapsoDayMonthSpanish,
+  formatKapsoMonthNameSpanish,
+  formatKapsoPropertyLabel,
+  formatKapsoPaymentCutoffDay,
+  formatKapsoDateShortSpanish,
+  type KapsoReminder7dParams,
+  kapsoParamsReminder7d,
+  kapsoBodyReminder7d,
+  type KapsoReminder3dParams,
+  kapsoParamsReminder3d,
+  kapsoBodyReminder3d,
+  type KapsoReminderTodayParams,
+  kapsoParamsReminderToday,
+  kapsoBodyReminderToday,
+  type KapsoReminderConfirmationParams,
+  kapsoParamsReminderConfirmation,
+  kapsoBodyReminderConfirmation,
+  type KapsoAbonoRecivedParams,
+  kapsoParamsAbonoRecived,
+  kapsoBodyAbonoRecived,
+  type KapsoPaymentCompletedParams,
+  kapsoParamsPaymentCompleted,
+  kapsoBodyPaymentCompleted,
+  type KapsoExpirationNoticeParams,
+  kapsoParamsExpirationNotice,
+  kapsoBodyExpirationNotice,
+  kapsoTemplateName,
+} from "./kapso.templates";
+
 const KAPSO_BASE_URL = "https://api.kapso.ai/meta/whatsapp/v24.0";
 const KAPSO_API_KEY = process.env.KAPSO_API_KEY;
 const KAPSO_PHONE_NUMBER_ID = process.env.KAPSO_PHONE_NUMBER_ID!;
@@ -12,57 +52,13 @@ function parseResponseBody(text: string): unknown {
   }
 }
 
-// Estructura estándar de Meta para templates
-interface TemplateComponent {
-  type: "header" | "body" | "button";
-  parameters: TemplateParameter[];
-  sub_type?: "url" | "quick_reply" | "copy_code";
-  index?: number;
-}
-
-interface TemplateParameter {
-  type: "text" | "image" | "video" | "document" | "location";
-  text?: string;
-  image?: { link: string };
-  video?: { link: string };
-  document?: { link: string; filename?: string };
-  location?: {
-    latitude: string;
-    longitude: string;
-    name?: string;
-    address?: string;
-  };
-}
-
-interface SendTemplatePayload {
-  to: string;               // número destino, ej: "521234567890"
-  templateName: string;     // nombre del template, ej: "reentwise_confirmation"
-  languageCode?: string;    // default "es_MX"
-  components?: TemplateComponent[];
-}
-
 /** Solo dígitos; Meta espera el número en formato internacional sin "+". */
 export function normalizeKapsoRecipient(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
-/** Variables {{1}}, {{2}}, … del cuerpo del template (orden del array). */
-export function kapsoBodyParametersFromStrings(
-  textParams: string[],
-): TemplateComponent[] {
-  return [
-    {
-      type: "body",
-      parameters: textParams.map((text) => ({
-        type: "text" as const,
-        text,
-      })),
-    },
-  ];
-}
-
 export async function sendKapsoTemplate(
-  payload: SendTemplatePayload
+  payload: SendTemplatePayload,
 ): Promise<void> {
   const body = {
     messaging_product: "whatsapp",
@@ -87,7 +83,7 @@ export async function sendKapsoTemplate(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
-    }
+    },
   );
 
   const text = await response.text();
