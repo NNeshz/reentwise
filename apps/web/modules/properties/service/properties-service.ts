@@ -1,5 +1,10 @@
 import { apiClient } from "@/utils/api-connection";
 
+/** Eden success body is `{ success, status, message, data }`. */
+function unwrap(raw: unknown): any {
+  return (raw as { data: any }).data;
+}
+
 class PropertiesService {
   async createProperty(data: { name: string; address?: string }) {
     const response = await apiClient.properties.owner.post({
@@ -11,7 +16,7 @@ class PropertiesService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async getOwnerProperties() {
@@ -21,7 +26,7 @@ class PropertiesService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async getPropertyById(id: string) {
@@ -31,7 +36,7 @@ class PropertiesService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async updateProperty(data: { id: string; name: string; address?: string }) {
@@ -44,7 +49,7 @@ class PropertiesService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async deleteProperty(id: string) {
@@ -54,7 +59,7 @@ class PropertiesService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 }
 

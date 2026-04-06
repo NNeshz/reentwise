@@ -1,6 +1,38 @@
-import Elysia, { t } from "elysia";
+import Elysia from "elysia";
 import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
 import { propertiesModule } from "@reentwise/api/src/modules/properties/properties.module";
+import { PlanLimitExceededError } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
+import { PropertyNotFoundError } from "@reentwise/api/src/modules/properties/lib/property-not-found-error";
+import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+import {
+  propertyIdParamsSchema,
+  createPropertyBodySchema,
+  updatePropertyBodySchema,
+  propertiesListSuccessSchema,
+  propertyOneSuccessSchema,
+  propertyMutationSuccessSchema,
+  propertyNotFoundSchema,
+  propertyPlanLimitSchema,
+  propertyServerErrorSchema,
+} from "@reentwise/api/src/modules/properties/properties.schema";
+
+function mapPropertyRouteError(
+  e: unknown,
+  set: { status?: number | string },
+) {
+  if (e instanceof PropertyNotFoundError) {
+    set.status = 404;
+    return apiError(404, e.message);
+  }
+  if (e instanceof PlanLimitExceededError) {
+    set.status = 402;
+    return apiError(402, e.message);
+  }
+  const message =
+    e instanceof Error ? e.message : "An unknown error occurred";
+  set.status = 500;
+  return apiError(500, message);
+}
 
 export const ownerPropertyRoutes = new Elysia({
   name: "ownerPropertyRoutes",
@@ -10,63 +42,110 @@ export const ownerPropertyRoutes = new Elysia({
   .use(propertiesModule)
   .get(
     "/",
-    ({ user, propertiesService }) => {
-      return propertiesService.getOwnerProperties(user.id);
+    async ({ user, propertiesService, set }) => {
+      try {
+        const data = await propertiesService.getOwnerProperties(user.id);
+        return apiSuccess("Properties retrieved successfully", data);
+      } catch (e) {
+        return mapPropertyRouteError(e, set);
+      }
     },
     {
       authenticated: true,
+      response: {
+        200: propertiesListSuccessSchema,
+        500: propertyServerErrorSchema,
+      },
     },
   )
   .get(
     "/:id",
-    ({ user, params, propertiesService }) => {
-      return propertiesService.getPropertyById(user.id, params.id);
+    async ({ user, params, propertiesService, set }) => {
+      try {
+        const data = await propertiesService.getPropertyById(
+          user.id,
+          params.id,
+        );
+        return apiSuccess("Property retrieved successfully", data);
+      } catch (e) {
+        return mapPropertyRouteError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: propertyIdParamsSchema,
+      response: {
+        200: propertyOneSuccessSchema,
+        404: propertyNotFoundSchema,
+        500: propertyServerErrorSchema,
+      },
     },
   )
   .post(
     "/",
-    ({ user, body, propertiesService }) => {
-      return propertiesService.createProperty(user.id, body);
+    async ({ user, body, propertiesService, set }) => {
+      try {
+        const data = await propertiesService.createProperty(user.id, body);
+        return apiSuccess("Property created successfully", data);
+      } catch (e) {
+        return mapPropertyRouteError(e, set);
+      }
     },
     {
       authenticated: true,
-      body: t.Object({
-        name: t.String(),
-        address: t.Optional(t.String()),
-      }),
+      body: createPropertyBodySchema,
+      response: {
+        200: propertyMutationSuccessSchema,
+        402: propertyPlanLimitSchema,
+        500: propertyServerErrorSchema,
+      },
     },
   )
   .put(
     "/:id",
-    ({ user, body, params, propertiesService }) => {
-      return propertiesService.updateProperty(user.id, params.id, body);
+    async ({ user, body, params, propertiesService, set }) => {
+      try {
+        const data = await propertiesService.updateProperty(
+          user.id,
+          params.id,
+          body,
+        );
+        return apiSuccess("Property updated successfully", data);
+      } catch (e) {
+        return mapPropertyRouteError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        id: t.String(),
-      }),
-      body: t.Object({
-        name: t.String(),
-        address: t.Optional(t.String()),
-      }),
+      params: propertyIdParamsSchema,
+      body: updatePropertyBodySchema,
+      response: {
+        200: propertyMutationSuccessSchema,
+        404: propertyNotFoundSchema,
+        500: propertyServerErrorSchema,
+      },
     },
   )
   .delete(
     "/:id",
-    ({ user, params, propertiesService }) => {
-      return propertiesService.deleteProperty(user.id, params.id);
+    async ({ user, params, propertiesService, set }) => {
+      try {
+        const data = await propertiesService.deleteProperty(
+          user.id,
+          params.id,
+        );
+        return apiSuccess("Property deleted successfully", data);
+      } catch (e) {
+        return mapPropertyRouteError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: propertyIdParamsSchema,
+      response: {
+        200: propertyMutationSuccessSchema,
+        404: propertyNotFoundSchema,
+        500: propertyServerErrorSchema,
+      },
     },
   );

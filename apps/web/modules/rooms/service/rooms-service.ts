@@ -1,6 +1,10 @@
 import { apiClient } from "@/utils/api-connection";
 import type { RoomStatus } from "@/modules/rooms/constants";
 
+function unwrap(raw: unknown): any {
+  return (raw as { data: any }).data;
+}
+
 class RoomsService {
   constructor() {}
 
@@ -11,7 +15,7 @@ class RoomsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async getRoomById(propertyId: string, roomId: string) {
@@ -23,7 +27,7 @@ class RoomsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async createRoom(
@@ -41,7 +45,7 @@ class RoomsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async updateRoom(
@@ -62,7 +66,7 @@ class RoomsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async deleteRoom(propertyId: string, roomId: string) {
@@ -74,7 +78,7 @@ class RoomsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async updateRoomStatus(
@@ -90,7 +94,7 @@ class RoomsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 }
 

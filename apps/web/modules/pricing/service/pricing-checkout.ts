@@ -15,15 +15,25 @@ export async function startStripeCheckout(priceId: string): Promise<void> {
     return;
   }
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Error al crear la sesión de Stripe");
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error("Respuesta inválida del servidor");
   }
 
-  const data = (await res.json()) as { url?: string };
-  if (!data?.url) {
+  if (!res.ok) {
+    const body = json as { message?: string };
+    throw new Error(
+      body?.message || "Error al crear la sesión de Stripe",
+    );
+  }
+
+  const envelope = json as { data?: { url?: string } };
+  const url = envelope.data?.url;
+  if (!url) {
     throw new Error("No se recibió URL de Stripe");
   }
 
-  window.location.href = data.url;
+  window.location.href = url;
 }

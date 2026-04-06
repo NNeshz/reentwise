@@ -48,7 +48,7 @@ export function AuditsFilters() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los inquilinos</SelectItem>
-            {tenants.map((t) => (
+            {tenants.map((t: { id: string; name: string }) => (
               <SelectItem key={t.id} value={t.id}>
                 {t.name}
               </SelectItem>

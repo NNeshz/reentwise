@@ -1,14 +1,16 @@
 import Stripe from "stripe";
 import { db, eq, user } from "@reentwise/database";
-import type { PlanTier } from "@reentwise/database";
 import { env } from "@reentwise/api/src/utils/envs";
+import { StripeNotConfiguredError } from "@reentwise/api/src/modules/stripe/lib/stripe-not-configured-error";
+import { InvalidStripePriceError } from "@reentwise/api/src/modules/stripe/lib/invalid-stripe-price-error";
+import {
+  configuredStripePriceIds,
+  mapStripeSubscriptionStatus,
+  periodEndFromSubscription,
+  planTierFromPriceId,
+} from "@reentwise/api/src/modules/stripe/lib/stripe-subscription-sync";
 
-/** Valores persistidos en `user.subscription_status` */
-export type SubscriptionStatus =
-  | "trialing"
-  | "active"
-  | "past_due"
-  | "canceled";
+export type { SubscriptionStatus } from "@reentwise/api/src/modules/stripe/lib/stripe-subscription-sync";
 
 const API_VERSION = "2026-03-25.dahlia" as const;
 
@@ -17,7 +19,9 @@ let stripeSingleton: Stripe | null = null;
 function getStripe(): Stripe {
   const key = env.STRIPE_SECRET_KEY;
   if (!key) {
-    throw new Error("STRIPE_SECRET_KEY no está configurada");
+    throw new StripeNotConfiguredError(
+      "STRIPE_SECRET_KEY no está configurada",
+    );
   }
   if (!stripeSingleton) {
     stripeSingleton = new Stripe(key, { apiVersion: API_VERSION });
@@ -37,48 +41,13 @@ export function constructStripeWebhookEvent(
   );
 }
 
-function mapStripeSubscriptionStatus(
-  status: Stripe.Subscription.Status,
-): SubscriptionStatus {
-  switch (status) {
-    case "trialing":
-      return "trialing";
-    case "active":
-      return "active";
-    case "past_due":
-      return "past_due";
-    case "canceled":
-      return "canceled";
-    case "unpaid":
-      return "past_due";
-    case "incomplete":
-    case "paused":
-      return "trialing";
-    case "incomplete_expired":
-      return "canceled";
-    default:
-      return "canceled";
-  }
-}
-
-function planTierFromPriceId(priceId: string | undefined): PlanTier | null {
-  if (!priceId) return null;
-  if (priceId === env.STRIPE_PRICE_BASICO) return "basico";
-  if (priceId === env.STRIPE_PRICE_PRO) return "pro";
-  if (priceId === env.STRIPE_PRICE_PATRON) return "patron";
-  return null;
-}
-
-function periodEndFromSubscription(
-  subscription: Stripe.Subscription,
-): Date | null {
-  const end = subscription.items.data[0]?.current_period_end;
-  if (typeof end !== "number") return null;
-  return new Date(end * 1000);
-}
-
 export class StripeService {
   async createCheckoutSession(input: { userId: string; priceId: string }) {
+    const allowed = configuredStripePriceIds();
+    if (allowed.length > 0 && !allowed.includes(input.priceId)) {
+      throw new InvalidStripePriceError();
+    }
+
     const stripe = getStripe();
     const baseUrl = env.NEXT_PUBLIC_FRONTEND_URL.replace(/\/$/, "");
 

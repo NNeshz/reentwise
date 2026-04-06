@@ -1,6 +1,57 @@
-import Elysia, { t } from "elysia";
+import Elysia from "elysia";
 import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
 import { tenantsModule } from "@reentwise/api/src/modules/tenants/tenants.module";
+import { RoomNotFoundError } from "@reentwise/api/src/modules/rooms/lib/room-not-found-error";
+import {
+  TenantForbiddenError,
+  TenantNotFoundError,
+  TenantValidationError,
+} from "@reentwise/api/src/modules/tenants/lib/tenant-errors";
+import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+import {
+  tenantsListQuerySchema,
+  tenantsAccountStatusQuerySchema,
+  tenantRoomIdParamsSchema,
+  tenantRoomTenantParamsSchema,
+  tenantIdParamsSchema,
+  createTenantBodySchema,
+  assignTenantBodySchema,
+  reassignTenantBodySchema,
+  updateTenantBodySchema,
+  tenantRoomIdTenantIdParamsSchema,
+  tenantsSuccessSchema,
+  tenantsError400Schema,
+  tenantsError403Schema,
+  tenantsError404Schema,
+  tenantsError500Schema,
+} from "@reentwise/api/src/modules/tenants/tenants.schema";
+
+function mapTenantsError(e: unknown, set: { status?: number | string }) {
+  if (e instanceof TenantValidationError) {
+    set.status = 400;
+    return apiError(400, e.message);
+  }
+  if (e instanceof TenantForbiddenError) {
+    set.status = 403;
+    return apiError(403, e.message);
+  }
+  if (e instanceof TenantNotFoundError || e instanceof RoomNotFoundError) {
+    set.status = 404;
+    return apiError(404, e.message);
+  }
+  const message =
+    e instanceof Error ? e.message : "An unknown error occurred";
+  set.status = 500;
+  return apiError(500, message);
+}
+
+const tenantResponses = {
+  200: tenantsSuccessSchema,
+  400: tenantsError400Schema,
+  403: tenantsError403Schema,
+  404: tenantsError404Schema,
+  500: tenantsError500Schema,
+} as const;
 
 export const ownerTenantsRoutes = new Elysia({
   name: "ownerTenantsRoutes",
@@ -10,202 +61,210 @@ export const ownerTenantsRoutes = new Elysia({
   .use(tenantsModule)
   .get(
     "/",
-    ({ user, query, tenantsService }) => {
-      return tenantsService.getTenants(user.id, query);
+    async ({ user, query, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.getTenants(user.id, query);
+        return apiSuccess("Tenants retrieved successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      query: t.Object({
-        search: t.Optional(t.String()),
-        status: t.Optional(
-          t.Union([
-            t.Literal("pending"),
-            t.Literal("partial"),
-            t.Literal("paid"),
-            t.Literal("late"),
-            t.Literal("annulled"),
-          ]),
-        ),
-        propertyId: t.Optional(t.String()),
-        page: t.Optional(t.Number()),
-      })
+      query: tenantsListQuerySchema,
+      response: tenantResponses,
     },
   )
   .get(
     "/account-status",
-    ({ user, query, tenantsService }) => {
-      const now = new Date();
-      return tenantsService.getAccountStatus(user.id, {
-        month: query.month ?? now.getMonth() + 1,
-        year: query.year ?? now.getFullYear(),
-        search: query.search,
-        status: query.status as "pending" | "partial" | "paid" | undefined,
-      });
+    async ({ user, query, tenantsService, set }) => {
+      try {
+        const now = new Date();
+        const data = await tenantsService.getAccountStatus(user.id, {
+          month: query.month ?? now.getMonth() + 1,
+          year: query.year ?? now.getFullYear(),
+          search: query.search,
+          status: query.status as "pending" | "partial" | "paid" | undefined,
+        });
+        return apiSuccess("Account status retrieved successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      query: t.Object({
-        month: t.Optional(t.Number()),
-        year: t.Optional(t.Number()),
-        search: t.Optional(t.String()),
-        status: t.Optional(
-          t.Union([
-            t.Literal("pending"),
-            t.Literal("partial"),
-            t.Literal("paid"),
-          ]),
-        ),
-      }),
+      query: tenantsAccountStatusQuerySchema,
+      response: tenantResponses,
     },
   )
   .get(
     "/:roomId",
-    ({ params, tenantsService }) => {
-      return tenantsService.getRoomTenants(params.roomId);
+    async ({ params, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.getRoomTenants(params.roomId);
+        return apiSuccess("Room tenants retrieved successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        roomId: t.String(),
-      }),
+      params: tenantRoomIdParamsSchema,
+      response: tenantResponses,
     },
   )
   .post(
     "/:roomId",
-    ({ params, body, tenantsService }) => {
-      return tenantsService.createTenant(params.roomId, body);
+    async ({ params, body, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.createTenant(params.roomId, body);
+        return apiSuccess("Tenant created successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        roomId: t.String(),
-      }),
-      body: t.Object({
-        name: t.String(),
-        whatsapp: t.String(),
-        email: t.String(),
-        paymentDay: t.Number(),
-        notes: t.Optional(t.String()),
-      }),
+      params: tenantRoomIdParamsSchema,
+      body: createTenantBodySchema,
+      response: tenantResponses,
     },
   )
   .post(
     "/assign/:roomId",
-    ({ params, body, tenantsService }) => {
-      return tenantsService.createAndAssignTenant(params.roomId, body);
+    async ({ params, body, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.createAndAssignTenant(
+          params.roomId,
+          body,
+        );
+        return apiSuccess("Tenant assigned successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        roomId: t.String(),
-      }),
-      body: t.Object({
-        name: t.String(),
-        whatsapp: t.String(),
-        email: t.String(),
-        paymentDay: t.Number(),
-        notes: t.Optional(t.String()),
-        firstMonthRent: t.Optional(t.Number()),
-        deposit: t.Optional(t.Number()),
-      }),
+      params: tenantRoomIdParamsSchema,
+      body: assignTenantBodySchema,
+      response: tenantResponses,
     },
   )
   .post(
     "/reassign/:roomId/:tenantId",
-    ({ params, body, tenantsService }) => {
-      return tenantsService.reassignTenant(
-        params.roomId,
-        params.tenantId,
-        body ?? undefined,
-      );
+    async ({ params, body, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.reassignTenant(
+          params.roomId,
+          params.tenantId,
+          body ?? undefined,
+        );
+        return apiSuccess("Tenant reassigned successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        roomId: t.String(),
-        tenantId: t.String(),
-      }),
-      body: t.Optional(
-        t.Object({
-          paymentDay: t.Optional(t.Number()),
-        }),
-      ),
+      params: tenantRoomTenantParamsSchema,
+      body: reassignTenantBodySchema,
+      response: tenantResponses,
     },
   )
   .put(
     "/unassign/:roomId/:tenantId",
     async ({ params, tenantsService, set }) => {
-      const result = await tenantsService.unassignTenant(
-        params.roomId,
-        params.tenantId,
-      );
-      if (result && "status" in result && result.status >= 400) {
-        set.status = result.status;
+      try {
+        const data = await tenantsService.unassignTenant(
+          params.roomId,
+          params.tenantId,
+        );
+        return apiSuccess("Tenant unassigned successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
       }
-      return result;
     },
     {
       authenticated: true,
-      params: t.Object({
-        roomId: t.String(),
-        tenantId: t.String(),
-      }),
+      params: tenantRoomTenantParamsSchema,
+      response: tenantResponses,
     },
   )
   .put(
     "/:roomId/:id",
-    ({ params, body, tenantsService }) => {
-      return tenantsService.updateTenant(params.roomId, params.id, body);
+    async ({ params, body, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.updateTenant(
+          params.roomId,
+          params.id,
+          body,
+        );
+        return apiSuccess("Tenant updated successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        roomId: t.String(),
-        id: t.String(),
-      }),
-      body: t.Object({
-        name: t.Optional(t.String()),
-        whatsapp: t.Optional(t.String()),
-        email: t.Optional(t.String()),
-        paymentDay: t.Optional(t.Number()),
-        notes: t.Optional(t.String()),
-      }),
-    },
-  )
-  .delete(
-    "/:roomId/:id",
-    ({ params, tenantsService }) => {
-      return tenantsService.deleteTenant(params.roomId, params.id);
-    },
-    {
-      authenticated: true,
-      params: t.Object({
-        roomId: t.String(),
-        id: t.String(),
-      }),
+      params: tenantRoomIdTenantIdParamsSchema,
+      body: updateTenantBodySchema,
+      response: tenantResponses,
     },
   )
   .delete(
     "/by-id/:tenantId",
-    ({ params, user, tenantsService }) => {
-      return tenantsService.deleteTenantById(params.tenantId, user.id);
+    async ({ params, user, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.deleteTenantById(
+          params.tenantId,
+          user.id,
+        );
+        return apiSuccess("Tenant deleted successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        tenantId: t.String(),
-      }),
+      params: tenantIdParamsSchema,
+      response: tenantResponses,
+    },
+  )
+  .delete(
+    "/:roomId/:id",
+    async ({ params, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.deleteTenant(
+          params.roomId,
+          params.id,
+        );
+        return apiSuccess("Tenant deleted successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
+    },
+    {
+      authenticated: true,
+      params: tenantRoomIdTenantIdParamsSchema,
+      response: tenantResponses,
     },
   )
   .get(
     "/payments/:tenantId",
-    ({ params, user, tenantsService }) => {
-      return tenantsService.getPaymentsByTenant(params.tenantId, user.id);
+    async ({ params, user, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.getPaymentsByTenant(
+          params.tenantId,
+          user.id,
+        );
+        return apiSuccess("Payments retrieved successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
     },
     {
       authenticated: true,
-      params: t.Object({
-        tenantId: t.String(),
-      }),
+      params: tenantIdParamsSchema,
+      response: tenantResponses,
     },
   );

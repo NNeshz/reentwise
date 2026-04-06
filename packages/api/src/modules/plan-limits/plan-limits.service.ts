@@ -18,6 +18,7 @@ import {
 import type { OwnerPlanLimitsContext } from "@reentwise/api/src/modules/plan-limits/types/plan-limits.types";
 
 export { getEffectivePlanTier } from "@reentwise/api/src/modules/plan-limits/lib/effective-plan-tier";
+export { PlanLimitExceededError } from "@reentwise/api/src/modules/plan-limits/lib/plan-limit-exceeded-error";
 export type {
   EffectivePlanUserRow,
   OwnerPlanLimitsContext,

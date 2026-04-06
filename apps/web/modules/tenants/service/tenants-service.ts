@@ -1,5 +1,9 @@
 import { apiClient } from "@/utils/api-connection";
 
+function unwrap(raw: unknown): any {
+  return (raw as { data: any }).data;
+}
+
 class TenantsService {
   async getTenants(params: {
     search?: string;
@@ -15,7 +19,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async getRoomTenants(roomId: string) {
@@ -25,7 +29,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async createTenant(
@@ -44,7 +48,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async createAndAssignTenant(
@@ -67,7 +71,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async updateTenant(
@@ -89,7 +93,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async deleteTenant(roomId: string, tenantId: string) {
@@ -101,7 +105,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async reassignTenant(
@@ -117,7 +121,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async unassignTenant(roomId: string, tenantId: string) {
@@ -129,7 +133,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async deleteTenantById(tenantId: string) {
@@ -154,7 +158,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async getPaymentsByTenant(tenantId: string) {
@@ -196,7 +200,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data;
+    return unwrap(response.data);
   }
 
   async getAccountStatus(params: {
@@ -223,7 +227,7 @@ class TenantsService {
       throw response.error.value;
     }
 
-    return response.data as {
+    return unwrap(response.data) as {
       items: Array<{
         tenantId: string;
         tenantName: string;

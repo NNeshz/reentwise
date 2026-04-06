@@ -5,59 +5,40 @@ import {
   and,
   roomStatusEnum,
   tenants,
-  desc,
   asc,
 } from "@reentwise/database";
-import { planLimitsService } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
+import {
+  planLimitsService,
+  PlanLimitExceededError,
+} from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
+import { RoomNotFoundError } from "@reentwise/api/src/modules/rooms/lib/room-not-found-error";
+import { InvalidRoomStatusError } from "@reentwise/api/src/modules/rooms/lib/invalid-room-status-error";
 
 export class RoomsService {
   async getPropertyRooms(propertyId: string) {
-    try {
-      const roomsResult = await db.query.rooms.findMany({
-        where: eq(rooms.propertyId, propertyId),
-        orderBy: asc(rooms.createdAt),
-      });
-
-      if (!roomsResult) {
-        throw new Error("Rooms not found");
-      }
-
-      return roomsResult;
-    } catch (error) {
-      return {
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        status: 500,
-      };
-    }
+    return db.query.rooms.findMany({
+      where: eq(rooms.propertyId, propertyId),
+      orderBy: asc(rooms.createdAt),
+    });
   }
 
   async getRoomById(propertyId: string, roomId: string) {
-    try {
-      const roomResult = await db.query.rooms.findFirst({
-        where: and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)),
-      });
+    const roomResult = await db.query.rooms.findFirst({
+      where: and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)),
+    });
 
-      if (!roomResult) {
-        throw new Error("Room not found");
-      }
-
-      // Also fetch the tenant(s) for this room. Usually there is only one active tenant.
-      const tenantsResult = await db.query.tenants.findMany({
-        where: eq(tenants.roomId, roomId),
-      });
-
-      return {
-        ...roomResult,
-        tenants: tenantsResult || [],
-      };
-    } catch (error) {
-      return {
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        status: 500,
-      };
+    if (!roomResult) {
+      throw new RoomNotFoundError();
     }
+
+    const tenantsResult = await db.query.tenants.findMany({
+      where: eq(tenants.roomId, roomId),
+    });
+
+    return {
+      ...roomResult,
+      tenants: tenantsResult ?? [],
+    };
   }
 
   async createRoom(
@@ -69,37 +50,29 @@ export class RoomsService {
       notes?: string;
     },
   ) {
-    try {
-      const limitCheck = await planLimitsService.assertCanCreateRoom(
-        ownerId,
-        propertyId,
-      );
-      if (!limitCheck.ok) {
-        return { message: limitCheck.message, status: 402 };
-      }
-
-      const roomResult = await db
-        .insert(rooms)
-        .values({
-          propertyId,
-          roomNumber: body.roomNumber,
-          price: body.price.toString(),
-          notes: body.notes,
-        })
-        .returning();
-
-      if (!roomResult) {
-        throw new Error("Failed to create room");
-      }
-
-      return roomResult;
-    } catch (error) {
-      return {
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        status: 500,
-      };
+    const limitCheck = await planLimitsService.assertCanCreateRoom(
+      ownerId,
+      propertyId,
+    );
+    if (!limitCheck.ok) {
+      throw new PlanLimitExceededError(limitCheck.message);
     }
+
+    const [created] = await db
+      .insert(rooms)
+      .values({
+        propertyId,
+        roomNumber: body.roomNumber,
+        price: body.price.toString(),
+        notes: body.notes,
+      })
+      .returning();
+
+    if (!created) {
+      throw new Error("Failed to create room");
+    }
+
+    return created;
   }
 
   async updateRoom(
@@ -111,79 +84,55 @@ export class RoomsService {
       notes?: string;
     },
   ) {
-    try {
-      const roomResult = await db
-        .update(rooms)
-        .set({
-          roomNumber: body.roomNumber,
-          price: body.price?.toString(),
-          notes: body.notes,
-        })
-        .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
-        .returning();
+    const [updated] = await db
+      .update(rooms)
+      .set({
+        roomNumber: body.roomNumber,
+        price: body.price?.toString(),
+        notes: body.notes,
+      })
+      .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
+      .returning();
 
-      if (!roomResult) {
-        throw new Error("Failed to update room");
-      }
-
-      return roomResult;
-    } catch (error) {
-      return {
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        status: 500,
-      };
+    if (!updated) {
+      throw new RoomNotFoundError("Failed to update room");
     }
+
+    return updated;
   }
 
   async deleteRoom(propertyId: string, roomId: string) {
-    try {
-      const roomResult = await db
-        .delete(rooms)
-        .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
-        .returning();
+    const [deleted] = await db
+      .delete(rooms)
+      .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
+      .returning();
 
-      if (!roomResult) {
-        throw new Error("Failed to delete room");
-      }
-
-      return roomResult;
-    } catch (error) {
-      return {
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        status: 500,
-      };
+    if (!deleted) {
+      throw new RoomNotFoundError("Failed to delete room");
     }
+
+    return deleted;
   }
 
   async updateRoomStatus(propertyId: string, roomId: string, status: string) {
-    try {
-      type RoomStatus = (typeof roomStatusEnum.enumValues)[number];
-      const typedStatus = status as RoomStatus;
+    type RoomStatus = (typeof roomStatusEnum.enumValues)[number];
+    const typedStatus = status as RoomStatus;
 
-      if (!roomStatusEnum.enumValues.includes(typedStatus)) {
-        throw new Error("Invalid status");
-      }
-
-      const roomResult = await db
-        .update(rooms)
-        .set({ status: typedStatus })
-        .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
-        .returning();
-
-      if (!roomResult) {
-        throw new Error("Failed to update room status");
-      }
-
-      return roomResult;
-    } catch (error) {
-      return {
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        status: 500,
-      };
+    if (!roomStatusEnum.enumValues.includes(typedStatus)) {
+      throw new InvalidRoomStatusError();
     }
+
+    const [updated] = await db
+      .update(rooms)
+      .set({ status: typedStatus })
+      .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
+      .returning();
+
+    if (!updated) {
+      throw new RoomNotFoundError("Failed to update room status");
+    }
+
+    return updated;
   }
 }
 

@@ -31,6 +31,14 @@ import { Input } from "@reentwise/ui/src/components/input";
 import { IconBuilding, IconDoor } from "@tabler/icons-react";
 import { toast } from "sonner";
 
+type TenantAssignRow = {
+  id: string;
+  name: string;
+  whatsapp: string;
+  roomId: string | null;
+  paymentDay: number;
+};
+
 export function TenantsAsignList({ roomId }: { roomId: string }) {
   const { data: tenants, isLoading, isError } = useTenantsQuery();
   const { mutate: reassignTenant, isPending } = useReassignTenant(roomId);
@@ -60,7 +68,7 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
     );
   }
 
-  const tenantsList = tenants?.tenants || [];
+  const tenantsList: TenantAssignRow[] = tenants?.tenants ?? [];
 
   if (tenantsList.length === 0) {
     return (
@@ -70,7 +78,7 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
     );
   }
 
-  const handleTenantClick = (tenant: any) => {
+  const handleTenantClick = (tenant: TenantAssignRow) => {
     // If they already have a room, just open the warning Alert Dialog
     if (tenant.roomId) {
       setSelectedTenant({

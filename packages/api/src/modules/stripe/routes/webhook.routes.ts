@@ -1,6 +1,7 @@
 import Elysia, { status } from "elysia";
 import type Stripe from "stripe";
 import { env } from "@reentwise/api/src/utils/envs";
+import { StripeNotConfiguredError } from "@reentwise/api/src/modules/stripe/lib/stripe-not-configured-error";
 import {
   constructStripeWebhookEvent,
   stripeService,
@@ -15,17 +16,26 @@ export const stripeWebhookRoutes = new Elysia({
   }
   const secret = env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
-    return status(500, "STRIPE_WEBHOOK_SECRET no configurada");
+    return status(503, "STRIPE_WEBHOOK_SECRET no configurada");
   }
 
   let event: Stripe.Event;
   try {
     event = constructStripeWebhookEvent(body as string, signature, secret);
   } catch (err) {
+    if (err instanceof StripeNotConfiguredError) {
+      return status(503, err.message);
+    }
     const message = err instanceof Error ? err.message : String(err);
     return status(400, `Webhook Error: ${message}`);
   }
 
-  await stripeService.handleWebhookEvent(event);
+  try {
+    await stripeService.handleWebhookEvent(event);
+  } catch (e) {
+    console.error("[Stripe] webhook handler error:", e);
+    return status(500, "Webhook processing failed");
+  }
+
   return { received: true as const };
 });
