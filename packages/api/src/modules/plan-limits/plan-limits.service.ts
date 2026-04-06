@@ -1,59 +1,27 @@
 import {
   and,
-  count,
   db,
   eq,
   inArray,
   isNull,
   planLimits,
   properties,
-  rooms,
   user,
 } from "@reentwise/database";
 import type { PlanTier } from "@reentwise/database";
+import { getEffectivePlanTier } from "@reentwise/api/src/modules/plan-limits/lib/effective-plan-tier";
+import {
+  countActivePropertiesForOwner,
+  countActiveRoomsForOwnerAcrossProperties,
+  countActiveRoomsOnProperty,
+} from "@reentwise/api/src/modules/plan-limits/lib/plan-limit-counts";
+import type { OwnerPlanLimitsContext } from "@reentwise/api/src/modules/plan-limits/types/plan-limits.types";
 
-const PAID_TIERS: PlanTier[] = ["basico", "pro", "patron"];
-
-function isPaidProductTier(tier: PlanTier): boolean {
-  return PAID_TIERS.includes(tier);
-}
-
-/**
- * Tier usado para límites y mensajería.
- * Si la suscripción figura como `canceled` pero aún hay `subscription_current_period_end`
- * en el futuro y el usuario conserva un plan de pago en BD, se mantiene ese tier hasta la fecha
- * (útil si el webhook o datos quedan desalineados un tiempo).
- */
-export function getEffectivePlanTier(row: {
-  subscriptionStatus: string | null;
-  planTier: PlanTier;
-  subscriptionCurrentPeriodEnd?: Date | null;
-}): PlanTier {
-  if (row.subscriptionStatus === "trialing") return "trial";
-  if (
-    row.subscriptionStatus === "active" ||
-    row.subscriptionStatus === "past_due"
-  ) {
-    return row.planTier;
-  }
-  const end = row.subscriptionCurrentPeriodEnd;
-  if (
-    row.subscriptionStatus === "canceled" &&
-    end &&
-    end.getTime() > Date.now() &&
-    isPaidProductTier(row.planTier)
-  ) {
-    return row.planTier;
-  }
-  return "freemium";
-}
-
-/** Resolved owner + tier + row from `plan_limits` (same shape as `getLimitsContext`). */
-export type OwnerPlanLimitsContext = {
-  user: typeof user.$inferSelect;
-  effectiveTier: PlanTier;
-  limits: typeof planLimits.$inferSelect;
-};
+export { getEffectivePlanTier } from "@reentwise/api/src/modules/plan-limits/lib/effective-plan-tier";
+export type {
+  EffectivePlanUserRow,
+  OwnerPlanLimitsContext,
+} from "@reentwise/api/src/modules/plan-limits/types/plan-limits.types";
 
 export class PlanLimitsService {
   async getLimitsContext(
@@ -76,8 +44,8 @@ export class PlanLimitsService {
   }
 
   /**
-   * Batch-resolve plan limits for many owners (one user query + one plan_limits query per distinct tier).
-   * Use from cron instead of calling `getLimitsContext` per tenant row.
+   * Batch-resolve limits (one `user` query + one `plan_limits` by distinct tiers).
+   * Prefer over per-row `getLimitsContext` in cron-style loops.
    */
   async getLimitsContexts(
     ownerIds: string[],
@@ -129,13 +97,7 @@ export class PlanLimitsService {
     const ctx = await this.getLimitsContext(ownerId);
     if (!ctx) return { ok: false, message: "Usuario no encontrado" };
 
-    const [row] = await db
-      .select({ value: count() })
-      .from(properties)
-      .where(
-        and(eq(properties.ownerId, ownerId), isNull(properties.archivedAt)),
-      );
-    const n = row?.value ?? 0;
+    const n = await countActivePropertiesForOwner(ownerId);
 
     if (n >= ctx.limits.maxProperties) {
       return {
@@ -170,11 +132,7 @@ export class PlanLimitsService {
     }
 
     if (ctx.limits.roomsLimitMode === "per_property") {
-      const [row] = await db
-        .select({ value: count() })
-        .from(rooms)
-        .where(and(eq(rooms.propertyId, propertyId), isNull(rooms.archivedAt)));
-      const n = row?.value ?? 0;
+      const n = await countActiveRoomsOnProperty(propertyId);
 
       if (n >= ctx.limits.maxRooms) {
         return {
@@ -183,18 +141,7 @@ export class PlanLimitsService {
         };
       }
     } else {
-      const [row] = await db
-        .select({ value: count() })
-        .from(rooms)
-        .innerJoin(properties, eq(rooms.propertyId, properties.id))
-        .where(
-          and(
-            eq(properties.ownerId, ownerId),
-            isNull(properties.archivedAt),
-            isNull(rooms.archivedAt),
-          ),
-        );
-      const n = row?.value ?? 0;
+      const n = await countActiveRoomsForOwnerAcrossProperties(ownerId);
 
       if (n >= ctx.limits.maxRooms) {
         return {

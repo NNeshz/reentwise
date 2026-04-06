@@ -1,4 +1,8 @@
 import { apiClient } from "@/utils/api-connection";
+import type {
+  PaymentMutationApiSuccess,
+  PaymentsListApiSuccess,
+} from "@reentwise/api/src/modules/payments/types/payments.types";
 
 class PaymentService {
   async getPayments(params: {
@@ -21,7 +25,8 @@ class PaymentService {
       throw response.error.value;
     }
 
-    return response.data;
+    const body = response.data as PaymentsListApiSuccess;
+    return body.data;
   }
 
   async payPayment(
@@ -39,7 +44,8 @@ class PaymentService {
       throw response.error.value;
     }
 
-    return response.data;
+    const body = response.data as PaymentMutationApiSuccess;
+    return body.data;
   }
 }
 

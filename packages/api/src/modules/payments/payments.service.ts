@@ -11,48 +11,23 @@ import {
   properties,
   user,
 } from "@reentwise/database";
-import { emailService } from "@reentwise/api/src/modules/email/email.service";
 import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
 import { planLimitsService } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
 import { getPaymentDateForMonth } from "@reentwise/api/src/modules/tenants/tenants.service";
 import {
-  sendKapsoTemplate,
-  normalizeKapsoRecipient,
   formatKapsoPropertyLabel,
-  formatKapsoCurrencyMx,
   formatKapsoDayMonthSpanish,
-  formatKapsoMonthNameSpanish,
-  formatKapsoDateShortSpanish,
-  kapsoBodyAbonoRecived,
-  kapsoBodyPaymentCompleted,
-  kapsoTemplateName,
 } from "@reentwise/api/src/modules/kapso/kapso.service";
-import {
-  emailAbonoReceived,
-  emailPaymentCompleted,
-} from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
+import { PaymentNotFoundError } from "@reentwise/api/src/modules/payments/lib/payment-not-found-error";
+import { nextPaymentDueDateLabel } from "@reentwise/api/src/modules/payments/lib/payment-due-label";
+import { sendPayReceiptNotifications } from "@reentwise/api/src/modules/payments/lib/pay-payment-notifications";
+import type { PaymentStatusFilter } from "@reentwise/api/src/modules/payments/types/payments.types";
 
-type PaymentStatusFilter = "pending" | "partial" | "paid";
+export { PaymentNotFoundError } from "@reentwise/api/src/modules/payments/lib/payment-not-found-error";
+export type { PaymentStatusFilter } from "@reentwise/api/src/modules/payments/types/payments.types";
 
 export class PaymentsService {
-  constructor() {}
-
-  private nextDueDateLabel(
-    month: number,
-    year: number,
-    paymentDay: number,
-  ): string {
-    let nm = month + 1;
-    let ny = year;
-    if (nm > 12) {
-      nm = 1;
-      ny += 1;
-    }
-    const d = getPaymentDateForMonth(ny, nm, paymentDay);
-    return formatKapsoDayMonthSpanish(d, nm);
-  }
-
-  /** Fila de pago + inquilino + unidad + dueño (para Kapso / plan). */
+  /** Row for Kapso/email context (joins owner, property, room). */
   private async getPaymentRowWithMessaging(ownerId: string, paymentId: string) {
     const [row] = await db
       .select({
@@ -120,7 +95,6 @@ export class PaymentsService {
       );
   }
 
-  /** Pago perteneciente a un inquilino bajo el alcance del dueño (directo o vía propiedad). */
   private async getPaymentRowForOwner(ownerId: string, paymentId: string) {
     const [row] = await db
       .select({ payment: payments, tenant: tenants })
@@ -147,7 +121,7 @@ export class PaymentsService {
       ownerId,
       paymentId,
     );
-    if (!currentPayment) throw new Error("Payment not found");
+    if (!currentPayment) throw new PaymentNotFoundError();
 
     const amount = Number(currentPayment.payment.amount);
     const newAmountPaid =
@@ -177,7 +151,11 @@ export class PaymentsService {
     if (!updatedPayment) throw new Error("Failed to update payment");
 
     const msgRow = await this.getPaymentRowWithMessaging(ownerId, paymentId);
-    if (msgRow?.room && msgRow.property) {
+    if (
+      msgRow?.room &&
+      msgRow.property &&
+      (newStatus === "partial" || newStatus === "paid")
+    ) {
       const planCtx = await planLimitsService.getLimitsContext(
         msgRow.owner.id,
       );
@@ -195,137 +173,37 @@ export class PaymentsService {
         dueDay,
         updatedPayment.month,
       );
-      const outstanding = Math.max(0, amount - newAmountPaid);
+      const nextDue = nextPaymentDueDateLabel(
+        updatedPayment.month,
+        updatedPayment.year,
+        msgRow.tenant.paymentDay,
+      );
 
-      if (limits?.allowWhatsappPaymentReceipt) {
-        if (newStatus === "partial") {
-          await auditsService.withWhatsAppAudit(
-            {
-              tenantId: msgRow.tenant.id,
-              tenantName: msgRow.tenant.name,
-              note: `Abono ${updatedPayment.month}/${updatedPayment.year}`,
-            },
-            () =>
-              sendKapsoTemplate({
-                to: normalizeKapsoRecipient(msgRow.tenant.whatsapp),
-                templateName: kapsoTemplateName("abono_recived"),
-                components: kapsoBodyAbonoRecived({
-                  ownerName: msgRow.owner.name,
-                  tenantName: msgRow.tenant.name,
-                  propertyLabel,
-                  amountReceivedFormatted: formatKapsoCurrencyMx(paymentAmount),
-                  outstandingFormatted: formatKapsoCurrencyMx(outstanding),
-                  fullPaymentDeadlineLabel,
-                }),
-              }),
-            (err) =>
-              console.error("[WhatsApp][Payments] Error abono:", err),
-          );
-        } else if (newStatus === "paid") {
-          await auditsService.withWhatsAppAudit(
-            {
-              tenantId: msgRow.tenant.id,
-              tenantName: msgRow.tenant.name,
-              note: `Pago completado ${updatedPayment.month}/${updatedPayment.year}`,
-            },
-            () =>
-              sendKapsoTemplate({
-                to: normalizeKapsoRecipient(msgRow.tenant.whatsapp),
-                templateName: kapsoTemplateName("payment_completed"),
-                components: kapsoBodyPaymentCompleted({
-                  ownerName: msgRow.owner.name,
-                  tenantName: msgRow.tenant.name,
-                  propertyLabel,
-                  amountReceivedFormatted: formatKapsoCurrencyMx(amount),
-                  paymentRegisteredDateLabel:
-                    formatKapsoDateShortSpanish(new Date()),
-                  coveredPeriodMonthName: formatKapsoMonthNameSpanish(
-                    updatedPayment.month,
-                  ),
-                  nextChargeDateLabel: this.nextDueDateLabel(
-                    updatedPayment.month,
-                    updatedPayment.year,
-                    msgRow.tenant.paymentDay,
-                  ),
-                }),
-              }),
-            (err) =>
-              console.error("[WhatsApp][Payments] Error completado:", err),
-          );
-        }
-      }
-
-      if (limits?.allowEmailPaymentRegistered && msgRow.tenant.email) {
-        if (newStatus === "partial") {
-          const { subject, html, text } = emailAbonoReceived({
-            ownerName: msgRow.owner.name,
-            tenantName: msgRow.tenant.name,
-            propertyLabel,
-            amountReceivedFormatted: formatKapsoCurrencyMx(paymentAmount),
-            outstandingFormatted: formatKapsoCurrencyMx(outstanding),
-            fullPaymentDeadlineLabel,
-          });
-          await auditsService.withEmailAudit(
-            {
-              tenantId: msgRow.tenant.id,
-              tenantName: msgRow.tenant.name,
-              note: `Abono email ${updatedPayment.month}/${updatedPayment.year}`,
-            },
-            () =>
-              emailService.sendHtml({
-                to: msgRow.tenant.email,
-                subject,
-                html,
-                text,
-                tags: [
-                  { name: "type", value: "payment_abono" },
-                  { name: "module", value: "payments" },
-                ],
-                idempotencyKey: `pay-abono-${paymentId}-${newAmountPaid}`,
-              }),
-            (err) =>
-              console.error("[Email][Payments] Error abono:", err),
-          );
-        } else if (newStatus === "paid") {
-          const { subject, html, text } = emailPaymentCompleted({
-            ownerName: msgRow.owner.name,
-            tenantName: msgRow.tenant.name,
-            propertyLabel,
-            amountReceivedFormatted: formatKapsoCurrencyMx(amount),
-            paymentRegisteredDateLabel:
-              formatKapsoDateShortSpanish(new Date()),
-            coveredPeriodMonthName: formatKapsoMonthNameSpanish(
-              updatedPayment.month,
-            ),
-            nextChargeDateLabel: this.nextDueDateLabel(
-              updatedPayment.month,
-              updatedPayment.year,
-              msgRow.tenant.paymentDay,
-            ),
-          });
-          await auditsService.withEmailAudit(
-            {
-              tenantId: msgRow.tenant.id,
-              tenantName: msgRow.tenant.name,
-              note: `Pago completado email ${updatedPayment.month}/${updatedPayment.year}`,
-            },
-            () =>
-              emailService.sendHtml({
-                to: msgRow.tenant.email,
-                subject,
-                html,
-                text,
-                tags: [
-                  { name: "type", value: "payment_completed" },
-                  { name: "module", value: "payments" },
-                ],
-                idempotencyKey: `pay-done-${paymentId}`,
-              }),
-            (err) =>
-              console.error("[Email][Payments] Error completado:", err),
-          );
-        }
-      }
+      await sendPayReceiptNotifications(
+        limits,
+        newStatus,
+        {
+          tenant: {
+            id: msgRow.tenant.id,
+            name: msgRow.tenant.name,
+            whatsapp: msgRow.tenant.whatsapp,
+            email: msgRow.tenant.email,
+          },
+          owner: { name: msgRow.owner.name },
+          room: { roomNumber: msgRow.room.roomNumber },
+          property: { name: msgRow.property.name },
+        },
+        updatedPayment,
+        {
+          paymentId,
+          paymentAmount,
+          newAmountPaid,
+          amount,
+          propertyLabel,
+          fullPaymentDeadlineLabel,
+          nextDueDateLabel: nextDue,
+        },
+      );
     }
 
     return updatedPayment;
@@ -336,7 +214,7 @@ export class PaymentsService {
       ownerId,
       paymentId,
     );
-    if (!currentPayment) throw new Error("Payment not found");
+    if (!currentPayment) throw new PaymentNotFoundError();
 
     const [annulledPayment] = await db
       .update(payments)
@@ -367,8 +245,6 @@ export class PaymentsService {
 
     return annulledPayment;
   }
-
-
 }
 
 export const paymentsService = new PaymentsService();
