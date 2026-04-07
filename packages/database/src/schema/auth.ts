@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, boolean, varchar } from "drizzle-orm/pg-core";
-import { planTierEnum } from "./plan-enums";
+import { planTierEnum } from "../enums/plan-tier";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),

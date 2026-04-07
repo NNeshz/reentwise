@@ -1,32 +1,16 @@
 import { defineConfig } from "drizzle-kit";
-
-function getDatabaseUrl(): string {
-  const directUrl = process.env.DIRECT_URL;
-  if (directUrl) return directUrl;
-
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) {
-    throw new Error(
-      "DATABASE_URL or DIRECT_URL is required (p. ej. fly secrets set DATABASE_URL=... antes de fly deploy).",
-    );
-  }
-
-  // If using pgbouncer (port 6543), convert to direct connection (port 5432)
-  if (dbUrl.includes(":6543")) {
-    return dbUrl
-      .replace(":6543", ":5432")
-      .replace(/[?&]pgbouncer=true/, "")
-      .replace(/[?&]pgbouncer=false/, "");
-  }
-
-  return dbUrl;
-}
+import { resolveDirectDatabaseUrl } from "./src/lib/direct-database-url";
 
 export default defineConfig({
-  schema: ["./src/plan-enums.ts", "./src/schema.ts", "./src/other.ts"],
+  schema: [
+    "./src/enums/plan-tier.ts",
+    "./src/enums/app.ts",
+    "./src/schema/auth.ts",
+    "./src/schema/domain.ts",
+  ],
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: getDatabaseUrl(),
+    url: resolveDirectDatabaseUrl(),
   },
 });

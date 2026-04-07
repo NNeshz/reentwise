@@ -6,25 +6,7 @@
  * Ensure `.env` has NODE_ENV=development (or prefix the command).
  */
 import postgres from "postgres";
-
-function getDatabaseUrl(): string {
-  const directUrl = process.env.DIRECT_URL;
-  if (directUrl) return directUrl;
-
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) {
-    throw new Error("DATABASE_URL or DIRECT_URL is required");
-  }
-
-  if (dbUrl.includes(":6543")) {
-    return dbUrl
-      .replace(":6543", ":5432")
-      .replace(/[?&]pgbouncer=true/, "")
-      .replace(/[?&]pgbouncer=false/, "");
-  }
-
-  return dbUrl;
-}
+import { resolveDirectDatabaseUrl } from "./src/lib/direct-database-url";
 
 async function main() {
   if (process.env.NODE_ENV !== "development") {
@@ -36,7 +18,7 @@ async function main() {
     process.exit(1);
   }
 
-  const url = getDatabaseUrl();
+  const url = resolveDirectDatabaseUrl();
   const sql = postgres(url, { max: 1 });
 
   try {

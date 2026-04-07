@@ -1,19 +1,9 @@
 import { sql } from "drizzle-orm";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { resolveDirectDatabaseUrl } from "./src/lib/direct-database-url";
 
-function getDatabaseUrl(): string {
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) throw new Error("DATABASE_URL is required");
-  return dbUrl.includes(":6543")
-    ? dbUrl
-        .replace(":6543", ":5432")
-        .replace(/[?&]pgbouncer=true/, "")
-        .replace(/[?&]pgbouncer=false/, "")
-    : dbUrl;
-}
-
-const queryClient = postgres(getDatabaseUrl());
+const queryClient = postgres(resolveDirectDatabaseUrl());
 const db = drizzle(queryClient);
 
 async function main() {
