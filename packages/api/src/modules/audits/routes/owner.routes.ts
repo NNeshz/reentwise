@@ -8,6 +8,7 @@ import {
 } from "@reentwise/api/src/modules/audits/audits.schema";
 import { parseAuditsListQuery } from "@reentwise/api/src/modules/audits/utils/parse-audits-query";
 import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 function mapAuditsRouteError(
   e: unknown,
@@ -48,6 +49,11 @@ export const ownerAuditsRoutes = new Elysia({
       response: {
         200: auditsListSuccessSchema,
         500: auditsServerErrorSchema,
+      },
+      detail: {
+        summary: "Listar auditorías de envío",
+        description: "Filtros opcionales: tenant, canal, estado.",
+        tags: [openApiTags.Audits],
       },
     },
   );

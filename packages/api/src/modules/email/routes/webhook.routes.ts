@@ -8,6 +8,7 @@ import {
   emailWebhookServerErrorSchema,
 } from "@reentwise/api/src/modules/email/email.schema";
 import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 export const emailWebhookRoutes = new Elysia({
   name: "emailWebhookRoutes",
@@ -54,6 +55,12 @@ export const emailWebhookRoutes = new Elysia({
         200: emailWebhookSuccessSchema,
         400: emailWebhookBadRequestSchema,
         500: emailWebhookServerErrorSchema,
+      },
+      detail: {
+        summary: "Webhook Resend (Svix)",
+        description:
+          "Cuerpo raw; cabeceras Svix obligatorias. Verifica firma con `RESEND_WEBHOOK_SECRET`.",
+        tags: [openApiTags.Webhooks],
       },
     },
   );

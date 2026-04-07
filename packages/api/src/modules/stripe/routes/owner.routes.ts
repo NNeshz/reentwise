@@ -13,6 +13,7 @@ import {
   stripeServiceUnavailableSchema,
   stripeServerErrorSchema,
 } from "@reentwise/api/src/modules/stripe/stripe.schema";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 function mapStripeOwnerError(
   e: unknown,
@@ -63,6 +64,12 @@ export const stripeOwnerRoutes = new Elysia({
         500: stripeServerErrorSchema,
         502: stripeBadGatewaySchema,
         503: stripeServiceUnavailableSchema,
+      },
+      detail: {
+        summary: "Crear sesión de Checkout (suscripción)",
+        description:
+          "Devuelve `data.url` al hosted checkout de Stripe. `priceId` debe coincidir con precios configurados en el servidor.",
+        tags: [openApiTags.Stripe],
       },
     },
   );

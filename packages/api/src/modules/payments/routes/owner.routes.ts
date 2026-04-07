@@ -14,6 +14,7 @@ import {
   paymentNotFoundSchema,
   paymentServerErrorSchema,
 } from "@reentwise/api/src/modules/payments/payments.schema";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
 
 function mapPaymentsRouteError(
@@ -65,6 +66,10 @@ export const ownerPaymentsRoutes = new Elysia({
         200: paymentsListSuccessSchema,
         500: paymentServerErrorSchema,
       },
+      detail: {
+        summary: "Listar pagos por mes/año",
+        tags: [openApiTags.Payments],
+      },
     },
   )
   .post(
@@ -91,6 +96,10 @@ export const ownerPaymentsRoutes = new Elysia({
         404: paymentNotFoundSchema,
         500: paymentServerErrorSchema,
       },
+      detail: {
+        summary: "Registrar abono o pago total",
+        tags: [openApiTags.Payments],
+      },
     },
   )
   .post(
@@ -110,6 +119,10 @@ export const ownerPaymentsRoutes = new Elysia({
         200: paymentAnnulSuccessSchema,
         404: paymentNotFoundSchema,
         500: paymentServerErrorSchema,
+      },
+      detail: {
+        summary: "Anular pago del mes",
+        tags: [openApiTags.Payments],
       },
     },
   );

@@ -13,6 +13,7 @@ import {
   stripeWebhookServerErrorSchema,
   stripeWebhookServiceUnavailableSchema,
 } from "@reentwise/api/src/modules/stripe/stripe.schema";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 export const stripeWebhookRoutes = new Elysia({
   name: "stripeWebhookRoutes",
@@ -59,6 +60,12 @@ export const stripeWebhookRoutes = new Elysia({
       400: stripeWebhookBadRequestSchema,
       500: stripeWebhookServerErrorSchema,
       503: stripeWebhookServiceUnavailableSchema,
+    },
+    detail: {
+      summary: "Webhook de Stripe",
+      description:
+        "Cuerpo raw + cabecera `stripe-signature`. No usar sesión de usuario.",
+      tags: [openApiTags.Webhooks],
     },
   },
 );

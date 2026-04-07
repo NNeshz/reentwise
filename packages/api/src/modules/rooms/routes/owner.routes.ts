@@ -19,6 +19,7 @@ import {
   roomBadRequestSchema,
   roomServerErrorSchema,
 } from "@reentwise/api/src/modules/rooms/rooms.schema";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 function mapRoomsRouteError(e: unknown, set: { status?: number | string }) {
   if (e instanceof RoomNotFoundError) {
@@ -62,6 +63,10 @@ export const ownerRoomsRoutes = new Elysia({
         200: roomsListSuccessSchema,
         500: roomServerErrorSchema,
       },
+      detail: {
+        summary: "Listar cuartos de una propiedad",
+        tags: [openApiTags.Rooms],
+      },
     },
   )
   .get(
@@ -84,6 +89,10 @@ export const ownerRoomsRoutes = new Elysia({
         200: roomDetailSuccessSchema,
         404: roomNotFoundSchema,
         500: roomServerErrorSchema,
+      },
+      detail: {
+        summary: "Obtener cuarto por ID",
+        tags: [openApiTags.Rooms],
       },
     },
   )
@@ -110,6 +119,11 @@ export const ownerRoomsRoutes = new Elysia({
         402: roomPlanLimitSchema,
         500: roomServerErrorSchema,
       },
+      detail: {
+        summary: "Crear cuarto",
+        description: "402 si el plan no permite más cuartos.",
+        tags: [openApiTags.Rooms],
+      },
     },
   )
   .put(
@@ -135,6 +149,10 @@ export const ownerRoomsRoutes = new Elysia({
         404: roomNotFoundSchema,
         500: roomServerErrorSchema,
       },
+      detail: {
+        summary: "Actualizar cuarto",
+        tags: [openApiTags.Rooms],
+      },
     },
   )
   .delete(
@@ -157,6 +175,10 @@ export const ownerRoomsRoutes = new Elysia({
         200: roomMutationSuccessSchema,
         404: roomNotFoundSchema,
         500: roomServerErrorSchema,
+      },
+      detail: {
+        summary: "Eliminar cuarto",
+        tags: [openApiTags.Rooms],
       },
     },
   )
@@ -183,6 +205,10 @@ export const ownerRoomsRoutes = new Elysia({
         404: roomNotFoundSchema,
         400: roomBadRequestSchema,
         500: roomServerErrorSchema,
+      },
+      detail: {
+        summary: "Actualizar estado del cuarto",
+        tags: [openApiTags.Rooms],
       },
     },
   );

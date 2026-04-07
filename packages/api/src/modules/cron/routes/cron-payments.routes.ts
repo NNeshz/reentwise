@@ -6,6 +6,7 @@ import {
   cronDailyErrorSchema,
 } from "@reentwise/api/src/modules/cron/cron.schema";
 import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 export const cronPaymentsRoutes = new Elysia({
   name: "cronPaymentsRoutes",
@@ -49,8 +50,10 @@ export const cronPaymentsRoutes = new Elysia({
       },
       detail: {
         summary:
-          "Ejecuta revisiones diarias (T-7, T-3, día de pago, +2 mora) y mensajería",
-        tags: ["Cron Jobs"],
+          "Rutina diaria de cobranza y recordatorios (T-7, T-3, día de pago, +2 mora)",
+        description:
+          "Autenticación: header `Authorization: Bearer <CRON_SECRET>`.",
+        tags: [openApiTags.Cron],
       },
     },
   );

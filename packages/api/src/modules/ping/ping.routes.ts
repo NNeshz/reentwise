@@ -5,6 +5,7 @@ import {
   pingFailureSchema,
 } from "@reentwise/api/src/modules/ping/ping.schema";
 import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 export const pingRoutes = new Elysia({
   name: "pingRoutes",
@@ -25,6 +26,11 @@ export const pingRoutes = new Elysia({
       response: {
         200: pingSuccessSchema,
         503: pingFailureSchema,
+      },
+      detail: {
+        summary: "Health check",
+        description: "Comprueba conectividad con la base de datos.",
+        tags: [openApiTags.Health],
       },
     },
   );

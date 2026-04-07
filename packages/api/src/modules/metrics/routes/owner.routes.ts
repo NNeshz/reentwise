@@ -9,6 +9,7 @@ import {
   metricsCardsBadRequestSchema,
   metricsCardsServerErrorSchema,
 } from "@reentwise/api/src/modules/metrics/metrics.schema";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
 
 function mapMetricsRouteError(
@@ -53,6 +54,12 @@ export const ownerMetricsRoutes = new Elysia({
         200: metricsCardsSuccessSchema,
         400: metricsCardsBadRequestSchema,
         500: metricsCardsServerErrorSchema,
+      },
+      detail: {
+        summary: "Tarjetas de métricas del dashboard",
+        description:
+          "Rango por `preset` o `from`+`to` (YYYY-MM-DD, UTC).",
+        tags: [openApiTags.Metrics],
       },
     },
   );

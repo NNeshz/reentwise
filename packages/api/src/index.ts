@@ -1,9 +1,11 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
+import { openapi } from "@elysiajs/openapi";
 import "./utils/envs";
 import { env } from "@reentwise/api/src/utils/envs";
 
 import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
+import { openApiDocumentation } from "@reentwise/api/src/utils/openapi-meta";
 
 import { pingRoutes } from "@reentwise/api/src/modules/ping/ping.routes";
 
@@ -44,5 +46,15 @@ export const api = new Elysia({
   .use(ownerPaymentsRoutes)
   .use(ownerAuditsRoutes)
   .use(ownerMetricsRoutes)
+  .use(
+    openapi({
+      path: "/openapi",
+      documentation: openApiDocumentation,
+      exclude: {
+        /** Better Auth monta su propio handler; rutas `/api/auth/*` vienen del mount. */
+        paths: [/\/api\/auth\b/],
+      },
+    }),
+  );
 
 export type Api = typeof api;

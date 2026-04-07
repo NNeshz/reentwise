@@ -25,6 +25,7 @@ import {
   tenantsError404Schema,
   tenantsError500Schema,
 } from "@reentwise/api/src/modules/tenants/tenants.schema";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 function mapTenantsError(e: unknown, set: { status?: number | string }) {
   if (e instanceof TenantValidationError) {
@@ -73,6 +74,10 @@ export const ownerTenantsRoutes = new Elysia({
       authenticated: true,
       query: tenantsListQuerySchema,
       response: tenantResponses,
+      detail: {
+        summary: "Listar inquilinos (paginado)",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .get(
@@ -95,6 +100,10 @@ export const ownerTenantsRoutes = new Elysia({
       authenticated: true,
       query: tenantsAccountStatusQuerySchema,
       response: tenantResponses,
+      detail: {
+        summary: "Estado de cuenta (inquilinos y pagos del mes)",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .get(
@@ -111,6 +120,10 @@ export const ownerTenantsRoutes = new Elysia({
       authenticated: true,
       params: tenantRoomIdParamsSchema,
       response: tenantResponses,
+      detail: {
+        summary: "Inquilinos asignados a un cuarto",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .post(
@@ -128,6 +141,10 @@ export const ownerTenantsRoutes = new Elysia({
       params: tenantRoomIdParamsSchema,
       body: createTenantBodySchema,
       response: tenantResponses,
+      detail: {
+        summary: "Crear inquilino en un cuarto",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .post(
@@ -148,6 +165,10 @@ export const ownerTenantsRoutes = new Elysia({
       params: tenantRoomIdParamsSchema,
       body: assignTenantBodySchema,
       response: tenantResponses,
+      detail: {
+        summary: "Crear y asignar inquilino al cuarto",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .post(
@@ -169,6 +190,10 @@ export const ownerTenantsRoutes = new Elysia({
       params: tenantRoomTenantParamsSchema,
       body: reassignTenantBodySchema,
       response: tenantResponses,
+      detail: {
+        summary: "Reasignar inquilino a otro cuarto",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .put(
@@ -188,6 +213,10 @@ export const ownerTenantsRoutes = new Elysia({
       authenticated: true,
       params: tenantRoomTenantParamsSchema,
       response: tenantResponses,
+      detail: {
+        summary: "Desasignar inquilino del cuarto",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .put(
@@ -209,6 +238,10 @@ export const ownerTenantsRoutes = new Elysia({
       params: tenantRoomIdTenantIdParamsSchema,
       body: updateTenantBodySchema,
       response: tenantResponses,
+      detail: {
+        summary: "Actualizar inquilino",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .delete(
@@ -228,6 +261,12 @@ export const ownerTenantsRoutes = new Elysia({
       authenticated: true,
       params: tenantIdParamsSchema,
       response: tenantResponses,
+      detail: {
+        summary: "Eliminar inquilino por ID",
+        description:
+          "Registrado antes de `/:roomId/:id` para no capturar `by-id` como roomId.",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .delete(
@@ -247,6 +286,10 @@ export const ownerTenantsRoutes = new Elysia({
       authenticated: true,
       params: tenantRoomIdTenantIdParamsSchema,
       response: tenantResponses,
+      detail: {
+        summary: "Eliminar inquilino por cuarto e ID",
+        tags: [openApiTags.Tenants],
+      },
     },
   )
   .get(
@@ -266,5 +309,9 @@ export const ownerTenantsRoutes = new Elysia({
       authenticated: true,
       params: tenantIdParamsSchema,
       response: tenantResponses,
+      detail: {
+        summary: "Pagos de un inquilino",
+        tags: [openApiTags.Tenants],
+      },
     },
   );

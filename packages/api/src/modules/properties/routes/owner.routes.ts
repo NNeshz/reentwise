@@ -15,6 +15,7 @@ import {
   propertyPlanLimitSchema,
   propertyServerErrorSchema,
 } from "@reentwise/api/src/modules/properties/properties.schema";
+import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
 
 function mapPropertyRouteError(
   e: unknown,
@@ -56,6 +57,12 @@ export const ownerPropertyRoutes = new Elysia({
         200: propertiesListSuccessSchema,
         500: propertyServerErrorSchema,
       },
+      detail: {
+        summary: "Listar propiedades",
+        description:
+          "Propiedades del usuario con conteo de cuartos. Requiere sesión.",
+        tags: [openApiTags.Properties],
+      },
     },
   )
   .get(
@@ -79,6 +86,10 @@ export const ownerPropertyRoutes = new Elysia({
         404: propertyNotFoundSchema,
         500: propertyServerErrorSchema,
       },
+      detail: {
+        summary: "Obtener propiedad por ID",
+        tags: [openApiTags.Properties],
+      },
     },
   )
   .post(
@@ -98,6 +109,11 @@ export const ownerPropertyRoutes = new Elysia({
         200: propertyMutationSuccessSchema,
         402: propertyPlanLimitSchema,
         500: propertyServerErrorSchema,
+      },
+      detail: {
+        summary: "Crear propiedad",
+        description: "402 si se excede el límite del plan.",
+        tags: [openApiTags.Properties],
       },
     },
   )
@@ -124,6 +140,10 @@ export const ownerPropertyRoutes = new Elysia({
         404: propertyNotFoundSchema,
         500: propertyServerErrorSchema,
       },
+      detail: {
+        summary: "Actualizar propiedad",
+        tags: [openApiTags.Properties],
+      },
     },
   )
   .delete(
@@ -146,6 +166,10 @@ export const ownerPropertyRoutes = new Elysia({
         200: propertyMutationSuccessSchema,
         404: propertyNotFoundSchema,
         500: propertyServerErrorSchema,
+      },
+      detail: {
+        summary: "Eliminar propiedad",
+        tags: [openApiTags.Properties],
       },
     },
   );
