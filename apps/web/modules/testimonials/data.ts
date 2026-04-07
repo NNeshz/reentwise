@@ -1,36 +1,28 @@
-import type { TablerIcon } from "@tabler/icons-react";
 import {
   IconBed,
   IconBuildingCommunity,
   IconBuildingSkyscraper,
 } from "@tabler/icons-react";
+import type {
+  Testimonial,
+  TestimonialsHeroContent,
+} from "@/modules/testimonials/types/testimonials.types";
 
-export type TestimonialPlanId = "basic" | "pro" | "patron";
+export type {
+  Testimonial,
+  TestimonialPlanId,
+  TestimonialsHeroContent,
+} from "@/modules/testimonials/types/testimonials.types";
 
-export type Testimonial = {
-  id: string;
-  /** Número visible en el layout (01, 02…) */
-  stepIndex: string;
-  name: string;
-  /** Rol o situación (arrienda cuartos, etc.) */
-  context: string;
-  planId: TestimonialPlanId;
-  /** Texto visible del plan, ej. "Plan Básico" */
-  planName: string;
-  quote: string;
-  /** Dato corto de impacto (tiempo, estrés, etc.) */
-  highlight: string;
-  image: string;
-  imageAlt: string;
-  icon: TablerIcon;
-};
-
+/**
+ * Contenido estático de marketing; sin store ni fetch.
+ */
 export const testimonialsHeroContent = {
   badge: "Historias reales",
   title: "Quienes arriendan cuartos con reentwise",
   description:
     "Propietarios que dividieron su casa o tienen varios espacios: menos perseguir cobros, más claridad cada mes.",
-} as const;
+} satisfies TestimonialsHeroContent;
 
 export const testimonials: Testimonial[] = [
   {
@@ -56,7 +48,8 @@ export const testimonials: Testimonial[] = [
     planName: "Plan Pro",
     quote:
       "Con varios inquilinos el caos era normal: quién pagó, quién no, a quién le tocaba recordatorio. El panel y las reglas me dejaron ver todo en un solo lugar; los de WhatsApp ya no son el desorden de antes.",
-    highlight: "Menos idas y vueltas: recuperé tiempo para el trabajo, no para cobrar.",
+    highlight:
+      "Menos idas y vueltas: recuperé tiempo para el trabajo, no para cobrar.",
     image: "/images/tenant.avif",
     imageAlt: "Inquilinos y operación",
     icon: IconBuildingCommunity,

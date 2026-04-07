@@ -1,83 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Input } from "@reentwise/ui/src/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@reentwise/ui/src/components/select";
-import { useTenantsFilters } from "@/modules/tenants/store/use-tenants-filte";
+import { useCallback } from "react";
+import { Button } from "@reentwise/ui/src/components/button";
+import { IconFilterOff } from "@tabler/icons-react";
+import { useTenantsFilters } from "@/modules/tenants/store/use-tenants-filters";
 import { useProperties } from "@/modules/properties/hooks/use-properties";
-import { useDebounce } from "@/utils/use-debounce";
-
-const SEARCH_DEBOUNCE_MS = 300;
+import { TenantSearchFilter } from "@/modules/tenants/components/filters/tenant-search-filter";
+import { TenantStatusFilter } from "@/modules/tenants/components/filters/tenant-status-filter";
+import { TenantPropertyFilter } from "@/modules/tenants/components/filters/tenant-property-filter";
 
 export function TenantsFilters() {
-  const { search, status, propertyId, setSearch, setStatus, setPropertyId } =
-    useTenantsFilters();
-  const { data: propertiesData } = useProperties();
-  const properties = Array.isArray(propertiesData) ? propertiesData : [];
+  const {
+    search,
+    status,
+    propertyId,
+    setSearch,
+    setStatus,
+    setPropertyId,
+    resetFilters,
+  } = useTenantsFilters();
 
-  const [inputValue, setInputValue] = useState(search ?? "");
-  const debouncedSearch = useDebounce(inputValue, SEARCH_DEBOUNCE_MS);
+  const { data: properties = [] } = useProperties();
 
-  useEffect(() => {
-    setSearch(debouncedSearch.trim() || undefined);
-  }, [debouncedSearch, setSearch]);
+  const onDebouncedSearch = useCallback(
+    (v: string | undefined) => {
+      setSearch(v);
+    },
+    [setSearch],
+  );
 
-  useEffect(() => {
-    if (search === undefined || search === "") {
-      setInputValue("");
-    }
-  }, [search]);
+  const hasActiveFilters =
+    (search != null && search.trim() !== "") ||
+    status != null ||
+    (propertyId != null && propertyId !== "");
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Input
-        placeholder="Buscar nombre o WhatsApp"
-        className="w-full max-w-xs"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-      />
-      <Select
-        value={status ?? "all"}
-        onValueChange={(value) =>
-          setStatus(
-            value === "all" ? undefined : (value as "pending" | "partial" | "paid" | "late" | "annulled"),
-          )
-        }
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Seleccionar estado" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="pending">Pendiente</SelectItem>
-          <SelectItem value="partial">Parcial</SelectItem>
-          <SelectItem value="paid">Pagado</SelectItem>
-          <SelectItem value="late">Vencido</SelectItem>
-          <SelectItem value="annulled">Anulado</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select
-        value={propertyId ?? "all"}
-        onValueChange={(value) => setPropertyId(value === "all" ? undefined : value)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Por propiedad" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          {properties.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+        <TenantSearchFilter
+          committedSearch={search}
+          onDebouncedChange={onDebouncedSearch}
+        />
+        <TenantStatusFilter
+          value={status ?? "all"}
+          onValueChange={setStatus}
+        />
+        <TenantPropertyFilter
+          properties={properties}
+          value={propertyId}
+          onValueChange={setPropertyId}
+        />
+      </div>
+      {hasActiveFilters ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5"
+          onClick={() => resetFilters()}
+        >
+          <IconFilterOff className="size-4" />
+          Limpiar filtros
+        </Button>
+      ) : null}
     </div>
-  )
+  );
 }

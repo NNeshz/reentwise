@@ -51,9 +51,9 @@ export function RoomsUpdate({
         </SheetTrigger>
         <SheetContent className="w-full sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Editar propiedad</SheetTitle>
+            <SheetTitle>Editar habitación</SheetTitle>
             <SheetDescription>
-              Edita la propiedad para que puedas gestionarla.
+              Actualiza los datos de esta habitación.
             </SheetDescription>
           </SheetHeader>
           <RoomsUpdateForm
@@ -79,9 +79,9 @@ export function RoomsUpdate({
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle>Editar propiedad</DrawerTitle>
+          <DrawerTitle>Editar habitación</DrawerTitle>
           <DrawerDescription>
-            Edita la propiedad para que puedas gestionarla.
+            Actualiza los datos de esta habitación.
           </DrawerDescription>
         </DrawerHeader>
         <RoomsUpdateForm

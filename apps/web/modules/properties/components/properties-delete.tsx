@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,23 +14,13 @@ import {
 import { Button } from "@reentwise/ui/src/components/button";
 import { useDeleteProperty } from "@/modules/properties/hooks/use-properties";
 import { IconTrash } from "@tabler/icons-react";
-import { toast } from "sonner";
 
-interface PropertiesDeleteProps {
+type PropertiesDeleteProps = {
   propertyId: string;
-}
+};
 
 export function PropertiesDelete({ propertyId }: PropertiesDeleteProps) {
   const { mutate: deleteProperty, isPending } = useDeleteProperty();
-
-  const handleDelete = async () => {
-    try {
-      await deleteProperty(propertyId);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al eliminar la propiedad");
-    }
-  };
 
   return (
     <AlertDialog>
@@ -49,7 +41,10 @@ export function PropertiesDelete({ propertyId }: PropertiesDeleteProps) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+          <AlertDialogAction
+            onClick={() => deleteProperty(propertyId)}
+            disabled={isPending}
+          >
             <IconTrash className="size-4" />
             Eliminar
           </AlertDialogAction>

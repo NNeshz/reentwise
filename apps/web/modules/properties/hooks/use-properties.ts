@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { propertiesService } from "@/modules/properties/service/properties-service";
+import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
-const PROPERTIES_KEY = ["properties"];
+const PROPERTIES_KEY = ["properties"] as const;
 
 export function useProperties() {
   return useQuery({
@@ -33,9 +34,10 @@ export function useCreateProperty() {
       queryClient.invalidateQueries({ queryKey: PROPERTIES_KEY });
       toast.success("Propiedad creada correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al crear la propiedad");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al crear la propiedad"),
+      );
     },
   });
 }
@@ -50,9 +52,10 @@ export function useUpdateProperty() {
       queryClient.invalidateQueries({ queryKey: PROPERTIES_KEY });
       toast.success("Propiedad actualizada correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al actualizar la propiedad");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al actualizar la propiedad"),
+      );
     },
   });
 }
@@ -65,6 +68,11 @@ export function useDeleteProperty() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROPERTIES_KEY });
       toast.success("Propiedad eliminada correctamente");
+    },
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al eliminar la propiedad"),
+      );
     },
   });
 }

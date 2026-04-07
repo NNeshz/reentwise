@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { TestimonialsRows } from "@/modules/testimonials/components/testimonials-rows";
-import { TestimonialsHero } from "@/modules/testimonials/components/testimonials-hero";
+import { TestimonialsHero, TestimonialsRows } from "@/modules/testimonials";
 
 export const metadata: Metadata = {
   title: "Testimonios — Reentwise",

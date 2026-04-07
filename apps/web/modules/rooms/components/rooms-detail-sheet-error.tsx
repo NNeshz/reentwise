@@ -1,0 +1,47 @@
+"use client";
+
+import { IconAlertCircle } from "@tabler/icons-react";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@reentwise/ui/src/components/alert";
+import { Button } from "@reentwise/ui/src/components/button";
+import { errorMessageFromUnknown } from "@/utils/normalize-error";
+
+type Props = {
+  error: unknown;
+  onRetry: () => void;
+  isRetrying?: boolean;
+};
+
+export function RoomsDetailSheetError({
+  error,
+  onRetry,
+  isRetrying,
+}: Props) {
+  const message = errorMessageFromUnknown(
+    error,
+    "No se pudo cargar la habitación",
+  );
+
+  return (
+    <Alert variant="destructive" className="mt-4">
+      <IconAlertCircle className="size-4" aria-hidden />
+      <AlertTitle>Error al cargar</AlertTitle>
+      <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-destructive/90">{message}</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 border-destructive/40 bg-transparent"
+          onClick={() => onRetry()}
+          disabled={isRetrying}
+        >
+          {isRetrying ? "Reintentando…" : "Reintentar"}
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
+}

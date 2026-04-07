@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { paymentService } from "@/modules/payment/service/payment-service";
 import { usePaymentsFilters } from "@/modules/payment/store/use-payments-filters";
+import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
-const PAYMENTS_KEY = ["payments"];
+const PAYMENTS_KEY = ["payments"] as const;
 
 export function usePayments() {
   const { search, status, month, year } = usePaymentsFilters();
@@ -39,11 +40,14 @@ export function usePayPayment() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PAYMENTS_KEY });
-      toast.success("Pago registrado correctamente. Recibo enviado por WhatsApp.");
+      toast.success(
+        "Pago registrado correctamente. Recibo enviado por WhatsApp.",
+      );
     },
-    onError: (error: Error) => {
-      toast.error("Error al registrar el pago");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al registrar el pago"),
+      );
     },
   });
 }

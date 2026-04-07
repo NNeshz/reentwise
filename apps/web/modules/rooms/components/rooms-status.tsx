@@ -1,6 +1,5 @@
 "use client";
 
-import { ROOM_STATUS_VALUES, type RoomStatus } from "../constants";
 import {
   Select,
   SelectContent,
@@ -8,8 +7,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@reentwise/ui/src/components/select";
-import { getBadgeStatus } from "../utils/get-badge-status";
-import { useUpdateRoomStatus } from "../hooks/use-rooms";
+import {
+  ROOM_STATUS_VALUES,
+  type RoomStatus,
+} from "@/modules/rooms/types/rooms.types";
+import { getRoomStatusBadge } from "@/modules/rooms/lib/room-display";
+import { useUpdateRoomStatus } from "@/modules/rooms/hooks/use-rooms";
 
 export function RoomsStatus({
   propertyId,
@@ -23,7 +26,7 @@ export function RoomsStatus({
   className?: string;
 }) {
   const { mutate: updateStatus, isPending } = useUpdateRoomStatus(propertyId);
-  const badgeStatus = getBadgeStatus(status);
+  const badgeStatus = getRoomStatusBadge(status);
 
   const handleChange = (value: string) => {
     const typedStatus = value as RoomStatus;
@@ -34,17 +37,14 @@ export function RoomsStatus({
 
   return (
     <Select value={status} onValueChange={handleChange} disabled={isPending}>
-      <SelectTrigger
-        size="sm"
-        className={className}
-      >
+      <SelectTrigger size="sm" className={className}>
         <SelectValue>
           <span
             className={
               badgeStatus.variant === "default"
                 ? "font-medium"
                 : badgeStatus.variant === "destructive"
-                  ? "text-destructive font-medium"
+                  ? "font-medium text-destructive"
                   : ""
             }
           >
@@ -54,7 +54,7 @@ export function RoomsStatus({
       </SelectTrigger>
       <SelectContent position="popper" align="end" sideOffset={2}>
         {ROOM_STATUS_VALUES.map((option) => {
-          const optionBadge = getBadgeStatus(option);
+          const optionBadge = getRoomStatusBadge(option);
           return (
             <SelectItem key={option} value={option}>
               {optionBadge.label}

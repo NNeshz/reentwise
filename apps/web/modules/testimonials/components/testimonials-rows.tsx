@@ -1,16 +1,21 @@
 "use client";
 
-import { testimonials } from "../data";
+import { testimonials } from "@/modules/testimonials/data";
+import {
+  TESTIMONIALS_ROWS_STACK,
+  TESTIMONIALS_SECTION,
+} from "@/modules/testimonials/lib/testimonials-display";
+import type { Testimonial } from "@/modules/testimonials/types/testimonials.types";
 import { TestimonialRow } from "./testimonial-row";
 
 type TestimonialsRowsProps = {
-  items?: typeof testimonials;
+  items?: Testimonial[];
 };
 
 export function TestimonialsRows({ items = testimonials }: TestimonialsRowsProps) {
   return (
-    <section className="w-full px-4 py-20">
-      <div className="mx-auto max-w-6xl space-y-24 md:space-y-32">
+    <section className={TESTIMONIALS_SECTION}>
+      <div className={TESTIMONIALS_ROWS_STACK}>
         {items.map((t, index) => (
           <TestimonialRow key={t.id} testimonial={t} index={index} />
         ))}

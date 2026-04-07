@@ -1,4 +1,5 @@
 import { cn } from "@reentwise/ui/src/lib/utils";
+import { HIW_NOISE_BG_IMAGE } from "@/modules/howitworks/lib/howitworks-display";
 
 type NoiseOverlayProps = {
   className?: string;
@@ -6,7 +7,7 @@ type NoiseOverlayProps = {
 };
 
 const NOISE_STYLE = {
-  backgroundImage: 'url("/images/noise.webp")',
+  backgroundImage: HIW_NOISE_BG_IMAGE,
   backgroundRepeat: "repeat" as const,
 };
 
@@ -15,7 +16,7 @@ export function NoiseOverlay({ className, opacityClassName }: NoiseOverlayProps)
   return (
     <div
       className={cn(
-        "absolute inset-0 mix-blend-overlay pointer-events-none",
+        "pointer-events-none absolute inset-0 mix-blend-overlay",
         opacityClassName,
         className,
       )}

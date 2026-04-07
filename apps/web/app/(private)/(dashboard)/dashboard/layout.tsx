@@ -1,5 +1,5 @@
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@reentwise/ui/src/components/sidebar";
-import { AppSidebar } from "@/modules/dashboard/components/dashboard-sidebar";
+import { AppSidebar } from "@/modules/dashboard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

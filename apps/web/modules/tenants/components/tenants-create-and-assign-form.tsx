@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Crear y asignar: React Hook Form + Zod (submit explícito, reglas y UI condicional).
+ * El listado owner usa Zustand para filtros/paginación al instante.
+ */
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

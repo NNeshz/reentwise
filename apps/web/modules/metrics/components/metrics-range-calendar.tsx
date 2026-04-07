@@ -1,15 +1,13 @@
 "use client";
 
 /**
- * Compact range calendar: fixed width, start-aligned, no flex-grow gaps.
- * Interaction: 1st click → start, 2nd → end (swap if needed), 3rd → new start.
+ * Calendario compacto de rango: ancho fijo, alineado al inicio.
+ * Interacción: 1er clic → inicio, 2º → fin (intercambia si hace falta), 3º → nuevo inicio.
  */
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
 import { Button } from "@reentwise/ui/src/components/button";
 import { cn } from "@reentwise/ui/src/lib/utils";
-
 import {
   compareDay,
   isSameDay,
@@ -52,31 +50,19 @@ function monthTitle(year: number, month: number): string {
     .replace(/^\w/, (c) => c.toLowerCase());
 }
 
-type MetricsRangeCalendarProps = {
+type InnerProps = {
   value: CalendarDateRange;
   onChange: (next: CalendarDateRange) => void;
-  /** When the committed range changes (preset / parent), focus this month. */
-  focusToken?: string;
-  className?: string;
+  initialView: Date;
 };
 
-export function MetricsRangeCalendar({
-  value,
-  onChange,
-  focusToken,
-  className,
-}: MetricsRangeCalendarProps) {
-  const anchor = value.from ?? value.to ?? new Date();
-  const [viewYear, setViewYear] = React.useState(() => anchor.getFullYear());
-  const [viewMonth, setViewMonth] = React.useState(() => anchor.getMonth());
-
-  React.useEffect(() => {
-    if (!focusToken) return;
-    const a = value.from ?? value.to ?? new Date();
-    setViewYear(a.getFullYear());
-    setViewMonth(a.getMonth());
-    // Intentionally only when focusToken changes (open / committed query / preset), not while dragging range
-  }, [focusToken]);
+function MetricsRangeCalendarInner({ value, onChange, initialView }: InnerProps) {
+  const [viewYear, setViewYear] = React.useState(() =>
+    initialView.getFullYear(),
+  );
+  const [viewMonth, setViewMonth] = React.useState(() =>
+    initialView.getMonth(),
+  );
 
   const cells = React.useMemo(
     () => buildMonthCells(viewYear, viewMonth),
@@ -142,7 +128,6 @@ export function MetricsRangeCalendar({
     <div
       className={cn(
         "w-full select-none md:w-[288px] md:max-w-[288px] md:shrink-0",
-        className,
       )}
     >
       <div className="mb-3 flex items-center justify-between gap-2 px-0.5">
@@ -220,6 +205,35 @@ export function MetricsRangeCalendar({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+type MetricsRangeCalendarProps = {
+  value: CalendarDateRange;
+  onChange: (next: CalendarDateRange) => void;
+  /** Al cambiar el rango confirmado (preset / padre), remontar vista del mes vía `key`. */
+  focusToken?: string;
+  className?: string;
+};
+
+export function MetricsRangeCalendar({
+  value,
+  onChange,
+  focusToken,
+  className,
+}: MetricsRangeCalendarProps) {
+  const anchor = value.from ?? value.to ?? new Date();
+  const remountKey = focusToken ? focusToken : "metrics-cal-idle";
+
+  return (
+    <div className={className}>
+      <MetricsRangeCalendarInner
+        key={remountKey}
+        value={value}
+        onChange={onChange}
+        initialView={anchor}
+      />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
-import { Navbar } from "@/modules/landing/components/navbar";
-import { Footer } from "@/modules/landing/components/footer";
+import { Footer, Navbar } from "@/modules/landing";
 import { MotionProvider } from "./motion-provider";
 
 export default function Layout({ children }: { children: ReactNode }) {

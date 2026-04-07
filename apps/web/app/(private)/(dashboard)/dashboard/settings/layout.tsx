@@ -1,4 +1,4 @@
-import { SettingsNav } from "@/modules/settings/components/settings-nav";
+import { SettingsNav } from "@/modules/settings";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (

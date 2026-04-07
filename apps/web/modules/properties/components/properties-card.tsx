@@ -17,25 +17,22 @@ import {
 } from "@reentwise/ui/src/components/card";
 import { Progress } from "@reentwise/ui/src/components/progress";
 import { Avatar, AvatarFallback } from "@reentwise/ui/src/components/avatar";
+import type { PropertyListItem } from "@/modules/properties/types/properties.types";
+import {
+  formatPropertyAddress,
+  propertyOccupancyPercent,
+  PROPERTY_ROOMS_LABEL,
+} from "@/modules/properties/lib/property-display";
 
-interface PropertyCardProps {
-  property: {
-    id: string;
-    name: string;
-    address: string | null;
-    totalRooms: number;
-    occupiedRooms: number;
-  };
-  onSelect: (property: PropertyCardProps["property"]) => void;
-}
+type Props = {
+  property: PropertyListItem;
+  onSelect: (property: PropertyListItem) => void;
+};
 
-export function PropertiesCard({ property, onSelect }: PropertyCardProps) {
+export function PropertiesCard({ property, onSelect }: Props) {
   const totalRooms = property.totalRooms;
   const occupied = property.occupiedRooms;
-  const available = Math.max(totalRooms - occupied, 0);
-
-  const occupancyRate =
-    totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0;
+  const occupancyRate = propertyOccupancyPercent(property);
 
   return (
     <div
@@ -64,7 +61,7 @@ export function PropertiesCard({ property, onSelect }: PropertyCardProps) {
                   {property.name}
                 </CardTitle>
                 <CardDescription className="truncate text-xs">
-                  {property.address ?? "Sin dirección"}
+                  {formatPropertyAddress(property.address)}
                 </CardDescription>
               </div>
             </div>
@@ -73,7 +70,6 @@ export function PropertiesCard({ property, onSelect }: PropertyCardProps) {
         </CardHeader>
 
         <CardContent className="pt-0">
-          {/* Occupancy bar */}
           <div className="mt-1">
             <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
               <span>Ocupación</span>
@@ -84,12 +80,11 @@ export function PropertiesCard({ property, onSelect }: PropertyCardProps) {
             <Progress value={occupancyRate} />
           </div>
 
-          {/* Stats row */}
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <IconDoor className="h-4 w-4" />
               <span>
-                {totalRooms} {totalRooms === 1 ? "cuarto" : "cuartos"}
+                {totalRooms} {PROPERTY_ROOMS_LABEL(totalRooms)}
               </span>
             </div>
             <div className="flex items-center gap-1.5">

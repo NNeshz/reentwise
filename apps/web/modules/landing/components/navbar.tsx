@@ -1,45 +1,42 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore } from "react";
-import { m, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import Image from "next/image";
+import { useState, useSyncExternalStore } from "react";
+import { m } from "framer-motion";
 import { IconMenu2, IconX } from "@tabler/icons-react";
 import { cn } from "@reentwise/ui/src/lib/utils";
-import { Button } from "@reentwise/ui/src/components/button";
 import { useTheme } from "next-themes";
 import { authClient } from "@reentwise/auth/client";
+import { landingNavLinks } from "@/modules/landing/data";
+import { useLandingNavbarScroll } from "@/modules/landing/hooks/use-landing-navbar-scroll";
+import { LandingNavbarLogo } from "./landing-navbar-logo";
+import { LandingNavbarDesktopLinks } from "./landing-navbar-desktop-links";
+import { LandingNavbarSessionCta } from "./landing-navbar-session-cta";
+import { LandingNavbarMobile } from "./landing-navbar-mobile";
 
-const navLinks = [
-  { name: "Cómo funciona", href: "/howitworks" },
-  { name: "Testimonios", href: "/testimonials" },
-  { name: "Precios", href: "/pricing" },
-];
-
-const subscribe = () => () => {};
-const getSnapshot = () => true;
-const getServerSnapshot = () => false;
+const subscribeNoop = () => () => {};
+const getClientMounted = () => true;
+const getServerMounted = () => false;
 
 export function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isScrolled = useLandingNavbarScroll();
   const { resolvedTheme } = useTheme();
-  const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    getClientMounted,
+    getServerMounted,
+  );
   const { data: session } = authClient.useSession();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const logoInvert = Boolean(
+    mounted && resolvedTheme === "dark",
+  );
 
   return (
     <>
       <m.header
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 flex items-center justify-center pt-4 px-4 transition-all duration-300",
+          "fixed left-0 right-0 top-0 z-50 flex items-center justify-center px-4 pt-4 transition-all duration-300",
         )}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -47,77 +44,34 @@ export function Navbar() {
       >
         <m.nav
           className={cn(
-            "flex items-center justify-between px-3 py-3 w-full rounded-full transition-all duration-300",
+            "flex w-full items-center justify-between rounded-full px-3 py-3 transition-all duration-300",
             isScrolled
-              ? "bg-background/90 backdrop-blur-md shadow-sm border border-border/50 max-w-4xl"
-              : "bg-transparent max-w-7xl",
+              ? "max-w-4xl border border-border/50 bg-background/90 shadow-sm backdrop-blur-md"
+              : "max-w-7xl bg-transparent",
           )}
           layout
         >
-          <Link href="/" className="flex items-center gap-2 z-50">
-            <Image
-              src="/logo.png"
-              alt="reentwise Logo"
-              width={24}
-              height={24}
-              className={cn(
-                "object-contain transition-all",
-                mounted && resolvedTheme === "dark"
-                  ? "invert"
-                  : isScrolled || mobileMenuOpen
-                    ? ""
-                    : "invert",
-              )}
-            />
-            <span
-              className={cn(
-                "font-bold text-lg transition-colors",
-                isScrolled || mobileMenuOpen
-                  ? "text-foreground"
-                  : "text-white hidden md:block",
-                !isScrolled && "md:text-white",
-              )}
-            >
-              Reentwise
-            </span>
-          </Link>
+          <LandingNavbarLogo
+            isScrolled={isScrolled}
+            mobileMenuOpen={mobileMenuOpen}
+            logoInvert={logoInvert}
+          />
 
-          <div className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  isScrolled
-                    ? "text-muted-foreground"
-                    : "text-white/80 hover:text-white",
-                )}
-              >
-                {link.name}
-              </Link>
-            ))}
-          </div>
+          <LandingNavbarDesktopLinks links={landingNavLinks} isScrolled={isScrolled} />
 
           <div className="hidden md:block">
-            <Button
-              variant={isScrolled ? "default" : "secondary"}
-              className={cn(
-                "rounded-full px-6 font-semibold",
-                !isScrolled &&
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-              )}
-              asChild
-            >
-              <Link href={session ? "/dashboard" : "/auth"}>
-                {session ? "Dashboard" : "Comenzar"}
-              </Link>
-            </Button>
+            <LandingNavbarSessionCta
+              isScrolled={isScrolled}
+              hasSession={Boolean(session)}
+            />
           </div>
 
           <button
-            className="md:hidden z-50 p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            type="button"
+            className="z-50 p-2 md:hidden"
+            onClick={() => setMobileMenuOpen((o) => !o)}
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
           >
             {mobileMenuOpen ? (
               <IconX className="text-foreground" />
@@ -130,49 +84,12 @@ export function Navbar() {
         </m.nav>
       </m.header>
 
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <m.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-background flex flex-col pt-24 px-6 md:hidden"
-          >
-            <div className="flex flex-col gap-6 text-xl">
-              {navLinks.map((link, i) => (
-                <m.div
-                  key={link.name}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                >
-                  <Link
-                    href={link.href}
-                    className="text-foreground font-medium hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.name}
-                  </Link>
-                </m.div>
-              ))}
-            </div>
-
-            <m.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-12"
-            >
-              <Button className="w-full rounded-full h-12 text-lg font-semibold" asChild>
-                <Link href={session ? "/dashboard" : "/auth"} onClick={() => setMobileMenuOpen(false)}>
-                  {session ? "Dashboard" : "Comenzar gratis"}
-                </Link>
-              </Button>
-            </m.div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      <LandingNavbarMobile
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        links={landingNavLinks}
+        hasSession={Boolean(session)}
+      />
     </>
   );
 }

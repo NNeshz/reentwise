@@ -1,9 +1,8 @@
-/** Room status values - must match room_status enum in database */
-export const ROOM_STATUS_VALUES = [
-  "vacant",
-  "occupied",
-  "maintenance",
-  "reserved",
-] as const;
-
-export type RoomStatus = (typeof ROOM_STATUS_VALUES)[number];
+/**
+ * Reexport estable: antes vivían aquí los valores de estado.
+ * Tipos y constantes canónicas: `types/rooms.types.ts`.
+ */
+export {
+  ROOM_STATUS_VALUES,
+  type RoomStatus,
+} from "@/modules/rooms/types/rooms.types";

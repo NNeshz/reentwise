@@ -1,25 +1,21 @@
-import * as React from "react"
-import Link from "next/link"
-import { type LucideIcon } from "lucide-react"
+"use client";
 
+import * as React from "react";
+import Link from "next/link";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@reentwise/ui/src/components/sidebar"
+} from "@reentwise/ui/src/components/sidebar";
+import type { DashboardNavSecondaryItem } from "@/modules/dashboard/types/dashboard.types";
 
-export function NavSecondary({
-  items,
-  ...props
-}: {
-  items: {
-    title: string
-    url: string
-    icon: LucideIcon
-  }[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+type Props = {
+  items: DashboardNavSecondaryItem[];
+} & React.ComponentPropsWithoutRef<typeof SidebarGroup>;
+
+export function NavSecondary({ items, ...props }: Props) {
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
@@ -37,5 +33,5 @@ export function NavSecondary({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }

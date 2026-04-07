@@ -1,0 +1,56 @@
+import { Button } from "@reentwise/ui/src/components/button";
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import type { AuditsListPagination } from "@/modules/audits/types/audits.types";
+
+type Props = {
+  pagination: AuditsListPagination;
+  onPrevious: () => void;
+  onNext: () => void;
+};
+
+export function AuditsPagination({
+  pagination,
+  onPrevious,
+  onNext,
+}: Props) {
+  if (pagination.totalPages <= 0) return null;
+
+  return (
+    <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+      <p className="text-xs text-muted-foreground">
+        Página{" "}
+        <span className="font-mono text-foreground">
+          {pagination.currentPage}
+        </span>{" "}
+        de{" "}
+        <span className="font-mono text-foreground">
+          {pagination.totalPages}
+        </span>
+      </p>
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          disabled={!pagination.hasPreviousPage}
+          onClick={onPrevious}
+        >
+          <IconChevronLeft className="size-4" />
+          Anterior
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          disabled={!pagination.hasNextPage}
+          onClick={onNext}
+        >
+          Siguiente
+          <IconChevronRight className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}

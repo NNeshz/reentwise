@@ -1,31 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { useActiveRoute } from "@reentwise/web/utils/use-active-route";
+import { settingsNavItems } from "@/modules/settings/data/settings-nav-items";
+import { SETTINGS_NAV_ROW_CLASS } from "@/modules/settings/lib/settings-display";
+import { SettingsNavLink } from "./settings-nav-link";
 
 export function SettingsNav() {
   const { getTextClasses } = useActiveRoute();
 
   return (
-    <div className="flex items-center space-x-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-      <Link
-        href="/dashboard/settings"
-        className={`${getTextClasses("/dashboard/settings")}`}
-      >
-        General
-      </Link>
-      <Link
-        href="/dashboard/settings/whatsapp"
-        className={`${getTextClasses("/dashboard/settings/whatsapp")}`}
-      >
-        WhatsApp
-      </Link>
-      <Link
-        href="/dashboard/settings/account"
-        className={`${getTextClasses("/dashboard/settings/account")}`}
-      >
-        Cuenta
-      </Link>
-    </div>
+    <nav className={SETTINGS_NAV_ROW_CLASS} aria-label="Secciones de configuración">
+      {settingsNavItems.map((item) => (
+        <SettingsNavLink
+          key={item.href}
+          href={item.href}
+          label={item.label}
+          className={getTextClasses(item.href)}
+        />
+      ))}
+    </nav>
   );
 }
+

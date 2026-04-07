@@ -1,7 +1,13 @@
 import { create } from "zustand";
-import type { AuditChannel, AuditStatus } from "@/modules/audits/service/audits-service";
+import type { AuditChannel, AuditStatus } from "@/modules/audits/types/audits.types";
 
-const DEFAULT_LIMIT = 25;
+/**
+ * Filtros de listado: estado en Zustand (no formulario).
+ * Los Select aplican cambios al instante; encaja mejor que React Hook Form
+ * (sin submit). Para flujos con validación y envío único, usar Form + action.
+ */
+
+export const AUDITS_FILTERS_DEFAULT_LIMIT = 25;
 
 interface AuditsFiltersStore {
   page: number;
@@ -22,7 +28,7 @@ interface AuditsFiltersActions {
 
 const initial: AuditsFiltersStore = {
   page: 1,
-  limit: DEFAULT_LIMIT,
+  limit: AUDITS_FILTERS_DEFAULT_LIMIT,
   tenantId: undefined,
   channel: undefined,
   status: undefined,

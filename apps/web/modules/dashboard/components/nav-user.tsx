@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronsUpDown, LogOut } from "lucide-react";
-
+import { IconSettings } from "@tabler/icons-react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@reentwise/ui/src/components/avatar";
+import { buttonVariants } from "@reentwise/ui/src/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,15 +23,22 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@reentwise/ui/src/components/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@reentwise/ui/src/components/tooltip";
 import { authClient } from "@reentwise/auth/client";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ChangeThemeSelector } from "./change-theme";
-import { buttonVariants } from "@reentwise/ui/src/components/button";
-import { IconSettings } from "@tabler/icons-react";
-import { TooltipProvider } from "@reentwise/ui/src/components/tooltip";
-import { Tooltip, TooltipTrigger } from "@reentwise/ui/src/components/tooltip";
-import { TooltipContent } from "@reentwise/ui/src/components/tooltip";
+import { NavUserSkeleton } from "./nav-user-skeleton";
+
+function initialsFromName(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n.charAt(0).toUpperCase())
+    .join("");
+}
 
 export function NavUser() {
   const router = useRouter();
@@ -47,17 +57,11 @@ export function NavUser() {
   };
 
   if (isPending) {
-    return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            size="lg"
-            className="bg-background data-[state=open]:bg-background data-[state=open]:text-sidebar-accent-foreground animate-pulse"
-          />
-        </SidebarMenuItem>
-      </SidebarMenu>
-    );
+    return <NavUserSkeleton />;
   }
+
+  const name = session?.user.name ?? "";
+  const email = session?.user.email ?? "";
 
   return (
     <SidebarMenu>
@@ -71,26 +75,21 @@ export function NavUser() {
               <Avatar className="h-8 w-8 rounded-xl">
                 <AvatarImage
                   src={session?.user.image || undefined}
-                  alt={session?.user.name}
+                  alt={name}
                 />
                 <AvatarFallback className="rounded-xl">
-                  {session?.user.name
-                    .split(" ")
-                    .map((name) => name.charAt(0).toUpperCase())
-                    .join("")}
+                  {initialsFromName(name)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">
-                  {session?.user.name}
-                </span>
-                <span className="truncate text-xs">{session?.user.email}</span>
+                <span className="truncate font-medium">{name}</span>
+                <span className="truncate text-xs">{email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl space-y-2"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 space-y-2 rounded-xl"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
@@ -100,22 +99,15 @@ export function NavUser() {
                 <Avatar className="h-8 w-8 rounded-xl">
                   <AvatarImage
                     src={session?.user.image || undefined}
-                    alt={session?.user.name}
+                    alt={name}
                   />
                   <AvatarFallback className="rounded-xl">
-                    {session?.user.name
-                      .split(" ")
-                      .map((name) => name.charAt(0).toUpperCase())
-                      .join("")}
+                    {initialsFromName(name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {session?.user.name}
-                  </span>
-                  <span className="truncate text-xs">
-                    {session?.user.email}
-                  </span>
+                  <span className="truncate font-medium">{name}</span>
+                  <span className="truncate text-xs">{email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -126,7 +118,7 @@ export function NavUser() {
                     href="/dashboard/settings"
                     className={buttonVariants({
                       variant: "ghost",
-                      className: "justify-start rounded-xl w-full",
+                      className: "w-full justify-start rounded-xl",
                     })}
                   >
                     <IconSettings className="size-4" />

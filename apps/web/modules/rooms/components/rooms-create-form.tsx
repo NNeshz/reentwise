@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Alta de habitación: React Hook Form + Zod (submit explícito y reglas).
+ * El listado usa Zustand por propiedad para búsqueda/orden instantáneos.
+ */
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,7 +83,7 @@ export function RoomsCreateForm({
   const formFields = (
     <Form {...form}>
       <form
-        id="properties-create-form"
+        id="rooms-create-form"
         onSubmit={form.handleSubmit(onSubmit)}
         className="md:px-4"
       >
@@ -156,7 +161,7 @@ export function RoomsCreateForm({
     >
       <Button
         type="submit"
-        form="properties-create-form"
+        form="rooms-create-form"
         className="w-full"
         disabled={createRoom.isPending}
       >

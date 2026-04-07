@@ -1,18 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { roomsService } from "@/modules/rooms/service/rooms-service";
-import type { RoomStatus } from "@/modules/rooms/constants";
+import type { RoomStatus } from "@/modules/rooms/types/rooms.types";
+import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
-const ROOMS_KEY = ["rooms"];
+const ROOMS_KEY = ["rooms"] as const;
 
-export const useRooms = (propertyId: string) => {
+function invalidateRoomQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  propertyId: string,
+  roomId?: string,
+) {
+  void queryClient.invalidateQueries({ queryKey: [...ROOMS_KEY, propertyId] });
+  if (roomId) {
+    void queryClient.invalidateQueries({
+      queryKey: [...ROOMS_KEY, propertyId, roomId],
+    });
+  }
+}
+
+export function useRooms(propertyId: string) {
   return useQuery({
     queryKey: [...ROOMS_KEY, propertyId],
     queryFn: () => roomsService.getRoomsByPropertyId(propertyId),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
+    enabled: !!propertyId,
   });
-};
+}
 
 export function useRoom(propertyId: string, roomId: string) {
   return useQuery({
@@ -31,16 +46,16 @@ export function useCreateRoom(propertyId: string) {
     mutationFn: (data: {
       roomNumber: string;
       price: string;
-      isOccupied?: boolean;
       notes?: string;
     }) => roomsService.createRoom(propertyId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...ROOMS_KEY, propertyId] });
+      invalidateRoomQueries(queryClient, propertyId);
       toast.success("Habitación creada correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al crear la habitación");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al crear la habitación"),
+      );
     },
   });
 }
@@ -50,13 +65,14 @@ export function useDeleteRoom(propertyId: string) {
 
   return useMutation({
     mutationFn: (roomId: string) => roomsService.deleteRoom(propertyId, roomId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...ROOMS_KEY, propertyId] });
+    onSuccess: (_data, roomId) => {
+      invalidateRoomQueries(queryClient, propertyId, roomId);
       toast.success("Habitación eliminada correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al eliminar la habitación");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al eliminar la habitación"),
+      );
     },
   });
 }
@@ -69,16 +85,21 @@ export function useUpdateRoom(propertyId: string) {
       roomId: string;
       roomNumber?: string;
       price?: string;
-      isOccupied?: boolean;
       notes?: string;
-    }) => roomsService.updateRoom(propertyId, data.roomId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...ROOMS_KEY, propertyId] });
+    }) =>
+      roomsService.updateRoom(propertyId, data.roomId, {
+        roomNumber: data.roomNumber,
+        price: data.price,
+        notes: data.notes,
+      }),
+    onSuccess: (_data, variables) => {
+      invalidateRoomQueries(queryClient, propertyId, variables.roomId);
       toast.success("Habitación actualizada correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al actualizar la habitación");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al actualizar la habitación"),
+      );
     },
   });
 }
@@ -89,13 +110,17 @@ export function useUpdateRoomStatus(propertyId: string) {
   return useMutation({
     mutationFn: (data: { roomId: string; status: RoomStatus }) =>
       roomsService.updateRoomStatus(propertyId, data.roomId, data.status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...ROOMS_KEY, propertyId] });
+    onSuccess: (_data, variables) => {
+      invalidateRoomQueries(queryClient, propertyId, variables.roomId);
       toast.success("Estado de la habitación actualizado correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al actualizar el estado de la habitación");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(
+          error,
+          "Error al actualizar el estado de la habitación",
+        ),
+      );
     },
   });
 }

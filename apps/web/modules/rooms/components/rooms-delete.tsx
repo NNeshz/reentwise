@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,26 +14,19 @@ import {
 import { Button } from "@reentwise/ui/src/components/button";
 import { useDeleteRoom } from "@/modules/rooms/hooks/use-rooms";
 import { IconTrash } from "@tabler/icons-react";
-import { toast } from "sonner";
 
-interface RoomsDeleteProps {
+type RoomsDeleteProps = {
   propertyId: string;
   roomId: string;
   onSuccess?: () => void;
-}
+};
 
-export function RoomsDelete({ propertyId, roomId, onSuccess }: RoomsDeleteProps) {
+export function RoomsDelete({
+  propertyId,
+  roomId,
+  onSuccess,
+}: RoomsDeleteProps) {
   const { mutate: deleteRoom, isPending } = useDeleteRoom(propertyId);
-
-  const handleDelete = async () => {
-    try {
-      deleteRoom(roomId);
-      onSuccess?.();
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al eliminar la habitación");
-    }
-  };
 
   return (
     <AlertDialog>
@@ -52,7 +47,14 @@ export function RoomsDelete({ propertyId, roomId, onSuccess }: RoomsDeleteProps)
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+          <AlertDialogAction
+            onClick={() => {
+              deleteRoom(roomId, {
+                onSuccess: () => onSuccess?.(),
+              });
+            }}
+            disabled={isPending}
+          >
             <IconTrash className="size-4" />
             Eliminar
           </AlertDialogAction>

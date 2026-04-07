@@ -1,9 +1,10 @@
-import { HowItWorksHero } from "@/modules/howitworks/components/hiw-hero";
-import { HowItWorksIntro } from "@/modules/howitworks/components/hiw-intro";
-import { HowItWorksHighlights } from "@/modules/howitworks/components/hiw-highlights";
-import { HowItWorksSteps } from "@/modules/howitworks/components/hiw-steps";
-import { HowItWorksChecklistBand } from "@/modules/howitworks/components/hiw-checklist-band";
-import { HowItWorksCtaStrip } from "@/modules/howitworks/components/hiw-cta-strip";
+import {
+  HowItWorksCtaStrip,
+  HowItWorksHero,
+  HowItWorksHighlights,
+  HowItWorksIntro,
+  HowItWorksSteps,
+} from "@/modules/howitworks";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

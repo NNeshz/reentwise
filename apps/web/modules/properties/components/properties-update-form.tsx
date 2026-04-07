@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Editar propiedad: React Hook Form + Zod por submit único y validación.
+ * El listado usa Zustand para búsqueda/orden al instante.
+ */
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

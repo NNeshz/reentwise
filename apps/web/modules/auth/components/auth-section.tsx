@@ -1,32 +1,13 @@
-import Image from "next/image";
 import { AuthForm } from "./auth-form";
+import { AuthBackground } from "./auth-background";
+import { AUTH_SECTION_LAYOUT } from "@/modules/auth/lib/auth-display";
+import type { AuthSectionProps } from "@/modules/auth/types/auth.types";
 
-export function AuthSection({ callbackNext }: { callbackNext?: string }) {
+export function AuthSection({ callbackNext }: AuthSectionProps) {
   return (
-    <section className="relative w-full h-screen min-h-[600px] flex flex-col justify-center items-center px-4 overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/hero-bg.avif"
-          alt="Modern real estate home"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
-        {/* Subtle Noise Overlay */}
-        <div
-          className="absolute inset-0 mix-blend-overlay pointer-events-none opacity-40"
-          style={{
-            backgroundImage: 'url("/images/noise.webp")',
-            backgroundRepeat: "repeat",
-          }}
-        />
-        {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center">
+    <section className={AUTH_SECTION_LAYOUT}>
+      <AuthBackground />
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <AuthForm callbackNext={callbackNext} />
       </div>
     </section>

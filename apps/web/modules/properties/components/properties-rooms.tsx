@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   Sheet,
   SheetContent,
@@ -11,53 +10,70 @@ import {
 } from "@reentwise/ui/src/components/sheet";
 
 import { RoomsList } from "@/modules/rooms/components/rooms-list";
-import { PropertiesUpdate } from "./properties-update";
+import { PropertiesUpdate } from "@/modules/properties/components/properties-update";
 import { RoomsCreate } from "@/modules/rooms/components/rooms-create";
 import { useProperty } from "@/modules/properties/hooks/use-properties";
+import { PropertiesSheetError } from "@/modules/properties/components/properties-sheet-error";
+import { PropertiesSheetHeaderSkeleton } from "@/modules/properties/components/properties-sheet-header-skeleton";
+import { formatPropertyAddress } from "@/modules/properties/lib/property-display";
 
-interface PropertiesRoomsProps {
+type PropertiesRoomsProps = {
   propertyId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
+};
 
 export function PropertiesRooms({
   propertyId,
   open,
   onOpenChange,
 }: PropertiesRoomsProps) {
-  const { data: property, isLoading } = useProperty(propertyId);
+  const { data: property, isPending, error, refetch, isRefetching } =
+    useProperty(propertyId);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg">
         <SheetHeader>
-          <div className="flex items-center space-x-4">
-            {property && (
+          {isPending ? (
+            <PropertiesSheetHeaderSkeleton />
+          ) : error ? (
+            <PropertiesSheetError
+              error={error}
+              onRetry={() => void refetch()}
+              isRetrying={isRefetching}
+            />
+          ) : property ? (
+            <div className="flex items-center space-x-4">
               <PropertiesUpdate
                 propertyId={propertyId}
-                propertyName={property.name || ""}
-                propertyAddress={property.address || null}
+                propertyName={property.name}
+                propertyAddress={property.address}
               />
-            )}
-            <div>
-              <SheetTitle>
-                {isLoading ? "Cargando..." : (property?.name ?? "Propiedad")}
-              </SheetTitle>
-              <SheetDescription>
-                {isLoading
-                  ? "Obteniendo detalles..."
-                  : (property?.address ?? "Sin dirección")}
-              </SheetDescription>
+              <div>
+                <SheetTitle>{property.name}</SheetTitle>
+                <SheetDescription>
+                  {formatPropertyAddress(property.address)}
+                </SheetDescription>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <SheetTitle>Propiedad</SheetTitle>
+              <SheetDescription>Sin datos</SheetDescription>
+            </div>
+          )}
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-hidden px-4">
-          <RoomsList propertyId={propertyId} />
-        </div>
-        <SheetFooter>
-          <RoomsCreate propertyId={propertyId} />
-        </SheetFooter>
+        {!error && property ? (
+          <div className="min-h-0 flex-1 overflow-hidden px-4">
+            <RoomsList propertyId={propertyId} />
+          </div>
+        ) : null}
+        {!error && property ? (
+          <SheetFooter>
+            <RoomsCreate propertyId={propertyId} />
+          </SheetFooter>
+        ) : null}
       </SheetContent>
     </Sheet>
   );

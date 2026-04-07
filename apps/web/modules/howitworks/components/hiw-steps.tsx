@@ -1,7 +1,8 @@
 "use client";
 
-import type { HowItWorksStep } from "../data";
-import { howItWorksSteps } from "../data";
+import type { HowItWorksStep } from "@/modules/howitworks/types/howitworks.types";
+import { howItWorksSteps } from "@/modules/howitworks/data";
+import { HIW_SECTION, HIW_STEPS_STACK } from "@/modules/howitworks/lib/howitworks-display";
 import { HowItWorksStepRow } from "./hiw-step-row";
 
 type HowItWorksStepsProps = {
@@ -10,8 +11,8 @@ type HowItWorksStepsProps = {
 
 export function HowItWorksSteps({ steps = howItWorksSteps }: HowItWorksStepsProps) {
   return (
-    <section className="w-full py-20 px-4">
-      <div className="max-w-6xl mx-auto space-y-24 md:space-y-32">
+    <section className={HIW_SECTION}>
+      <div className={HIW_STEPS_STACK}>
         {steps.map((step, index) => (
           <HowItWorksStepRow key={step.id} step={step} index={index} />
         ))}

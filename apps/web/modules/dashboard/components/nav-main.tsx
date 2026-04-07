@@ -1,13 +1,12 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { ChevronRight, type LucideIcon } from "lucide-react"
-
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@reentwise/ui/src/components/collapsible"
+} from "@reentwise/ui/src/components/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -18,22 +17,14 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@reentwise/ui/src/components/sidebar"
+} from "@reentwise/ui/src/components/sidebar";
+import type { DashboardNavMainItem } from "@/modules/dashboard/types/dashboard.types";
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string
-    url: string
-    icon: LucideIcon
-    isActive?: boolean
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
-}) {
+type Props = {
+  items: DashboardNavMainItem[];
+};
+
+export function NavMain({ items }: Props) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
@@ -57,7 +48,7 @@ export function NavMain({
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
-                      {item.items?.map((subItem) => (
+                      {item.items.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton asChild>
                             <Link href={subItem.url}>
@@ -75,5 +66,5 @@ export function NavMain({
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

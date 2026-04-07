@@ -28,22 +28,23 @@ import {
 import { Button } from "@reentwise/ui/src/components/button";
 import { Label } from "@reentwise/ui/src/components/label";
 import { Input } from "@reentwise/ui/src/components/input";
-import { IconBuilding, IconDoor } from "@tabler/icons-react";
+import { IconDoor } from "@tabler/icons-react";
 import { toast } from "sonner";
-
-type TenantAssignRow = {
-  id: string;
-  name: string;
-  whatsapp: string;
-  roomId: string | null;
-  paymentDay: number;
-};
+import type { TenantListRow } from "@/modules/tenants/types/tenants.types";
+import { TenantsAsignListSkeleton } from "@/modules/tenants/components/tenants-asign-list-skeleton";
+import { TenantsAsignListError } from "@/modules/tenants/components/tenants-asign-list-error";
 
 export function TenantsAsignList({ roomId }: { roomId: string }) {
-  const { data: tenants, isLoading, isError } = useTenantsQuery();
-  const { mutate: reassignTenant, isPending } = useReassignTenant(roomId);
+  const {
+    data,
+    isPending,
+    error,
+    refetch,
+    isRefetching,
+  } = useTenantsQuery();
+  const { mutate: reassignTenant, isPending: isReassigning } =
+    useReassignTenant(roomId);
 
-  // State for modals
   const [selectedTenant, setSelectedTenant] = useState<{
     id: string;
     roomId: string | null;
@@ -52,23 +53,21 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
 
   const [paymentDayInput, setPaymentDayInput] = useState<string>("1");
 
-  if (isLoading) {
+  if (isPending) {
+    return <TenantsAsignListSkeleton />;
+  }
+
+  if (error) {
     return (
-      <div className="flex justify-center p-4 text-sm text-muted-foreground">
-        Cargando inquilinos...
-      </div>
+      <TenantsAsignListError
+        error={error}
+        onRetry={() => void refetch()}
+        isRetrying={isRefetching}
+      />
     );
   }
 
-  if (isError) {
-    return (
-      <div className="flex justify-center p-4 text-sm text-destructive">
-        Error al cargar los inquilinos
-      </div>
-    );
-  }
-
-  const tenantsList: TenantAssignRow[] = tenants?.tenants ?? [];
+  const tenantsList: TenantListRow[] = data?.tenants ?? [];
 
   if (tenantsList.length === 0) {
     return (
@@ -78,8 +77,7 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
     );
   }
 
-  const handleTenantClick = (tenant: TenantAssignRow) => {
-    // If they already have a room, just open the warning Alert Dialog
+  const handleTenantClick = (tenant: TenantListRow) => {
     if (tenant.roomId) {
       setSelectedTenant({
         id: tenant.id,
@@ -87,7 +85,6 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
         paymentDay: tenant.paymentDay,
       });
     } else {
-      // If they don't have a room, open the Dialog to set their payment day
       setSelectedTenant({
         id: tenant.id,
         roomId: null,
@@ -113,8 +110,8 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
   const handleConfirmReassignWithoutRoom = () => {
     if (!selectedTenant) return;
 
-    const parsedDay = parseInt(paymentDayInput, 10);
-    if (isNaN(parsedDay) || parsedDay < 0 || parsedDay > 31) {
+    const parsedDay = Number.parseInt(paymentDayInput, 10);
+    if (Number.isNaN(parsedDay) || parsedDay < 0 || parsedDay > 31) {
       toast.error("El día de pago debe ser entre 0 y 31.");
       return;
     }
@@ -127,6 +124,12 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
         },
       },
     );
+  };
+
+  const roomLabel = (tenant: TenantListRow) => {
+    if (tenant.room?.roomNumber) return `Hab. ${tenant.room.roomNumber}`;
+    if (tenant.roomId) return "Cuarto asignado";
+    return null;
   };
 
   return (
@@ -143,13 +146,13 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
               <span className="truncate text-xs text-muted-foreground">
                 {tenant.whatsapp}
               </span>
-              {tenant.roomId ? (
-                <div className="flex items-center gap-1.5 text-xs text-primary mt-1">
+              {roomLabel(tenant) ? (
+                <div className="mt-1 flex items-center gap-1.5 text-xs text-primary">
                   <IconDoor className="size-3.5" />
-                  <span>{tenant.roomId}</span>
+                  <span>{roomLabel(tenant)}</span>
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground mt-1 italic">
+                <span className="mt-1 text-xs italic text-muted-foreground">
                   Sin cuarto asignado
                 </span>
               )}
@@ -163,53 +166,53 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
         </Card>
       ))}
 
-      {/* AlertDialog for tenants that ALREADY HAVE A ROOM */}
       <AlertDialog
         open={selectedTenant !== null && selectedTenant.roomId !== null}
         onOpenChange={(isOpen) => !isOpen && setSelectedTenant(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Mover Inquilino?</AlertDialogTitle>
+            <AlertDialogTitle>¿Mover inquilino?</AlertDialogTitle>
             <AlertDialogDescription>
               Este inquilino ya está asignado a otro cuarto. Si continúas, será
-              removido de su cuarto actual y asignado a este nuevo. Su
-              configuración de fecha de pago se mantendrá.
+              removido de su cuarto actual y asignado a este. Su día de pago se
+              mantendrá.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isReassigning}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
-              disabled={isPending}
+              disabled={isReassigning}
               onClick={handleConfirmReassignWithRoom}
             >
-              {isPending ? "Moviendo..." : "Mover Inquilino"}
+              {isReassigning ? "Moviendo..." : "Mover inquilino"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog for tenants that DO NOT HAVE A ROOM */}
       <Dialog
         open={selectedTenant !== null && selectedTenant.roomId === null}
         onOpenChange={(isOpen) => !isOpen && setSelectedTenant(null)}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Asignar Inquilino</DialogTitle>
+            <DialogTitle>Asignar inquilino</DialogTitle>
             <DialogDescription>
-              Este inquilino no tiene ningún cuarto asignado. Por favor,
-              confirma su día de pago para finalizar.
+              Este inquilino no tiene cuarto asignado. Confirma su día de pago
+              para finalizar.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="paymentDay">Día de Pago (0 = fin de mes)</Label>
+              <Label htmlFor="paymentDay">Día de pago (0 = fin de mes)</Label>
               <Input
                 id="paymentDay"
                 type="number"
-                min="0"
-                max="31"
+                min={0}
+                max={31}
                 value={paymentDayInput}
                 onChange={(e) => setPaymentDayInput(e.target.value)}
               />
@@ -219,15 +222,15 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
             <Button
               variant="outline"
               onClick={() => setSelectedTenant(null)}
-              disabled={isPending}
+              disabled={isReassigning}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleConfirmReassignWithoutRoom}
-              disabled={isPending}
+              disabled={isReassigning}
             >
-              {isPending ? "Asignando..." : "Confirmar Asignación"}
+              {isReassigning ? "Asignando..." : "Confirmar asignación"}
             </Button>
           </DialogFooter>
         </DialogContent>

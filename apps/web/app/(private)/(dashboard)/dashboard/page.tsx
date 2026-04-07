@@ -1,6 +1,4 @@
-import { Header } from "@/modules/metrics/components/header";
-import { MetricsCards } from "@/modules/metrics/components/metrics-cards";
-import { MetricsFilter } from "@/modules/metrics/components/metrics-filter";
+import { Header, MetricsCards, MetricsFilter } from "@/modules/metrics";
 
 export default function DashboardPage() {
   return (

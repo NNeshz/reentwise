@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tenantsService } from "@/modules/tenants/service/tenants-service";
-import { useTenantsFilters } from "@/modules/tenants/store/use-tenants-filte";
+import { useTenantsFilters } from "@/modules/tenants/store/use-tenants-filters";
+import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
-const TENANTS_KEY = ["tenants"];
+const TENANTS_KEY = ["tenants"] as const;
 
-export const useTenantsQuery = () => {
+export function useTenantsQuery() {
   const { search, status, propertyId, page } = useTenantsFilters();
 
   const queryParams = {
@@ -21,7 +22,7 @@ export const useTenantsQuery = () => {
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   });
-};
+}
 
 export function useCreateAndAssignTenant(roomId: string) {
   const queryClient = useQueryClient();
@@ -42,9 +43,10 @@ export function useCreateAndAssignTenant(roomId: string) {
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       toast.success("Inquilino asignado correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al asignar el inquilino");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al asignar el inquilino"),
+      );
     },
   });
 }
@@ -53,17 +55,17 @@ export function useDeleteTenant() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (tenantId: string) =>
-      tenantsService.deleteTenantById(tenantId),
+    mutationFn: (tenantId: string) => tenantsService.deleteTenantById(tenantId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       toast.success("Inquilino eliminado correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al eliminar el inquilino");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al eliminar el inquilino"),
+      );
     },
   });
 }
@@ -72,6 +74,8 @@ export function useTenantPayments(tenantId: string | null) {
   return useQuery({
     queryKey: [...TENANTS_KEY, "payments", tenantId],
     queryFn: () => tenantsService.getPaymentsByTenant(tenantId!),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
     enabled: !!tenantId,
   });
 }
@@ -85,15 +89,15 @@ export function useReassignTenant(roomId: string) {
         paymentDay: data.paymentDay,
       }),
     onSuccess: () => {
-      // Invalidate everything tenant and room related since rooms changed status
       queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       toast.success("Inquilino reasignado correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al reasignar el inquilino");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al reasignar el inquilino"),
+      );
     },
   });
 }
@@ -110,9 +114,10 @@ export function useUnassignTenant() {
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       toast.success("Inquilino desvinculado correctamente");
     },
-    onError: (error: Error) => {
-      toast.error("Error al desvincular el inquilino");
-      console.error(error);
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al desvincular el inquilino"),
+      );
     },
   });
 }

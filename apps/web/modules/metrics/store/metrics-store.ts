@@ -2,9 +2,12 @@ import { create } from "zustand";
 import type { MetricsCardsQuery } from "@reentwise/api/src/modules/metrics/types/metrics.types";
 
 /**
- * `query` is sent to GET /metrics/owner/cards:
- * - `{ preset }` for quick ranges, or
- * - `{ from, to }` (YYYY-MM-DD) for a custom range — never both.
+ * Filtro de periodo aplicado al instante (Zustand): al cambiar preset o rango,
+ * TanStack Query vuelve a pedir las tarjetas (`useMetricsCards`).
+ *
+ * `query` → GET /metrics/owner/cards:
+ * - `{ preset }` rangos rápidos, o
+ * - `{ from, to }` (YYYY-MM-DD) rango custom — nunca ambos.
  */
 type MetricsStore = {
   query: MetricsCardsQuery;

@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * Modal de registro de pago: estado local + submit nativo (sin RHF por formulario corto).
+ * Filtros del listado siguen en Zustand (`use-payments-filters`).
+ */
+
+import { useState, type FormEvent } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,8 +25,10 @@ import {
   SelectValue,
 } from "@reentwise/ui/src/components/select";
 import { usePayPayment } from "@/modules/payment/hooks/use-payments";
+import { formatPaymentCurrency } from "@/modules/payment/lib/payment-display";
+import type { PaymentMethod } from "@/modules/payment/types/payment.types";
 
-interface PaymentModalProps {
+type Props = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -29,11 +36,7 @@ interface PaymentModalProps {
   tenantName: string;
   totalAmount: number;
   amountPaid: number;
-}
-
-function formatCurrency(value: number) {
-  return value.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
-}
+};
 
 export function PaymentModal({
   isOpen,
@@ -43,18 +46,21 @@ export function PaymentModal({
   tenantName,
   totalAmount,
   amountPaid,
-}: PaymentModalProps) {
+}: Props) {
   const remaining = totalAmount - amountPaid;
 
   const [amount, setAmount] = useState(String(remaining));
-  const [method, setMethod] = useState<"cash" | "transfer" | "deposit">("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
 
   const { mutate, isPending } = usePayPayment();
 
   const parsedAmount = Number(amount);
-  const isValid = !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= remaining;
+  const isValid =
+    !Number.isNaN(parsedAmount) &&
+    parsedAmount > 0 &&
+    parsedAmount <= remaining;
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!isValid) return;
 
@@ -82,8 +88,8 @@ export function PaymentModal({
           <DialogHeader>
             <DialogTitle>Registrar pago de {tenantName}</DialogTitle>
             <DialogDescription>
-              Deuda total: {formatCurrency(totalAmount)}. Restante:{" "}
-              {formatCurrency(remaining)}
+              Deuda total: {formatPaymentCurrency(totalAmount)}. Restante:{" "}
+              {formatPaymentCurrency(remaining)}
             </DialogDescription>
           </DialogHeader>
 
@@ -106,9 +112,7 @@ export function PaymentModal({
               <Label>Método de pago</Label>
               <Select
                 value={method}
-                onValueChange={(v) =>
-                  setMethod(v as "cash" | "transfer" | "deposit")
-                }
+                onValueChange={(v) => setMethod(v as PaymentMethod)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -132,7 +136,7 @@ export function PaymentModal({
               Cancelar
             </Button>
             <Button type="submit" disabled={!isValid || isPending}>
-              {isPending ? "Procesando..." : "Confirmar Pago"}
+              {isPending ? "Procesando..." : "Confirmar pago"}
             </Button>
           </DialogFooter>
         </form>

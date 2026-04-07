@@ -1,4 +1,4 @@
-import { AuthSection } from "@/modules/auth/components/auth-section";
+import { AuthSection } from "@/modules/auth";
 
 export default async function AuthPage({
   searchParams,

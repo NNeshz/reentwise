@@ -1,20 +1,5 @@
-import { authClient } from "@reentwise/auth/client/index";
+import { authService } from "@/modules/auth/service/auth-service";
 
-function defaultDashboardCallbackUrl(): string {
-  const base = process.env.NEXT_PUBLIC_FRONTEND_URL!.replace(/\/$/, "");
-  return `${base}/dashboard`;
+export async function signInWithGoogle(callbackURL?: string) {
+  return authService.signInWithGoogle(callbackURL);
 }
-
-/** Ruta en el mismo origen (p. ej. `/pricing`) o URL absoluta de retorno tras OAuth. */
-export const signInWithGoogle = async (callbackURL?: string) => {
-  const response = await authClient.signIn.social({
-    provider: "google",
-    callbackURL: callbackURL ?? defaultDashboardCallbackUrl(),
-  });
-
-  if (response.error) {
-    throw new Error(response.error.message);
-  }
-
-  return response.data;
-};

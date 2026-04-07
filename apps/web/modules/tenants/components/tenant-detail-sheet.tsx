@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentType, ReactNode } from "react";
 import { Avatar, AvatarFallback } from "@reentwise/ui/src/components/avatar";
 import { Badge } from "@reentwise/ui/src/components/badge";
 import { Button } from "@reentwise/ui/src/components/button";
@@ -17,30 +18,20 @@ import {
   IconDoor,
   IconCalendar,
 } from "@tabler/icons-react";
-
-type Tenant = {
-  id: string;
-  name: string;
-  whatsapp: string;
-  email: string;
-  paymentDay: number;
-  roomId: string | null;
-  room: { id: string; roomNumber: string } | null;
-};
-
-function formatWhatsAppLink(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  return `https://wa.me/${digits.startsWith("52") ? digits : `52${digits}`}`;
-}
+import type { TenantListRow } from "@/modules/tenants/types/tenants.types";
+import {
+  formatWhatsAppHref,
+  tenantPaymentDayLabel,
+} from "@/modules/tenants/lib/tenant-display";
 
 function DetailRow({
   icon: Icon,
   label,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="flex items-start gap-3">
@@ -60,15 +51,14 @@ export function TenantDetailSheet({
   open,
   onOpenChange,
 }: {
-  tenant: Tenant | null;
+  tenant: TenantListRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   if (!tenant) return null;
 
-  const paymentLabel =
-    tenant.paymentDay === 0 ? "Fin de mes" : `Día ${tenant.paymentDay}`;
-  const waLink = formatWhatsAppLink(tenant.whatsapp);
+  const paymentLabel = tenantPaymentDayLabel(tenant.paymentDay);
+  const waLink = formatWhatsAppHref(tenant.whatsapp);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -114,11 +104,11 @@ export function TenantDetailSheet({
             </a>
           </DetailRow>
 
-          {tenant.room && (
+          {tenant.room ? (
             <DetailRow icon={IconDoor} label="Habitación">
               <span>Hab. {tenant.room.roomNumber}</span>
             </DetailRow>
-          )}
+          ) : null}
 
           <DetailRow icon={IconCalendar} label="Día de pago">
             <span>{paymentLabel}</span>
@@ -129,11 +119,7 @@ export function TenantDetailSheet({
 
         <div className="flex gap-2 px-4 pb-4">
           <Button variant="outline" className="flex-1" asChild>
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={waLink} target="_blank" rel="noopener noreferrer">
               <IconBrandWhatsapp className="size-4" />
               Enviar mensaje
             </a>

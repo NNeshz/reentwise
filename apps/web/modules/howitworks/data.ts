@@ -1,26 +1,32 @@
-import type { TablerIcon } from "@tabler/icons-react";
 import {
   IconBrandGoogleFilled,
   IconBuildingCommunity,
   IconCalendarEvent,
   IconMessageCircle,
 } from "@tabler/icons-react";
+import type {
+  HowItWorksChecklistBandContent,
+  HowItWorksCtaStripContent,
+  HowItWorksHeroContent,
+  HowItWorksHighlightsContent,
+  HowItWorksIntroContent,
+  HowItWorksStep,
+} from "@/modules/howitworks/types/howitworks.types";
 
-export type HowItWorksStep = {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  imageAlt: string;
-  icon: TablerIcon;
-};
+export type {
+  HowItWorksStep,
+  HowItWorksHighlight,
+  HowItWorksHeroContent,
+  HowItWorksIntroContent,
+  HowItWorksHighlightsContent,
+  HowItWorksChecklistBandContent,
+  HowItWorksCtaStripContent,
+  HowItWorksCta,
+} from "@/modules/howitworks/types/howitworks.types";
 
-export type HowItWorksHighlight = {
-  label: string;
-  body: string;
-};
-
-/** Hero: título, badge y CTAs de la cabecera */
+/**
+ * Contenido estático de marketing: no hay store Zustand ni fetch; la página compone estos datos en render.
+ */
 export const howItWorksHeroContent = {
   badge: "Proceso en 4 pasos",
   title: "¿Cómo funciona reentwise?",
@@ -28,18 +34,16 @@ export const howItWorksHeroContent = {
     "De la cuenta a los recordatorios: un recorrido claro para que cobres en automático sin perder el control.",
   primaryCta: { label: "Comenzar ahora", href: "/auth" as const },
   secondaryCta: { label: "Volver al inicio", href: "/" as const },
-} as const;
+} satisfies HowItWorksHeroContent;
 
-/** Banda intro: titular + párrafo + chips */
 export const howItWorksIntroContent = {
   headline:
     "Piensa en nosotros como el copiloto que nunca olvida una fecha de renta.",
   body:
     "Tú defines la estructura y las fechas; nosotros convertimos eso en recordatorios consistentes por WhatsApp para que la cobranza sea predecible y profesional.",
   tags: ["WhatsApp", "Google Sign-In", "Panel claro"],
-} as const;
+} satisfies HowItWorksIntroContent;
 
-/** Sección “Resumen del flujo” */
 export const howItWorksHighlightsContent = {
   sectionBadge: "Resumen del flujo",
   sectionLead:
@@ -57,8 +61,8 @@ export const howItWorksHighlightsContent = {
       label: "Siempre a tiempo",
       body: "La fecha de pago dispara recordatorios sin que tú intervengas.",
     },
-  ] satisfies HowItWorksHighlight[],
-};
+  ],
+} satisfies HowItWorksHighlightsContent;
 
 export const howItWorksSteps: HowItWorksStep[] = [
   {
@@ -99,7 +103,6 @@ export const howItWorksSteps: HowItWorksStep[] = [
   },
 ];
 
-/** Banda imagen + checklist */
 export const howItWorksChecklistBandContent = {
   image: "/images/stadistics.avif",
   imageCaption: "Cuatro decisiones. Un sistema que corre solo cada mes.",
@@ -111,11 +114,10 @@ export const howItWorksChecklistBandContent = {
     "Mensajes por WhatsApp en piloto automático",
   ],
   cta: { label: "Ir al registro", href: "/auth" as const },
-} as const;
+} satisfies HowItWorksChecklistBandContent;
 
-/** CTA final con imagen de fondo */
 export const howItWorksCtaStripContent = {
   title: "Empieza hoy y deja que los recordatorios trabajen por ti",
   primaryCta: { label: "Crear cuenta gratis", href: "/auth" as const },
   secondaryCta: { label: "Explorar la landing", href: "/" as const },
-} as const;
+} satisfies HowItWorksCtaStripContent;
