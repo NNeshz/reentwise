@@ -1,7 +1,7 @@
 /**
  * Plantillas Meta/WhatsApp (Kapso) — parámetros del cuerpo alineados con los nombres
- * canónicos reentwise_*. Cada builder devuelve exactamente el número de variables {{n}}
- * que exige la plantilla en Business Manager.
+ * aprobados en Kapso (`reentwise_*`; excepción: `reentwis_reminder_7d`). El nombre real
+ * del envío viene de `kapsoTemplateName()` / variables `KAPSO_TEMPLATE_*`.
  */
 import { env } from "@reentwise/api/src/utils/envs";
 import { kapsoBodyParametersFromStrings, type TemplateComponent } from "./kapso.meta";
@@ -9,11 +9,12 @@ import { kapsoBodyParametersFromStrings, type TemplateComponent } from "./kapso.
 // ——— Nombres por defecto en Meta (sobrescribibles vía env) ———
 
 export const KAPSO_DEFAULT_TEMPLATE_NAMES = {
-  reminder_7d: "reentwise_reminder_7d",
+  /** En Kapso el nombre aprobado es `reentwis_*` (typo Meta). */
+  reminder_7d: "reentwis_reminder_7d",
   reminder_3d: "reentwise_reminder_3d",
   reminder_today: "reentwise_reminder_today",
-  /** Alta de inquilino / bienvenida al contrato */
-  reminder_confirmation: "reentwise_reminder_confirmation",
+  /** Alta de inquilino — nombre en dashboard: `reentwise_confirmation` */
+  reminder_confirmation: "reentwise_confirmation",
   /** Ojo: Meta conserva el typo "recived" en el nombre interno */
   abono_recived: "reentwise_abono_recived",
   payment_completed: "reentwise_payment_completed",
@@ -129,7 +130,7 @@ export type KapsoReminder7dParams = {
   amountFormatted: string;
 };
 
-/** reentwise_reminder_7d — 5 variables */
+/** reentwis_reminder_7d (nombre Meta) — 5 variables */
 export function kapsoParamsReminder7d(
   p: KapsoReminder7dParams,
 ): [string, string, string, string, string] {
@@ -143,7 +144,7 @@ export function kapsoParamsReminder7d(
 }
 
 export function kapsoBodyReminder7d(p: KapsoReminder7dParams): TemplateComponent[] {
-  return toBody("reentwise_reminder_7d", kapsoParamsReminder7d(p), 5);
+  return toBody("reentwis_reminder_7d", kapsoParamsReminder7d(p), 5);
 }
 
 export type KapsoReminder3dParams = KapsoReminder7dParams;
@@ -192,7 +193,7 @@ export type KapsoReminderConfirmationParams = {
   paymentCutoffDayLabel: string;
 };
 
-/** reentwise_reminder_confirmation — 4 variables (bienvenida / contrato) */
+/** reentwise_confirmation — 4 variables (bienvenida / contrato) */
 export function kapsoParamsReminderConfirmation(
   p: KapsoReminderConfirmationParams,
 ): [string, string, string, string] {
@@ -208,7 +209,7 @@ export function kapsoBodyReminderConfirmation(
   p: KapsoReminderConfirmationParams,
 ): TemplateComponent[] {
   return toBody(
-    "reentwise_reminder_confirmation",
+    "reentwise_confirmation",
     kapsoParamsReminderConfirmation(p),
     4,
   );

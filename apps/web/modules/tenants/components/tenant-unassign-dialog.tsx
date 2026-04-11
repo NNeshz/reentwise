@@ -54,7 +54,10 @@ export function TenantUnassignDialog({
           <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
-            onClick={handleConfirm}
+            onClick={(e) => {
+              e.preventDefault();
+              handleConfirm();
+            }}
             disabled={isPending}
           >
             {isPending ? "Desvinculando..." : "Desvincular"}

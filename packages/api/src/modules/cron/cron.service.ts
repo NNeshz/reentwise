@@ -18,7 +18,7 @@ import {
 import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
 import {
   sendKapsoTemplate,
-  normalizeKapsoRecipient,
+  formatWhatsappForKapso,
   formatKapsoPropertyLabel,
   formatKapsoCurrencyMx,
   formatKapsoDayMonthSpanish,
@@ -34,14 +34,15 @@ import {
   emailReminderToday,
   emailExpirationNotice,
 } from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
-import { dateYmd } from "@reentwise/api/src/modules/cron/utils/date-ymd";
+import { dateYmdUtc } from "@reentwise/api/src/modules/cron/utils/date-ymd";
 import { buildReminderTriggersForDay } from "@reentwise/api/src/modules/cron/lib/reminder-triggers";
 import { backfillRentPaymentsForTenant } from "@reentwise/api/src/modules/cron/lib/backfill-rent-payments";
 import { dispatchCronReminderAudits } from "@reentwise/api/src/modules/cron/lib/dispatch-reminder-audits";
+import { wallYmdInCronTz } from "@reentwise/api/src/modules/cron/utils/cron-calendar";
 
 export class CronService {
   async runDailyTasks() {
-    const today = new Date();
+    const todayWall = wallYmdInCronTz(new Date());
     const logs: string[] = [];
 
     const activeRows = await db
@@ -62,7 +63,7 @@ export class CronService {
     );
 
     for (const { tenant, room } of activeRows) {
-      await backfillRentPaymentsForTenant(tenant, room, today, logs);
+      await backfillRentPaymentsForTenant(tenant, room, todayWall, logs);
     }
 
     for (const { tenant, room, property, owner } of activeRows) {
@@ -72,7 +73,7 @@ export class CronService {
         continue;
       }
 
-      const triggers = buildReminderTriggersForDay(today, tenant.paymentDay);
+      const triggers = buildReminderTriggersForDay(todayWall, tenant.paymentDay);
       for (const t of triggers) {
         await this.processTenant(
           tenant,
@@ -100,21 +101,16 @@ export class CronService {
     kind: CronReminderKind,
     logs: string[],
   ) {
-    const targetMonth = targetDate.getMonth() + 1;
-    const targetYear = targetDate.getFullYear();
-    const ymd = dateYmd(targetDate);
+    const targetMonth = targetDate.getUTCMonth() + 1;
+    const targetYear = targetDate.getUTCFullYear();
+    const ymd = dateYmdUtc(targetDate);
+    const noteBase = cronReminderNotePrefix(kind, ymd, tenant.id);
     const { limits } = limitsCtx;
 
     if (kind === "t7" && !limits.allowReminderT7) return;
     if (kind === "t3" && !limits.allowReminderT3) return;
-    if (kind === "t0" && !limits.allowReminderToday) return;
-    if (kind === "late" && !limits.allowReminderToday) return;
 
-    if (await auditsService.hasCronReminderForDate(tenant.id, kind, ymd)) {
-      return;
-    }
-
-    const existingPayment = await db.query.payments.findFirst({
+    let existingPayment = await db.query.payments.findFirst({
       where: and(
         eq(payments.tenantId, tenant.id),
         eq(payments.month, targetMonth),
@@ -126,6 +122,51 @@ export class CronService {
       existingPayment &&
       (existingPayment.status === "paid" ||
         existingPayment.status === "annulled");
+
+    /**
+     * Cobro visible en /payment desde el primer recordatorio (T-7 / T-3), no solo el día de vencimiento.
+     * Se hace antes del corte por avisos ya enviados, para no dejar huecos si el correo salió y el pago no existía.
+     */
+    if (
+      (kind === "t7" || kind === "t3") &&
+      !paidOrAnnulled &&
+      !existingPayment
+    ) {
+      await db.insert(payments).values({
+        tenantId: tenant.id,
+        amount: room.price.toString(),
+        month: targetMonth,
+        year: targetYear,
+        status: "pending",
+      });
+      logs.push(
+        `[${kind.toUpperCase()}] Cobro pendiente ${targetMonth}/${targetYear} para ${tenant.name} (anticipado con recordatorio)`,
+      );
+      existingPayment = await db.query.payments.findFirst({
+        where: and(
+          eq(payments.tenantId, tenant.id),
+          eq(payments.month, targetMonth),
+          eq(payments.year, targetYear),
+        ),
+      });
+    }
+
+    const kapsoDigits = formatWhatsappForKapso(tenant.whatsapp);
+    const waComplete =
+      !kapsoDigits ||
+      (await auditsService.hasCronReminderChannelSent(
+        tenant.id,
+        noteBase,
+        "whatsapp",
+      ));
+    const emailComplete =
+      !tenant.email?.trim() ||
+      (await auditsService.hasCronReminderChannelSent(
+        tenant.id,
+        noteBase,
+        "email",
+      ));
+    if (waComplete && emailComplete) return;
 
     const propertyLabel = formatKapsoPropertyLabel({
       propertyName: property.name,
@@ -146,7 +187,6 @@ export class CronService {
       amountFormatted,
     };
 
-    const noteBase = cronReminderNotePrefix(kind, ymd, tenant.id);
     const tenantChannels = {
       id: tenant.id,
       name: tenant.name,
@@ -166,9 +206,10 @@ export class CronService {
       await dispatchCronReminderAudits({
         tenant: tenantChannels,
         noteBase,
-        sendKapso: () =>
+        kapsoTo: kapsoDigits,
+        sendKapso: (to) =>
           sendKapsoTemplate({
-            to: normalizeKapsoRecipient(tenant.whatsapp),
+            to,
             templateName: kapsoTemplateName(templateKey),
             components: body,
           }),
@@ -196,6 +237,13 @@ export class CronService {
         return;
       }
 
+      if (!limits.allowReminderToday) {
+        logs.push(
+          `[T0] Cobro generado para ${tenant.name} (${targetMonth}/${targetYear}; sin WhatsApp/correo: plan ${limitsCtx.effectiveTier})`,
+        );
+        return;
+      }
+
       const todayParams = {
         ownerName: owner.name,
         tenantName: tenant.name,
@@ -206,9 +254,10 @@ export class CronService {
       await dispatchCronReminderAudits({
         tenant: tenantChannels,
         noteBase,
-        sendKapso: () =>
+        kapsoTo: kapsoDigits,
+        sendKapso: (to) =>
           sendKapsoTemplate({
-            to: normalizeKapsoRecipient(tenant.whatsapp),
+            to,
             templateName: kapsoTemplateName("reminder_today"),
             components: kapsoBodyReminderToday(todayParams),
           }),
@@ -223,16 +272,31 @@ export class CronService {
       return;
     }
 
-    // late: +2d mora; same cadence flag as "today"
-    if (
-      existingPayment &&
-      (existingPayment.status === "pending" ||
-        existingPayment.status === "partial")
-    ) {
-      await db
-        .update(payments)
-        .set({ status: "late", updatedAt: new Date() })
-        .where(eq(payments.id, existingPayment.id));
+    // late: +2d mora; mismo permiso que "hoy" solo para avisos (el estado mora aplica igual)
+    if (kind === "late" && existingPayment) {
+      if (
+        existingPayment.status === "pending" ||
+        existingPayment.status === "partial"
+      ) {
+        await db
+          .update(payments)
+          .set({ status: "late", updatedAt: new Date() })
+          .where(eq(payments.id, existingPayment.id));
+      }
+
+      if (
+        existingPayment.status === "paid" ||
+        existingPayment.status === "annulled"
+      ) {
+        return;
+      }
+
+      if (!limits.allowReminderToday) {
+        logs.push(
+          `[LATE] Mora aplicada ${tenant.name} (sin aviso: plan ${limitsCtx.effectiveTier})`,
+        );
+        return;
+      }
 
       const amountNum = Number(room.price);
       const expParams = {
@@ -251,9 +315,10 @@ export class CronService {
       await dispatchCronReminderAudits({
         tenant: tenantChannels,
         noteBase,
-        sendKapso: () =>
+        kapsoTo: kapsoDigits,
+        sendKapso: (to) =>
           sendKapsoTemplate({
-            to: normalizeKapsoRecipient(tenant.whatsapp),
+            to,
             templateName: kapsoTemplateName("expiration_notice"),
             components: kapsoBodyExpirationNotice(expParams),
           }),

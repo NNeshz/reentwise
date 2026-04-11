@@ -10,31 +10,53 @@ export type CronReminderTenant = {
 /**
  * One WhatsApp audit + optional email audit (shared shape for T-7/T-3/today/late).
  * `noteBase` is stored without channel suffix; audits append `|wa` / `|email`.
+ * Idempotencia por canal y solo con `status = sent`, para poder reintentar WA si el correo ya salió.
  */
 export async function dispatchCronReminderAudits(input: {
   tenant: CronReminderTenant;
   noteBase: string;
-  sendKapso: () => Promise<void>;
+  /** Dígitos internacionales para Kapso; null = omitir WhatsApp (sin audit). */
+  kapsoTo: string | null;
+  sendKapso: (to: string) => Promise<void>;
   email?: {
     build: () => { subject: string; html: string; text: string };
     typeTag: string;
   };
   logKind: string;
 }): Promise<void> {
-  const { tenant, noteBase, sendKapso, email, logKind } = input;
+  const { tenant, noteBase, kapsoTo, sendKapso, email, logKind } = input;
 
-  await auditsService.withWhatsAppAudit(
-    {
-      tenantId: tenant.id,
-      tenantName: tenant.name,
-      note: `${noteBase}|wa`,
-    },
-    sendKapso,
-    (err) => console.error(`[Cron][WA][${logKind}] ${tenant.name}:`, err),
+  const waAlreadySent = await auditsService.hasCronReminderChannelSent(
+    tenant.id,
+    noteBase,
+    "whatsapp",
   );
 
-  const emailTo = tenant.email;
+  if (kapsoTo && !waAlreadySent) {
+    await auditsService.withWhatsAppAudit(
+      {
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        note: `${noteBase}|wa`,
+      },
+      () => sendKapso(kapsoTo),
+      (err) => console.error(`[Cron][WA][${logKind}] ${tenant.name}:`, err),
+    );
+  } else if (!kapsoTo && !waAlreadySent) {
+    console.warn(
+      `[Cron][WA][${logKind}] ${tenant.name}: sin número WhatsApp válido (se omite Kapso)`,
+    );
+  }
+
+  const emailTo = tenant.email?.trim() || null;
   if (!emailTo || !email) return;
+
+  const emailAlreadySent = await auditsService.hasCronReminderChannelSent(
+    tenant.id,
+    noteBase,
+    "email",
+  );
+  if (emailAlreadySent) return;
 
   const { subject, html, text } = email.build();
   await auditsService.withEmailAudit(

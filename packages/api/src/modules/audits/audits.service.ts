@@ -13,10 +13,6 @@ import {
   type AuditChannel,
   type AuditStatus,
 } from "@reentwise/database";
-import {
-  cronReminderNotePrefix,
-  type CronReminderKind,
-} from "@reentwise/api/src/modules/audits/lib/cron-reminder-prefix";
 import type { ResendLikeResponse } from "@reentwise/api/src/modules/audits/lib/resend-types";
 import { buildListPagination } from "@reentwise/api/src/modules/audits/utils/pagination";
 
@@ -32,18 +28,25 @@ export type CreateAuditInput = {
 };
 
 export class AuditsService {
-  /** Idempotent guard when the daily cron runs more than once for the same cycle. */
-  async hasCronReminderForDate(
+  /**
+   * Solo envíos exitosos cuentan: si WhatsApp falló pero el correo no, el cron puede reintentar WA.
+   */
+  async hasCronReminderChannelSent(
     tenantId: string,
-    kind: CronReminderKind,
-    targetDateYmd: string,
+    noteBase: string,
+    channel: AuditChannel,
   ): Promise<boolean> {
-    const prefix = cronReminderNotePrefix(kind, targetDateYmd, tenantId);
+    const suffix = channel === "whatsapp" ? "|wa" : "|email";
     const [row] = await db
       .select({ c: count() })
       .from(audits)
       .where(
-        and(eq(audits.tenantId, tenantId), like(audits.note, `${prefix}%`)),
+        and(
+          eq(audits.tenantId, tenantId),
+          eq(audits.channel, channel),
+          eq(audits.status, "sent"),
+          like(audits.note, `${noteBase}${suffix}%`),
+        ),
       );
     return Number(row?.c ?? 0) > 0;
   }

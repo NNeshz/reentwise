@@ -37,6 +37,8 @@ const envSchema = t.Object({
   POLAR_PRODUCT_BASICO: t.Optional(t.String()),
   POLAR_PRODUCT_PRO: t.Optional(t.String()),
   POLAR_PRODUCT_PATRON: t.Optional(t.String()),
+  /** IANA TZ para fechas del cron (recordatorios / backfill). Ej: America/Mexico_City */
+  CRON_TIMEZONE: t.Optional(t.String()),
 });
 
 type EnvSchema = typeof envSchema.static;
@@ -45,22 +47,34 @@ const processEnv = {
   ...process.env,
   NODE_ENV: process.env.NODE_ENV || "development",
   KAPSO_WELCOME_TEMPLATE_NAME:
-    process.env.KAPSO_WELCOME_TEMPLATE_NAME ??
-    "reentwise_reminder_confirmation",
+    process.env.KAPSO_WELCOME_TEMPLATE_NAME ?? "reentwise_confirmation",
+  /** Alias legacy: `KAPSO_REMINDER_*` si aún está en .env */
   KAPSO_TEMPLATE_REMINDER_7D:
-    process.env.KAPSO_TEMPLATE_REMINDER_7D ?? "reentwise_reminder_7d",
+    process.env.KAPSO_TEMPLATE_REMINDER_7D ??
+    process.env.KAPSO_REMINDER_7D ??
+    /** Nombre en Meta/Kapso (typo sin segunda "e") */
+    "reentwis_reminder_7d",
   KAPSO_TEMPLATE_REMINDER_3D:
-    process.env.KAPSO_TEMPLATE_REMINDER_3D ?? "reentwise_reminder_3d",
+    process.env.KAPSO_TEMPLATE_REMINDER_3D ??
+    process.env.KAPSO_REMINDER_3D ??
+    "reentwise_reminder_3d",
   KAPSO_TEMPLATE_REMINDER_TODAY:
-    process.env.KAPSO_TEMPLATE_REMINDER_TODAY ?? "reentwise_reminder_today",
+    process.env.KAPSO_TEMPLATE_REMINDER_TODAY ??
+    process.env.KAPSO_REMINDER_TODAY ??
+    "reentwise_reminder_today",
   KAPSO_TEMPLATE_ABONO_RECIVED:
-    process.env.KAPSO_TEMPLATE_ABONO_RECIVED ?? "reentwise_abono_recived",
+    process.env.KAPSO_TEMPLATE_ABONO_RECIVED ??
+    process.env.KAPSO_ABONO_RECIVED ??
+    "reentwise_abono_recived",
   KAPSO_TEMPLATE_PAYMENT_COMPLETED:
     process.env.KAPSO_TEMPLATE_PAYMENT_COMPLETED ??
+    process.env.KAPSO_PAYMENT_COMPLETED ??
     "reentwise_payment_completed",
   KAPSO_TEMPLATE_EXPIRATION_NOTICE:
     process.env.KAPSO_TEMPLATE_EXPIRATION_NOTICE ??
+    process.env.KAPSO_EXPIRATION_NOTICE ??
     "reentwise_expiration_notice",
+  CRON_TIMEZONE: process.env.CRON_TIMEZONE,
 };
 // Valida las variables de entorno
 const validateEnv = () => {
@@ -109,6 +123,7 @@ declare global {
       POLAR_PRODUCT_BASICO?: string;
       POLAR_PRODUCT_PRO?: string;
       POLAR_PRODUCT_PATRON?: string;
+      CRON_TIMEZONE?: string;
     }
   }
 }

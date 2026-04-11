@@ -1,27 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { roomsService } from "@/modules/rooms/service/rooms-service";
 import type { RoomStatus } from "@/modules/rooms/types/rooms.types";
 import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
-
-const ROOMS_KEY = ["rooms"] as const;
 
 function invalidateRoomQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   propertyId: string,
   roomId?: string,
 ) {
-  void queryClient.invalidateQueries({ queryKey: [...ROOMS_KEY, propertyId] });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.rooms.list(propertyId),
+    refetchType: "all",
+  });
   if (roomId) {
     void queryClient.invalidateQueries({
-      queryKey: [...ROOMS_KEY, propertyId, roomId],
+      queryKey: queryKeys.rooms.detail(propertyId, roomId),
+      refetchType: "all",
     });
   }
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.properties.all,
+    refetchType: "all",
+  });
 }
 
 export function useRooms(propertyId: string) {
   return useQuery({
-    queryKey: [...ROOMS_KEY, propertyId],
+    queryKey: queryKeys.rooms.list(propertyId),
     queryFn: () => roomsService.getRoomsByPropertyId(propertyId),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -31,7 +38,7 @@ export function useRooms(propertyId: string) {
 
 export function useRoom(propertyId: string, roomId: string) {
   return useQuery({
-    queryKey: [...ROOMS_KEY, propertyId, roomId],
+    queryKey: queryKeys.rooms.detail(propertyId, roomId),
     queryFn: () => roomsService.getRoomById(propertyId, roomId),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,

@@ -78,10 +78,11 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
   }
 
   const handleTenantClick = (tenant: TenantListRow) => {
-    if (tenant.roomId) {
+    const currentRoomId = tenant.roomId ?? tenant.room?.id ?? null;
+    if (currentRoomId) {
       setSelectedTenant({
         id: tenant.id,
-        roomId: tenant.roomId,
+        roomId: currentRoomId,
         paymentDay: tenant.paymentDay,
       });
     } else {
@@ -128,7 +129,7 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
 
   const roomLabel = (tenant: TenantListRow) => {
     if (tenant.room?.roomNumber) return `Hab. ${tenant.room.roomNumber}`;
-    if (tenant.roomId) return "Cuarto asignado";
+    if (tenant.roomId ?? tenant.room?.id) return "Cuarto asignado";
     return null;
   };
 

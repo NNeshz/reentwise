@@ -1,17 +1,21 @@
 import { db, eq, and, inArray } from "@reentwise/database";
 import { payments, tenants, rooms } from "@reentwise/database";
 import { getPaymentDateForMonth } from "@reentwise/api/src/modules/tenants/tenants.service";
-import { calendarDaysUntil } from "@reentwise/api/src/modules/cron/utils/calendar-days";
+import {
+  type WallYmd,
+  calendarDaysBetween,
+  wallYmdInCronTz,
+} from "@reentwise/api/src/modules/cron/utils/cron-calendar";
 
 /** No escanear más meses hacia atrás (evita bucles enormes si hay datos raros). */
 const MAX_MONTHS_LOOKBACK = 60;
 
-function localDateOnly(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
 function periodKey(year: number, month: number): string {
   return `${year}-${month}`;
+}
+
+function wallYmdFromDateField(d: Date): WallYmd {
+  return wallYmdInCronTz(d);
 }
 
 /**
@@ -21,42 +25,41 @@ function periodKey(year: number, month: number): string {
 export async function backfillRentPaymentsForTenant(
   tenant: typeof tenants.$inferSelect,
   room: typeof rooms.$inferSelect,
-  today: Date,
+  todayWall: WallYmd,
   logs: string[],
 ): Promise<void> {
-  const todayDate = localDateOnly(today);
-  const startTs = tenant.startDate
-    ? localDateOnly(tenant.startDate)
-    : localDateOnly(tenant.createdAt ?? today);
+  const startWall = tenant.startDate
+    ? wallYmdFromDateField(new Date(tenant.startDate))
+    : wallYmdFromDateField(new Date(tenant.createdAt ?? Date.now()));
 
-  const capFirstOfMonth = new Date(
-    today.getFullYear(),
-    today.getMonth() - MAX_MONTHS_LOOKBACK,
+  const capFirst = new Date(
+    todayWall.y,
+    todayWall.m - 1 - MAX_MONTHS_LOOKBACK,
     1,
   );
-  const contractFirstOfMonth = new Date(
-    startTs.getFullYear(),
-    startTs.getMonth(),
-    1,
-  );
+  const contractFirst = new Date(startWall.y, startWall.m - 1, 1);
   let iter =
-    contractFirstOfMonth > capFirstOfMonth
-      ? contractFirstOfMonth
-      : capFirstOfMonth;
+    contractFirst.getTime() > capFirst.getTime() ? contractFirst : capFirst;
 
-  const endY = today.getFullYear();
-  const endMo = today.getMonth();
-  const lastIncludedMonthStart = new Date(endY, endMo, 1).getTime();
+  const lastIncludedMonthStart = new Date(
+    todayWall.y,
+    todayWall.m - 1,
+    1,
+  ).getTime();
 
-  const periodsToCheck: { year: number; month: number; dueDate: Date }[] = [];
+  const periodsToCheck: { year: number; month: number; dueWall: WallYmd }[] =
+    [];
   while (iter.getTime() <= lastIncludedMonthStart) {
     const year = iter.getFullYear();
     const month = iter.getMonth() + 1;
     const dueDay = getPaymentDateForMonth(year, month, tenant.paymentDay);
-    const dueDate = new Date(year, month - 1, dueDay);
+    const dueWall: WallYmd = { y: year, m: month, d: dueDay };
 
-    if (dueDate >= startTs && dueDate < todayDate) {
-      periodsToCheck.push({ year, month, dueDate });
+    const dueVsStart = calendarDaysBetween(startWall, dueWall);
+    /** Días desde el vencimiento hasta hoy; > 0 si el cobro ya debió existir (venció antes que hoy). */
+    const daysSinceDue = calendarDaysBetween(dueWall, todayWall);
+    if (dueVsStart >= 0 && daysSinceDue > 0) {
+      periodsToCheck.push({ year, month, dueWall });
     }
 
     iter.setMonth(iter.getMonth() + 1);
@@ -75,8 +78,8 @@ export async function backfillRentPaymentsForTenant(
     existingRows.map((row) => [periodKey(row.year, row.month), row]),
   );
 
-  for (const { year, month, dueDate } of periodsToCheck) {
-    const daysPastDue = calendarDaysUntil(dueDate, todayDate);
+  for (const { year, month, dueWall } of periodsToCheck) {
+    const daysPastDue = calendarDaysBetween(dueWall, todayWall);
     const shouldBeLate = daysPastDue >= 2;
     const existing = byPeriod.get(periodKey(year, month));
 

@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { propertiesService } from "@/modules/properties/service/properties-service";
 import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
-const PROPERTIES_KEY = ["properties"] as const;
-
 export function useProperties() {
   return useQuery({
-    queryKey: PROPERTIES_KEY,
+    queryKey: queryKeys.properties.all,
     queryFn: () => propertiesService.getOwnerProperties(),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -16,7 +15,7 @@ export function useProperties() {
 
 export function useProperty(id: string) {
   return useQuery({
-    queryKey: [...PROPERTIES_KEY, id],
+    queryKey: queryKeys.properties.detail(id),
     queryFn: () => propertiesService.getPropertyById(id),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -31,7 +30,10 @@ export function useCreateProperty() {
     mutationFn: (data: { name: string; address?: string }) =>
       propertiesService.createProperty(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROPERTIES_KEY });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.properties.all,
+        refetchType: "all",
+      });
       toast.success("Propiedad creada correctamente");
     },
     onError: (error: unknown) => {
@@ -49,7 +51,10 @@ export function useUpdateProperty() {
     mutationFn: (data: { id: string; name: string; address?: string }) =>
       propertiesService.updateProperty(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROPERTIES_KEY });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.properties.all,
+        refetchType: "all",
+      });
       toast.success("Propiedad actualizada correctamente");
     },
     onError: (error: unknown) => {
@@ -66,7 +71,10 @@ export function useDeleteProperty() {
   return useMutation({
     mutationFn: (id: string) => propertiesService.deleteProperty(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROPERTIES_KEY });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.properties.all,
+        refetchType: "all",
+      });
       toast.success("Propiedad eliminada correctamente");
     },
     onError: (error: unknown) => {

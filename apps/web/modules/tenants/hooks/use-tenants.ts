@@ -1,10 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { tenantsService } from "@/modules/tenants/service/tenants-service";
 import { useTenantsFilters } from "@/modules/tenants/store/use-tenants-filters";
 import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
-const TENANTS_KEY = ["tenants"] as const;
+function invalidateAfterTenantMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.tenants.all,
+    refetchType: "all",
+  });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.rooms.all,
+    refetchType: "all",
+  });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.properties.all,
+    refetchType: "all",
+  });
+}
 
 export function useTenantsQuery() {
   const { search, status, propertyId, page } = useTenantsFilters();
@@ -17,7 +33,7 @@ export function useTenantsQuery() {
   };
 
   return useQuery({
-    queryKey: [...TENANTS_KEY, queryParams],
+    queryKey: [...queryKeys.tenants.all, queryParams],
     queryFn: () => tenantsService.getTenants(queryParams),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -38,9 +54,7 @@ export function useCreateAndAssignTenant(roomId: string) {
       deposit?: number;
     }) => tenantsService.createAndAssignTenant(roomId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      invalidateAfterTenantMutation(queryClient);
       toast.success("Inquilino asignado correctamente");
     },
     onError: (error: unknown) => {
@@ -67,9 +81,7 @@ export function useUpdateTenant() {
       return tenantsService.updateTenant(tenantId, body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      invalidateAfterTenantMutation(queryClient);
       toast.success("Inquilino actualizado correctamente");
     },
     onError: (error: unknown) => {
@@ -86,9 +98,7 @@ export function useDeleteTenant() {
   return useMutation({
     mutationFn: (tenantId: string) => tenantsService.deleteTenantById(tenantId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      invalidateAfterTenantMutation(queryClient);
       toast.success("Inquilino eliminado correctamente");
     },
     onError: (error: unknown) => {
@@ -101,7 +111,7 @@ export function useDeleteTenant() {
 
 export function useTenantPayments(tenantId: string | null) {
   return useQuery({
-    queryKey: [...TENANTS_KEY, "payments", tenantId],
+    queryKey: [...queryKeys.tenants.all, "payments", tenantId],
     queryFn: () => tenantsService.getPaymentsByTenant(tenantId!),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -118,9 +128,7 @@ export function useReassignTenant(roomId: string) {
         paymentDay: data.paymentDay,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      invalidateAfterTenantMutation(queryClient);
       toast.success("Inquilino reasignado correctamente");
     },
     onError: (error: unknown) => {
@@ -138,9 +146,11 @@ export function useUnassignTenant() {
     mutationFn: (data: { roomId: string; tenantId: string }) =>
       tenantsService.unassignTenant(data.roomId, data.tenantId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      invalidateAfterTenantMutation(queryClient);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.all,
+        refetchType: "all",
+      });
       toast.success("Inquilino desvinculado correctamente");
     },
     onError: (error: unknown) => {

@@ -1,4 +1,4 @@
-import Elysia from "elysia";
+import { Elysia, t } from "elysia";
 import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
 import { tenantsModule } from "@reentwise/api/src/modules/tenants/tenants.module";
 import { RoomNotFoundError } from "@reentwise/api/src/modules/rooms/lib/room-not-found-error";
@@ -198,11 +198,12 @@ export const ownerTenantsRoutes = new Elysia({
   )
   .put(
     "/unassign/:roomId/:tenantId",
-    async ({ params, tenantsService, set }) => {
+    async ({ params, user, tenantsService, set }) => {
       try {
         const data = await tenantsService.unassignTenant(
           params.roomId,
           params.tenantId,
+          user.id,
         );
         return apiSuccess("Tenant unassigned successfully", data);
       } catch (e) {
@@ -212,6 +213,7 @@ export const ownerTenantsRoutes = new Elysia({
     {
       authenticated: true,
       params: tenantRoomTenantParamsSchema,
+      body: t.Optional(t.Object({})),
       response: tenantResponses,
       detail: {
         summary: "Desasignar inquilino del cuarto",

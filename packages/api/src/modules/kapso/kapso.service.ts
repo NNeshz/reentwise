@@ -62,6 +62,25 @@ export function normalizeKapsoRecipient(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
+/**
+ * Número listo para Kapso/Meta, o `null` si no hay dígitos usables.
+ * México: 10 dígitos locales → prefijo `521` (52 + 1 móvil).
+ */
+export function formatWhatsappForKapso(
+  raw: string | null | undefined,
+): string | null {
+  if (raw == null) return null;
+  let d = raw.replace(/\D/g, "");
+  if (!d) return null;
+
+  if (d.length === 10) {
+    d = `521${d}`;
+  }
+
+  if (d.length < 11) return null;
+  return d;
+}
+
 export async function sendKapsoTemplate(
   payload: SendTemplatePayload,
 ): Promise<void> {

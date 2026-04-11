@@ -54,19 +54,21 @@ export function parseTenantCore(value: unknown): TenantCore {
 }
 
 export function parseTenantListRow(value: unknown): TenantListRow {
-  const core = parseTenantCore(value);
   if (value === null || typeof value !== "object") {
     throw new Error("Formato inválido de inquilino en listado");
   }
   const o = value as Record<string, unknown>;
   const room = parseTenantRoomSummary(o.room);
+  const core = parseTenantCore(value);
+  /** API a veces devuelve `room: { id }` sin `roomId` en la raíz (join Drizzle). */
+  const roomId = core.roomId ?? room?.id ?? null;
   const notes =
     o.notes === null || o.notes === undefined
       ? null
       : typeof o.notes === "string"
         ? o.notes
         : null;
-  return { ...core, room, notes };
+  return { ...core, roomId, room, notes };
 }
 
 function parsePagination(value: unknown): TenantsListPagination {

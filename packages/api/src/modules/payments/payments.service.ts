@@ -24,6 +24,7 @@ import { PaymentNotFoundError } from "@reentwise/api/src/modules/payments/lib/pa
 import { nextPaymentDueDateLabel } from "@reentwise/api/src/modules/payments/lib/payment-due-label";
 import { sendPayReceiptNotifications } from "@reentwise/api/src/modules/payments/lib/pay-payment-notifications";
 import type { PaymentStatusFilter } from "@reentwise/api/src/modules/payments/types/payments.types";
+import { tenantReachedBillingPeriod } from "@reentwise/api/src/modules/tenants/lib/tenant-first-billable";
 
 export { PaymentNotFoundError } from "@reentwise/api/src/modules/payments/lib/payment-not-found-error";
 export type { PaymentStatusFilter } from "@reentwise/api/src/modules/payments/types/payments.types";
@@ -82,8 +83,13 @@ export class PaymentsService {
       .where(
         and(
           or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
+          tenantReachedBillingPeriod(year, month),
           or(
             isNotNull(tenants.roomId),
+            /**
+             * Sin cuarto (desvinculado): solo en meses con fila de cobro de ese
+             * periodo; no repetir en meses futuros solo por pagos pasados.
+             */
             exists(
               db
                 .select({ id: payments.id })
@@ -91,6 +97,8 @@ export class PaymentsService {
                 .where(
                   and(
                     eq(payments.tenantId, tenants.id),
+                    eq(payments.month, month),
+                    eq(payments.year, year),
                     or(
                       eq(payments.isAnnulled, false),
                       isNull(payments.isAnnulled),

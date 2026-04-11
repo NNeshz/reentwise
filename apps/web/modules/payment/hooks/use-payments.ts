@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { paymentService } from "@/modules/payment/service/payment-service";
 import { usePaymentsFilters } from "@/modules/payment/store/use-payments-filters";
 import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
-
-const PAYMENTS_KEY = ["payments"] as const;
 
 export function usePayments() {
   const { search, status, month, year } = usePaymentsFilters();
@@ -12,7 +11,10 @@ export function usePayments() {
   const trimmedSearch = search?.trim() || undefined;
 
   return useQuery({
-    queryKey: [...PAYMENTS_KEY, { month, year, search: trimmedSearch, status }],
+    queryKey: [
+      ...queryKeys.payments.all,
+      { month, year, search: trimmedSearch, status },
+    ],
     queryFn: () =>
       paymentService.getPayments({
         month,
@@ -39,7 +41,10 @@ export function usePayPayment() {
         method: data.method,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PAYMENTS_KEY });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.all,
+        refetchType: "all",
+      });
       toast.success(
         "Pago registrado correctamente. Recibo enviado por WhatsApp.",
       );

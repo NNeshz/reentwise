@@ -37,7 +37,7 @@ export function TenantPaymentsSheet({
         <SheetHeader>
           <SheetTitle>Pagos de {tenantName}</SheetTitle>
           <SheetDescription>
-            Historial completo de pagos registrados
+            Cobros desde el mes de alta del inquilino (fecha de inicio o registro).
           </SheetDescription>
         </SheetHeader>
 

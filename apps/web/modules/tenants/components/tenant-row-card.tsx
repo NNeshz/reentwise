@@ -39,7 +39,8 @@ type Props = {
 };
 
 export function TenantRowCard({ tenant, onAction }: Props) {
-  const canUnassign = Boolean(tenant.roomId);
+  const assignedRoomId = tenant.roomId ?? tenant.room?.id ?? null;
+  const canUnassign = Boolean(assignedRoomId);
 
   return (
     <Card className="overflow-hidden p-0 transition-colors">

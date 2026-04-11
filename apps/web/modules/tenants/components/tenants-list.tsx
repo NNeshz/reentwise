@@ -117,7 +117,9 @@ export function TenantsList() {
       <TenantUnassignDialog
         tenantId={activeTenant?.id ?? null}
         tenantName={activeTenant?.name ?? ""}
-        roomId={activeTenant?.roomId ?? null}
+        roomId={
+          activeTenant?.roomId ?? activeTenant?.room?.id ?? null
+        }
         roomNumber={activeTenant?.room?.roomNumber ?? ""}
         open={dialogTarget?.action === "unassign"}
         onOpenChange={(open) => {

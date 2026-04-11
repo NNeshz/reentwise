@@ -2,6 +2,8 @@ import {
   db,
   eq,
   or,
+  gt,
+  gte,
   tenants,
   and,
   rooms,
@@ -32,6 +34,10 @@ import {
   TenantNotFoundError,
   TenantValidationError,
 } from "@reentwise/api/src/modules/tenants/lib/tenant-errors";
+import {
+  firstBillableYearMonth,
+  tenantReachedBillingPeriod,
+} from "@reentwise/api/src/modules/tenants/lib/tenant-first-billable";
 
 export { getPaymentDateForMonth } from "@reentwise/api/src/modules/tenants/lib/get-payment-date-for-month";
 
@@ -106,6 +112,7 @@ export class TenantsService {
 
     const conditions = [
       or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
+      tenantReachedBillingPeriod(currentYear, currentMonth),
     ];
 
     if (query.search?.trim()) {
@@ -295,7 +302,7 @@ export class TenantsService {
         console.error("[WhatsApp][Tenants] Error enviando bienvenida:", err),
     );
 
-    return tenantResult;
+    return createdTenant;
   }
 
   async createAndAssignTenant(
@@ -558,33 +565,76 @@ export class TenantsService {
     return tenantResult[0]!;
   }
 
-  async unassignTenant(roomId: string, tenantId: string) {
+  /**
+   * `roomIdFromRoute` debe coincidir con el cuarto real del inquilino si se envía;
+   * si viene vacío o el cliente solo conoce `tenantId`, se usa `tenant.roomId` en BD.
+   */
+  async unassignTenant(
+    roomIdFromRoute: string,
+    tenantId: string,
+    ownerId: string,
+  ) {
+    const tenant = await db.query.tenants.findFirst({
+      where: eq(tenants.id, tenantId),
+    });
+
+    if (!tenant) {
+      throw new TenantNotFoundError("Inquilino no encontrado");
+    }
+
+    const actualRoomId = tenant.roomId;
+    if (!actualRoomId) {
+      throw new TenantValidationError(
+        "El inquilino no tiene un cuarto asignado.",
+      );
+    }
+
+    const claimedRoomId = roomIdFromRoute?.trim() || null;
+    if (claimedRoomId && claimedRoomId !== actualRoomId) {
+      throw new TenantValidationError(
+        "Este inquilino no está asignado al cuarto indicado.",
+      );
+    }
+
     const roomOwnerRes = await db
       .select({ ownerId: properties.ownerId })
       .from(rooms)
-      .leftJoin(properties, eq(rooms.propertyId, properties.id))
-      .where(eq(rooms.id, roomId));
-    const tenantOwnerId = roomOwnerRes[0]?.ownerId || null;
+      .innerJoin(properties, eq(rooms.propertyId, properties.id))
+      .where(eq(rooms.id, actualRoomId));
+
+    const propertyOwnerId = roomOwnerRes[0]?.ownerId;
+    if (!propertyOwnerId) {
+      throw new RoomNotFoundError();
+    }
+
+    if (propertyOwnerId !== ownerId) {
+      throw new TenantForbiddenError(
+        "No autorizado para desvincular este inquilino",
+      );
+    }
 
     const tenantResult = await db
       .update(tenants)
       .set({
         roomId: null,
-        ownerId: tenantOwnerId,
+        ownerId: propertyOwnerId,
+        updatedAt: new Date(),
       })
-      .where(and(eq(tenants.id, tenantId), eq(tenants.roomId, roomId)))
+      .where(
+        and(eq(tenants.id, tenantId), eq(tenants.roomId, actualRoomId)),
+      )
       .returning();
 
     if (!tenantResult.length) {
-      throw new TenantNotFoundError("Failed to unassign tenant");
+      throw new TenantNotFoundError("No se pudo desvincular el inquilino");
     }
 
     await db
       .update(rooms)
-      .set({ status: "vacant" })
-      .where(eq(rooms.id, roomId));
+      .set({ status: "vacant", updatedAt: new Date() })
+      .where(eq(rooms.id, actualRoomId));
 
-    return tenantResult;
+    return tenantResult[0]!;
   }
 
   async deleteTenantById(tenantId: string, ownerId: string) {
@@ -654,10 +704,20 @@ export class TenantsService {
       }
     }
 
+    const { year: fy, month: fm } = firstBillableYearMonth(tenant);
+
     const result = await db
       .select()
       .from(payments)
-      .where(eq(payments.tenantId, tenantId))
+      .where(
+        and(
+          eq(payments.tenantId, tenantId),
+          or(
+            gt(payments.year, fy),
+            and(eq(payments.year, fy), gte(payments.month, fm)),
+          ),
+        ),
+      )
       .orderBy(desc(payments.year), desc(payments.month));
 
     return { payments: result };
@@ -681,6 +741,7 @@ export class TenantsService {
     const conditions = [
       or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
       isNotNull(tenants.roomId),
+      tenantReachedBillingPeriod(year, month),
     ];
 
     if (search) {
