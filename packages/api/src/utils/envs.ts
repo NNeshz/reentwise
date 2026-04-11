@@ -28,12 +28,15 @@ const envSchema = t.Object({
   RESEND_API_KEY: t.Optional(t.String()),
   RESEND_FROM: t.Optional(t.String()),
   RESEND_WEBHOOK_SECRET: t.Optional(t.String()),
-  // Stripe payment variables
-  STRIPE_SECRET_KEY: t.Optional(t.String()),
-  STRIPE_WEBHOOK_SECRET: t.Optional(t.String()),
-  STRIPE_PRICE_BASICO: t.Optional(t.String()),
-  STRIPE_PRICE_PRO: t.Optional(t.String()),
-  STRIPE_PRICE_PATRON: t.Optional(t.String()),
+  // Polar (billing)
+  POLAR_ACCESS_TOKEN: t.Optional(t.String()),
+  POLAR_WEBHOOK_SECRET: t.Optional(t.String()),
+  POLAR_SERVER: t.Optional(
+    t.Union([t.Literal("production"), t.Literal("sandbox")]),
+  ),
+  POLAR_PRODUCT_BASICO: t.Optional(t.String()),
+  POLAR_PRODUCT_PRO: t.Optional(t.String()),
+  POLAR_PRODUCT_PATRON: t.Optional(t.String()),
 });
 
 type EnvSchema = typeof envSchema.static;
@@ -100,11 +103,12 @@ declare global {
       RESEND_API_KEY?: string;
       RESEND_FROM?: string;
       RESEND_WEBHOOK_SECRET?: string;
-      STRIPE_SECRET_KEY?: string;
-      STRIPE_WEBHOOK_SECRET?: string;
-      STRIPE_PRICE_BASICO?: string;
-      STRIPE_PRICE_PRO?: string;
-      STRIPE_PRICE_PATRON?: string;
+      POLAR_ACCESS_TOKEN?: string;
+      POLAR_WEBHOOK_SECRET?: string;
+      POLAR_SERVER?: "production" | "sandbox";
+      POLAR_PRODUCT_BASICO?: string;
+      POLAR_PRODUCT_PRO?: string;
+      POLAR_PRODUCT_PATRON?: string;
     }
   }
 }

@@ -31,7 +31,7 @@ export const PRICING_UI_LABELS = {
   perMonth: "al mes",
   planPrefix: "Plan",
   checkoutRedirecting: "Redirigiendo…",
-  missingPriceIdsTitle: "Checkout no disponible",
-  missingPriceIdsDescription:
-    "Configura NEXT_PUBLIC_STRIPE_PRICE_BASICO, PRO y PATRON en el entorno.",
+  missingProductIdsTitle: "Checkout no disponible",
+  missingProductIdsDescription:
+    "Define NEXT_PUBLIC_POLAR_PRODUCT_BASICO, NEXT_PUBLIC_POLAR_PRODUCT_PRO y NEXT_PUBLIC_POLAR_PRODUCT_PATRON en `.env` (mismos UUID que POLAR_PRODUCT_* en el backend) y reinicia `next dev` para que Next los empaquete.",
 } as const;

@@ -7,8 +7,9 @@ export {
   pricingPlans,
   pricingHeroContent,
   pricingPlansCta,
-  getStripePriceIdForPlan,
+  getPolarProductIdForPlan,
 } from "./data";
+export { BILLING_CHECKOUT_PATH } from "./lib/pricing-api";
 export type {
   PricingPlan,
   PricingPlanId,

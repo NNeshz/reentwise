@@ -10,8 +10,10 @@ export const user = pgTable("user", {
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
   phoneNumber: text("phone_number"),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
+  /** Id de cliente en el proveedor de pagos (p. ej. Polar). */
+  billingCustomerId: text("billing_customer_id"),
+  /** Suscripción activa en el PSP. */
+  billingSubscriptionId: text("billing_subscription_id"),
   /** trialing | active | past_due | canceled */
   subscriptionStatus: text("subscription_status"),
   planTier: planTierEnum("plan_tier").notNull().default("freemium"),
@@ -19,7 +21,8 @@ export const user = pgTable("user", {
     mode: "date",
     withTimezone: true,
   }),
-  stripePriceId: text("stripe_price_id"),
+  /** Id de precio/producto en el PSP usado para mapear plan_tier. */
+  billingPriceId: text("billing_price_id"),
   /** ISO 4217; null = default de producto (p. ej. MXN) */
   currency: varchar("currency", { length: 3 }),
   timezone: text("timezone"),

@@ -14,27 +14,27 @@ import { pricingPlansCta } from "@/modules/pricing/data";
 import { PricingCheckoutError } from "./pricing-checkout-error";
 
 type Props = {
-  priceId: string | undefined;
+  productId: string | undefined;
   featured: boolean;
 };
 
-export function PricingPlanCheckout({ priceId, featured }: Props) {
+export function PricingPlanCheckout({ productId, featured }: Props) {
   const { mutate, isPending, isError, error, reset } = usePricingCheckout();
 
   function handleCheckout() {
-    if (!priceId) return;
+    if (!productId) return;
     reset();
-    mutate(priceId);
+    mutate(productId);
   }
 
   return (
     <div className="mt-8 space-y-3">
-      {!priceId && (
+      {!productId && (
         <Alert>
           <IconInfoCircle className="size-4" aria-hidden />
-          <AlertTitle>{PRICING_UI_LABELS.missingPriceIdsTitle}</AlertTitle>
+          <AlertTitle>{PRICING_UI_LABELS.missingProductIdsTitle}</AlertTitle>
           <AlertDescription>
-            {PRICING_UI_LABELS.missingPriceIdsDescription}
+            {PRICING_UI_LABELS.missingProductIdsDescription}
           </AlertDescription>
         </Alert>
       )}
@@ -54,7 +54,7 @@ export function PricingPlanCheckout({ priceId, featured }: Props) {
           featured && "bg-primary text-primary-foreground hover:bg-primary/90",
         )}
         variant={featured ? "default" : "outline"}
-        disabled={isPending || !priceId}
+        disabled={isPending || !productId}
         onClick={handleCheckout}
       >
         {isPending

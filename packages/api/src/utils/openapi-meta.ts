@@ -13,7 +13,7 @@ export const openApiTags = {
   Metrics: "Metrics",
   Audits: "Audits",
   Cron: "Cron",
-  Stripe: "Stripe",
+  Billing: "Billing",
   Webhooks: "Webhooks",
 } as const;
 
@@ -26,7 +26,7 @@ const envelopeDoc = [
   "",
   "Rutas **Owner** requieren sesión Better Auth (cookie). Sin sesión: **401** con el mismo cuerpo de error.",
   "",
-  "Los webhooks externos validan firma (Stripe, Resend/Svix); el cuerpo de éxito sigue el mismo `data` cuando aplica.",
+  "Los webhooks externos validan firma (Polar Standard Webhooks, Resend/Svix); el cuerpo de éxito sigue el mismo `data` cuando aplica.",
 ].join("\n");
 
 const backendUrl = env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "");
@@ -77,8 +77,8 @@ export const openApiDocumentation = {
       description: "Tareas programadas (autenticación por secreto).",
     },
     {
-      name: openApiTags.Stripe,
-      description: "Checkout y eventos de Stripe.",
+      name: openApiTags.Billing,
+      description: "Checkout y suscripciones vía Polar.",
     },
     {
       name: openApiTags.Webhooks,

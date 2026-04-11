@@ -7,6 +7,6 @@ import { pricingService } from "@/modules/pricing/service/pricing-service";
  */
 export function usePricingCheckout() {
   return useMutation({
-    mutationFn: (priceId: string) => pricingService.startStripeCheckout(priceId),
+    mutationFn: (productId: string) => pricingService.startBillingCheckout(productId),
   });
 }

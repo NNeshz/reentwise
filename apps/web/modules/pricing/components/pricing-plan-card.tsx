@@ -3,7 +3,7 @@
 import { m } from "framer-motion";
 import { cn } from "@reentwise/ui/src/lib/utils";
 import type { PricingPlan } from "@/modules/pricing/types/pricing.types";
-import { getStripePriceIdForPlan } from "@/modules/pricing/data";
+import { getPolarProductIdForPlan } from "@/modules/pricing/data";
 import { pricingPlanCardClassName } from "@/modules/pricing/lib/pricing-display";
 import { PricingPlanRecommendedBadge } from "./pricing-plan-recommended-badge";
 import { PricingPlanHeader } from "./pricing-plan-header";
@@ -19,7 +19,7 @@ type Props = {
 
 export function PricingPlanCard({ plan, index }: Props) {
   const featured = Boolean(plan.recommended);
-  const priceId = getStripePriceIdForPlan(plan.id);
+  const productId = getPolarProductIdForPlan(plan.id);
 
   return (
     <m.div
@@ -39,7 +39,7 @@ export function PricingPlanCard({ plan, index }: Props) {
         <PricingPlanExclusions plan={plan} />
       </div>
 
-      <PricingPlanCheckout priceId={priceId} featured={featured} />
+      <PricingPlanCheckout productId={productId} featured={featured} />
     </m.div>
   );
 }

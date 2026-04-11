@@ -29,6 +29,13 @@
       "when": 1743086000000,
       "tag": "0003_plan_limits_user_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1743087000000,
+      "tag": "0004_user_billing_rename",
+      "breakpoints": true
     }
   ]
 }

@@ -69,12 +69,19 @@ export const pricingPlansCta = {
   href: "/auth?next=/pricing" as const,
 };
 
-/** Misma convención que `STRIPE_PRICE_*` en el backend (IDs públicos de Stripe). */
-export function getStripePriceIdForPlan(id: PricingPlanId): string | undefined {
+/** Solo lectura estática: Next no inyecta `NEXT_PUBLIC_*` en el cliente con `process.env[clave]`. */
+function trimPublicEnv(v: string | undefined): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const t = v.trim();
+  return t.length > 0 ? t : undefined;
+}
+
+/** UUID del producto Polar; debe coincidir con `POLAR_PRODUCT_*` en el backend. */
+export function getPolarProductIdForPlan(id: PricingPlanId): string | undefined {
   const map: Record<PricingPlanId, string | undefined> = {
-    basic: process.env.NEXT_PUBLIC_STRIPE_PRICE_BASICO,
-    pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO,
-    patron: process.env.NEXT_PUBLIC_STRIPE_PRICE_PATRON,
+    basic: trimPublicEnv(process.env.NEXT_PUBLIC_POLAR_PRODUCT_BASICO),
+    pro: trimPublicEnv(process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO),
+    patron: trimPublicEnv(process.env.NEXT_PUBLIC_POLAR_PRODUCT_PATRON),
   };
   return map[id];
 }
