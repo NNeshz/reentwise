@@ -5,6 +5,8 @@ import {
   or,
   ilike,
   isNull,
+  isNotNull,
+  exists,
   payments,
   tenants,
   rooms,
@@ -80,6 +82,23 @@ export class PaymentsService {
       .where(
         and(
           or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
+          or(
+            isNotNull(tenants.roomId),
+            exists(
+              db
+                .select({ id: payments.id })
+                .from(payments)
+                .where(
+                  and(
+                    eq(payments.tenantId, tenants.id),
+                    or(
+                      eq(payments.isAnnulled, false),
+                      isNull(payments.isAnnulled),
+                    ),
+                  ),
+                ),
+            ),
+          ),
           search
             ? or(
                 ilike(tenants.name, `%${search}%`),

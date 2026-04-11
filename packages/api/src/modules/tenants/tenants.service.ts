@@ -478,8 +478,8 @@ export class TenantsService {
   }
 
   async updateTenant(
-    roomId: string,
     tenantId: string,
+    ownerId: string,
     body: {
       name?: string;
       whatsapp?: string;
@@ -488,23 +488,49 @@ export class TenantsService {
       notes?: string;
     },
   ) {
-    if (
-      body.paymentDay != null &&
-      (body.paymentDay < 0 || body.paymentDay > 31)
-    ) {
-      throw new TenantValidationError(PAYMENT_DAY_ERROR);
+    const tenant = await db.query.tenants.findFirst({
+      where: eq(tenants.id, tenantId),
+    });
+
+    if (!tenant) {
+      throw new TenantNotFoundError();
+    }
+
+    if (tenant.ownerId !== ownerId) {
+      const roomOwner = tenant.roomId
+        ? await db
+            .select({ ownerId: properties.ownerId })
+            .from(rooms)
+            .leftJoin(properties, eq(rooms.propertyId, properties.id))
+            .where(eq(rooms.id, tenant.roomId))
+        : [];
+      if (roomOwner[0]?.ownerId !== ownerId) {
+        throw new TenantForbiddenError(
+          "Not authorized to update this tenant",
+        );
+      }
+    }
+
+    const patch: Partial<typeof tenants.$inferInsert> = {};
+    if (body.name !== undefined) patch.name = body.name;
+    if (body.whatsapp !== undefined) patch.whatsapp = body.whatsapp;
+    if (body.email !== undefined) patch.email = body.email;
+    if (body.paymentDay !== undefined) {
+      assertPaymentDayRange(body.paymentDay);
+      patch.paymentDay = body.paymentDay;
+    }
+    if (body.notes !== undefined) patch.notes = body.notes;
+
+    if (Object.keys(patch).length === 0) {
+      throw new TenantValidationError(
+        "Envía al menos un campo para actualizar.",
+      );
     }
 
     const updated = await db
       .update(tenants)
-      .set({
-        name: body.name,
-        whatsapp: body.whatsapp,
-        email: body.email,
-        paymentDay: body.paymentDay,
-        notes: body.notes,
-      })
-      .where(and(eq(tenants.id, tenantId), eq(tenants.roomId, roomId)))
+      .set(patch)
+      .where(eq(tenants.id, tenantId))
       .returning();
 
     if (!updated.length) {

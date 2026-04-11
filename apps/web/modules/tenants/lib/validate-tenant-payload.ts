@@ -60,7 +60,13 @@ export function parseTenantListRow(value: unknown): TenantListRow {
   }
   const o = value as Record<string, unknown>;
   const room = parseTenantRoomSummary(o.room);
-  return { ...core, room };
+  const notes =
+    o.notes === null || o.notes === undefined
+      ? null
+      : typeof o.notes === "string"
+        ? o.notes
+        : null;
+  return { ...core, room, notes };
 }
 
 function parsePagination(value: unknown): TenantsListPagination {

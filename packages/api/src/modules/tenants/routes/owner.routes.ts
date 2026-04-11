@@ -220,12 +220,12 @@ export const ownerTenantsRoutes = new Elysia({
     },
   )
   .put(
-    "/:roomId/:id",
-    async ({ params, body, tenantsService, set }) => {
+    "/by-id/:tenantId",
+    async ({ params, body, user, tenantsService, set }) => {
       try {
         const data = await tenantsService.updateTenant(
-          params.roomId,
-          params.id,
+          params.tenantId,
+          user.id,
           body,
         );
         return apiSuccess("Tenant updated successfully", data);
@@ -235,11 +235,13 @@ export const ownerTenantsRoutes = new Elysia({
     },
     {
       authenticated: true,
-      params: tenantRoomIdTenantIdParamsSchema,
+      params: tenantIdParamsSchema,
       body: updateTenantBodySchema,
       response: tenantResponses,
       detail: {
-        summary: "Actualizar inquilino",
+        summary: "Actualizar inquilino por ID",
+        description:
+          "Registrado antes de `/:roomId/:id` para no depender del cuarto (p. ej. inquilino desvinculado).",
         tags: [openApiTags.Tenants],
       },
     },

@@ -10,6 +10,7 @@ import {
   type TenantRowAction,
 } from "@/modules/tenants/components/tenant-row-card";
 import { TenantDetailSheet } from "@/modules/tenants/components/tenant-detail-sheet";
+import { TenantEditSheet } from "@/modules/tenants/components/tenant-edit-sheet";
 import { TenantPaymentsSheet } from "@/modules/tenants/components/tenant-payments-sheet";
 import { TenantDeleteDialog } from "@/modules/tenants/components/tenant-delete-dialog";
 import { TenantUnassignDialog } from "@/modules/tenants/components/tenant-unassign-dialog";
@@ -91,6 +92,14 @@ export function TenantsList() {
       <TenantDetailSheet
         tenant={activeTenant}
         open={dialogTarget?.action === "details"}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      />
+
+      <TenantEditSheet
+        tenant={activeTenant}
+        open={dialogTarget?.action === "edit"}
         onOpenChange={(open) => {
           if (!open) closeDialog();
         }}

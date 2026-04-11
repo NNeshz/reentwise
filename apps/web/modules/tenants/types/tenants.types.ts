@@ -20,6 +20,7 @@ export type TenantListRow = {
   paymentDay: number;
   roomId: string | null;
   room: TenantRoomSummary | null;
+  notes?: string | null;
 };
 
 export type TenantsListPagination = {

@@ -15,6 +15,7 @@ import {
   IconDotsVertical,
   IconEye,
   IconCash,
+  IconPencil,
   IconUnlink,
   IconTrash,
 } from "@tabler/icons-react";
@@ -22,6 +23,7 @@ import type { TenantListRow } from "@/modules/tenants/types/tenants.types";
 
 export type TenantRowAction =
   | "details"
+  | "edit"
   | "payments"
   | "unassign"
   | "delete";
@@ -37,7 +39,7 @@ type Props = {
 };
 
 export function TenantRowCard({ tenant, onAction }: Props) {
-  const hasRoom = !!tenant.roomId;
+  const canUnassign = Boolean(tenant.roomId);
 
   return (
     <Card className="overflow-hidden p-0 transition-colors">
@@ -77,6 +79,12 @@ export function TenantRowCard({ tenant, onAction }: Props) {
                 Ver detalles
               </DropdownMenuItem>
               <DropdownMenuItem
+                onSelect={() => onAction({ tenant, action: "edit" })}
+              >
+                <IconPencil className="size-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onSelect={() => onAction({ tenant, action: "payments" })}
               >
                 <IconCash className="size-4" />
@@ -85,15 +93,17 @@ export function TenantRowCard({ tenant, onAction }: Props) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              {hasRoom ? (
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={() => onAction({ tenant, action: "unassign" })}
-                >
-                  <IconUnlink className="size-4" />
-                  Desvincular
-                </DropdownMenuItem>
-              ) : null}
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={!canUnassign}
+                onSelect={() => {
+                  if (!canUnassign) return;
+                  onAction({ tenant, action: "unassign" });
+                }}
+              >
+                <IconUnlink className="size-4" />
+                Desvincular
+              </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={() => onAction({ tenant, action: "delete" })}

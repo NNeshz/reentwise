@@ -36,6 +36,7 @@ import {
 } from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
 import { dateYmd } from "@reentwise/api/src/modules/cron/utils/date-ymd";
 import { buildReminderTriggersForDay } from "@reentwise/api/src/modules/cron/lib/reminder-triggers";
+import { backfillRentPaymentsForTenant } from "@reentwise/api/src/modules/cron/lib/backfill-rent-payments";
 import { dispatchCronReminderAudits } from "@reentwise/api/src/modules/cron/lib/dispatch-reminder-audits";
 
 export class CronService {
@@ -59,6 +60,10 @@ export class CronService {
     const limitsByOwner = await planLimitsService.getLimitsContexts(
       activeRows.map((r) => r.property.ownerId),
     );
+
+    for (const { tenant, room } of activeRows) {
+      await backfillRentPaymentsForTenant(tenant, room, today, logs);
+    }
 
     for (const { tenant, room, property, owner } of activeRows) {
       const limitsCtx = limitsByOwner.get(property.ownerId);

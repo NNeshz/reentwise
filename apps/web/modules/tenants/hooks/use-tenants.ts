@@ -51,6 +51,35 @@ export function useCreateAndAssignTenant(roomId: string) {
   });
 }
 
+export function useUpdateTenant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: {
+      tenantId: string;
+      name?: string;
+      whatsapp?: string;
+      email?: string;
+      paymentDay?: number;
+      notes?: string;
+    }) => {
+      const { tenantId, ...body } = input;
+      return tenantsService.updateTenant(tenantId, body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TENANTS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      toast.success("Inquilino actualizado correctamente");
+    },
+    onError: (error: unknown) => {
+      toast.error(
+        errorMessageFromUnknown(error, "Error al actualizar el inquilino"),
+      );
+    },
+  });
+}
+
 export function useDeleteTenant() {
   const queryClient = useQueryClient();
 

@@ -126,7 +126,6 @@ class TenantsService {
   }
 
   async updateTenant(
-    roomId: string,
     tenantId: string,
     data: {
       name?: string;
@@ -136,9 +135,20 @@ class TenantsService {
       notes?: string;
     },
   ): Promise<TenantCore> {
-    const response = await apiClient.tenants
-      .owner({ roomId })({ id: tenantId })
-      .put(data);
+    const owner = apiClient.tenants.owner as unknown as Record<
+      string,
+      (params: { tenantId: string }) => {
+        put: (body: Record<string, unknown>) => Promise<{
+          data: unknown;
+          error: { value: unknown } | null;
+        }>;
+      }
+    >;
+    const byId = owner["by-id"];
+    if (!byId) {
+      throw new Error("Ruta de actualización por ID no disponible en el cliente");
+    }
+    const response = await byId({ tenantId }).put(data);
 
     if (response.error) {
       throw toServiceError(

@@ -47,10 +47,10 @@ import {
 import { Separator } from "@reentwise/ui/src/components/separator";
 import { Switch } from "@reentwise/ui/src/components/switch";
 
-const NOTES_MAX_LENGTH = 500;
+export const NOTES_MAX_LENGTH = 500;
 
 // Códigos de país (lada): América + Europa
-const COUNTRY_CODES = [
+export const COUNTRY_CODES = [
   { code: "1", label: "+1 🇺🇸 / 🇨🇦" },
   { code: "52", label: "+52 🇲🇽" },
   { code: "53", label: "+53 🇨🇺" },
@@ -135,7 +135,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 // 0 = Final de mes | 1 = Inicio de mes | 2-31 = Día fijo (29-31 usan último día en meses cortos)
-const PAYMENT_DAY_OPTIONS: { value: number; label: string }[] = [
+export const PAYMENT_DAY_OPTIONS: { value: number; label: string }[] = [
   { value: 1, label: "Inicio de mes (día 1)" },
   ...Array.from({ length: 27 }, (_, i) => ({
     value: i + 2,
@@ -287,24 +287,24 @@ export function TenantsCreateAndAssignForm({
                 name="countryCode"
                 render={({ field }) => (
                   <FormItem className="shrink-0">
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={field.disabled}
-                      >
-                        <SelectTrigger className="w-full">
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={field.disabled}
+                    >
+                      <FormControl>
+                        <SelectTrigger ref={field.ref} className="w-full">
                           <SelectValue placeholder="Lada" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {COUNTRY_CODES.map(({ code, label }) => (
-                            <SelectItem key={code} value={code}>
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                      </FormControl>
+                      <SelectContent>
+                        {COUNTRY_CODES.map(({ code, label }) => (
+                          <SelectItem key={code} value={code}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -355,7 +355,7 @@ export function TenantsCreateAndAssignForm({
                   disabled={field.disabled}
                 >
                   <FormControl>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger ref={field.ref} className="w-full">
                       <SelectValue placeholder="Selecciona el día del mes" />
                     </SelectTrigger>
                   </FormControl>
