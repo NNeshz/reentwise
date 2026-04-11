@@ -3,7 +3,7 @@ import { auditsTableHeaderRowClassName } from "@/modules/audits/lib/audit-displa
 export function AuditsTableHeader() {
   return (
     <div className={auditsTableHeaderRowClassName()}>
-      <div className="font-mono text-xs font-normal uppercase tracking-wide text-muted-foreground">
+      <div className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
         Fecha / hora
       </div>
       <div className="text-xs font-normal uppercase tracking-wide text-muted-foreground">

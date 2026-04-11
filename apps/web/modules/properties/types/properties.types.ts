@@ -5,6 +5,8 @@ export type PropertyListItem = {
   address: string | null;
   totalRooms: number;
   occupiedRooms: number;
+  /** ISO 8601; solo en detalle o con `includeArchived` en listado. */
+  archivedAt?: string | null;
 };
 
 /** Detalle de una propiedad (GET /properties/owner/:id). */

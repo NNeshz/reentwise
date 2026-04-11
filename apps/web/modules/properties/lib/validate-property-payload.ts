@@ -7,6 +7,10 @@ import type {
 export function isPropertyListItem(value: unknown): value is PropertyListItem {
   if (value === null || typeof value !== "object") return false;
   const o = value as Record<string, unknown>;
+  const archivedOk =
+    o.archivedAt === undefined ||
+    o.archivedAt === null ||
+    typeof o.archivedAt === "string";
   return (
     typeof o.id === "string" &&
     typeof o.name === "string" &&
@@ -14,7 +18,8 @@ export function isPropertyListItem(value: unknown): value is PropertyListItem {
     typeof o.totalRooms === "number" &&
     Number.isFinite(o.totalRooms) &&
     typeof o.occupiedRooms === "number" &&
-    Number.isFinite(o.occupiedRooms)
+    Number.isFinite(o.occupiedRooms) &&
+    archivedOk
   );
 }
 

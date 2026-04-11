@@ -11,6 +11,7 @@ import {
   createRoomBodySchema,
   updateRoomBodySchema,
   updateRoomStatusBodySchema,
+  setRoomArchivedBodySchema,
   roomsListSuccessSchema,
   roomDetailSuccessSchema,
   roomMutationSuccessSchema,
@@ -48,9 +49,12 @@ export const ownerRoomsRoutes = new Elysia({
   .use(roomsModule)
   .get(
     "/:propertyId",
-    async ({ params, roomsService, set }) => {
+    async ({ user, params, roomsService, set }) => {
       try {
-        const data = await roomsService.getPropertyRooms(params.propertyId);
+        const data = await roomsService.getPropertyRooms(
+          user.id,
+          params.propertyId,
+        );
         return apiSuccess("Rooms retrieved successfully", data);
       } catch (e) {
         return mapRoomsRouteError(e, set);
@@ -61,6 +65,7 @@ export const ownerRoomsRoutes = new Elysia({
       params: roomsPropertyParamsSchema,
       response: {
         200: roomsListSuccessSchema,
+        404: roomNotFoundSchema,
         500: roomServerErrorSchema,
       },
       detail: {
@@ -71,9 +76,10 @@ export const ownerRoomsRoutes = new Elysia({
   )
   .get(
     "/:propertyId/:id",
-    async ({ params, roomsService, set }) => {
+    async ({ user, params, roomsService, set }) => {
       try {
         const data = await roomsService.getRoomById(
+          user.id,
           params.propertyId,
           params.id,
         );
@@ -128,9 +134,10 @@ export const ownerRoomsRoutes = new Elysia({
   )
   .put(
     "/:propertyId/:id",
-    async ({ params, body, roomsService, set }) => {
+    async ({ user, params, body, roomsService, set }) => {
       try {
         const data = await roomsService.updateRoom(
+          user.id,
           params.propertyId,
           params.id,
           body,
@@ -157,9 +164,10 @@ export const ownerRoomsRoutes = new Elysia({
   )
   .delete(
     "/:propertyId/:id",
-    async ({ params, roomsService, set }) => {
+    async ({ user, params, roomsService, set }) => {
       try {
         const data = await roomsService.deleteRoom(
+          user.id,
           params.propertyId,
           params.id,
         );
@@ -182,11 +190,42 @@ export const ownerRoomsRoutes = new Elysia({
       },
     },
   )
+  .patch(
+    "/:propertyId/:id/archive",
+    async ({ user, params, body, roomsService, set }) => {
+      try {
+        const data = await roomsService.setRoomArchived(
+          user.id,
+          params.propertyId,
+          params.id,
+          body.archived,
+        );
+        return apiSuccess("Room archive updated successfully", data);
+      } catch (e) {
+        return mapRoomsRouteError(e, set);
+      }
+    },
+    {
+      authenticated: true,
+      params: roomsPropertyRoomParamsSchema,
+      body: setRoomArchivedBodySchema,
+      response: {
+        200: roomMutationSuccessSchema,
+        404: roomNotFoundSchema,
+        500: roomServerErrorSchema,
+      },
+      detail: {
+        summary: "Archivar o desarchivar cuarto",
+        tags: [openApiTags.Rooms],
+      },
+    },
+  )
   .put(
     "/:propertyId/:id/status",
-    async ({ params, body, roomsService, set }) => {
+    async ({ user, params, body, roomsService, set }) => {
       try {
         const data = await roomsService.updateRoomStatus(
+          user.id,
           params.propertyId,
           params.id,
           body.status,

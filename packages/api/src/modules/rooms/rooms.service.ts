@@ -2,10 +2,12 @@ import {
   db,
   eq,
   rooms,
+  properties,
   and,
   roomStatusEnum,
   tenants,
   asc,
+  isNull,
 } from "@reentwise/database";
 import {
   planLimitsService,
@@ -15,14 +17,32 @@ import { RoomNotFoundError } from "@reentwise/api/src/modules/rooms/lib/room-not
 import { InvalidRoomStatusError } from "@reentwise/api/src/modules/rooms/lib/invalid-room-status-error";
 
 export class RoomsService {
-  async getPropertyRooms(propertyId: string) {
+  private async requireOwnerProperty(ownerId: string, propertyId: string) {
+    const [row] = await db
+      .select({ id: properties.id })
+      .from(properties)
+      .where(
+        and(eq(properties.id, propertyId), eq(properties.ownerId, ownerId)),
+      )
+      .limit(1);
+    if (!row) {
+      throw new RoomNotFoundError("Propiedad no encontrada");
+    }
+  }
+
+  async getPropertyRooms(ownerId: string, propertyId: string) {
+    await this.requireOwnerProperty(ownerId, propertyId);
     return db.query.rooms.findMany({
-      where: eq(rooms.propertyId, propertyId),
+      where: and(
+        eq(rooms.propertyId, propertyId),
+        isNull(rooms.archivedAt),
+      ),
       orderBy: asc(rooms.createdAt),
     });
   }
 
-  async getRoomById(propertyId: string, roomId: string) {
+  async getRoomById(ownerId: string, propertyId: string, roomId: string) {
+    await this.requireOwnerProperty(ownerId, propertyId);
     const roomResult = await db.query.rooms.findFirst({
       where: and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)),
     });
@@ -76,6 +96,7 @@ export class RoomsService {
   }
 
   async updateRoom(
+    ownerId: string,
     propertyId: string,
     roomId: string,
     body: {
@@ -84,6 +105,7 @@ export class RoomsService {
       notes?: string;
     },
   ) {
+    await this.requireOwnerProperty(ownerId, propertyId);
     const [updated] = await db
       .update(rooms)
       .set({
@@ -101,7 +123,8 @@ export class RoomsService {
     return updated;
   }
 
-  async deleteRoom(propertyId: string, roomId: string) {
+  async deleteRoom(ownerId: string, propertyId: string, roomId: string) {
+    await this.requireOwnerProperty(ownerId, propertyId);
     const [deleted] = await db
       .delete(rooms)
       .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
@@ -114,7 +137,13 @@ export class RoomsService {
     return deleted;
   }
 
-  async updateRoomStatus(propertyId: string, roomId: string, status: string) {
+  async updateRoomStatus(
+    ownerId: string,
+    propertyId: string,
+    roomId: string,
+    status: string,
+  ) {
+    await this.requireOwnerProperty(ownerId, propertyId);
     type RoomStatus = (typeof roomStatusEnum.enumValues)[number];
     const typedStatus = status as RoomStatus;
 
@@ -130,6 +159,29 @@ export class RoomsService {
 
     if (!updated) {
       throw new RoomNotFoundError("Failed to update room status");
+    }
+
+    return updated;
+  }
+
+  async setRoomArchived(
+    ownerId: string,
+    propertyId: string,
+    roomId: string,
+    archived: boolean,
+  ) {
+    await this.requireOwnerProperty(ownerId, propertyId);
+    const [updated] = await db
+      .update(rooms)
+      .set({
+        archivedAt: archived ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(rooms.id, roomId), eq(rooms.propertyId, propertyId)))
+      .returning();
+
+    if (!updated) {
+      throw new RoomNotFoundError("Cuarto no encontrado");
     }
 
     return updated;

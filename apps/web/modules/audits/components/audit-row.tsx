@@ -12,7 +12,7 @@ type Props = {
 
 export function AuditRow({ row }: Props) {
   return (
-    <li className="py-3 text-sm">
+    <li className="py-1 text-sm">
       <div className={AUDITS_TABLE_GRID_CLASS}>
         <span className="font-mono text-xs text-muted-foreground">
           {formatAuditLoggedAt(row.loggedAt)}

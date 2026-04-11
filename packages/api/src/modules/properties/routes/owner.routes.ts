@@ -1,4 +1,4 @@
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
 import { propertiesModule } from "@reentwise/api/src/modules/properties/properties.module";
 import { PlanLimitExceededError } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
@@ -8,6 +8,7 @@ import {
   propertyIdParamsSchema,
   createPropertyBodySchema,
   updatePropertyBodySchema,
+  setPropertyArchivedBodySchema,
   propertiesListSuccessSchema,
   propertyOneSuccessSchema,
   propertyMutationSuccessSchema,
@@ -43,9 +44,13 @@ export const ownerPropertyRoutes = new Elysia({
   .use(propertiesModule)
   .get(
     "/",
-    async ({ user, propertiesService, set }) => {
+    async ({ user, query, propertiesService, set }) => {
       try {
-        const data = await propertiesService.getOwnerProperties(user.id);
+        const includeArchived =
+          query.includeArchived === "true" || query.includeArchived === "1";
+        const data = await propertiesService.getOwnerProperties(user.id, {
+          includeArchived,
+        });
         return apiSuccess("Properties retrieved successfully", data);
       } catch (e) {
         return mapPropertyRouteError(e, set);
@@ -53,6 +58,9 @@ export const ownerPropertyRoutes = new Elysia({
     },
     {
       authenticated: true,
+      query: t.Object({
+        includeArchived: t.Optional(t.String()),
+      }),
       response: {
         200: propertiesListSuccessSchema,
         500: propertyServerErrorSchema,
@@ -60,7 +68,7 @@ export const ownerPropertyRoutes = new Elysia({
       detail: {
         summary: "Listar propiedades",
         description:
-          "Propiedades del usuario con conteo de cuartos. Requiere sesión.",
+          "Propiedades del usuario con conteo de cuartos (solo activas por defecto). `includeArchived=true` incluye archivadas.",
         tags: [openApiTags.Properties],
       },
     },
@@ -113,6 +121,35 @@ export const ownerPropertyRoutes = new Elysia({
       detail: {
         summary: "Crear propiedad",
         description: "402 si se excede el límite del plan.",
+        tags: [openApiTags.Properties],
+      },
+    },
+  )
+  .patch(
+    "/:id/archive",
+    async ({ user, body, params, propertiesService, set }) => {
+      try {
+        const data = await propertiesService.setPropertyArchived(
+          user.id,
+          params.id,
+          body.archived,
+        );
+        return apiSuccess("Property archive updated successfully", data);
+      } catch (e) {
+        return mapPropertyRouteError(e, set);
+      }
+    },
+    {
+      authenticated: true,
+      params: propertyIdParamsSchema,
+      body: setPropertyArchivedBodySchema,
+      response: {
+        200: propertyMutationSuccessSchema,
+        404: propertyNotFoundSchema,
+        500: propertyServerErrorSchema,
+      },
+      detail: {
+        summary: "Archivar o desarchivar propiedad",
         tags: [openApiTags.Properties],
       },
     },

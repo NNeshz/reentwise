@@ -18,6 +18,10 @@ export const updatePropertyBodySchema = t.Object({
   address: t.Optional(t.String()),
 });
 
+export const setPropertyArchivedBodySchema = t.Object({
+  archived: t.Boolean(),
+});
+
 export const propertiesListSuccessSchema = apiSuccessAnyDataSchema;
 export const propertyOneSuccessSchema = apiSuccessAnyDataSchema;
 export const propertyMutationSuccessSchema = apiSuccessAnyDataSchema;

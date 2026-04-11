@@ -29,6 +29,10 @@ export const updateRoomStatusBodySchema = t.Object({
   status: t.String(),
 });
 
+export const setRoomArchivedBodySchema = t.Object({
+  archived: t.Boolean(),
+});
+
 export const roomsListSuccessSchema = apiSuccessAnyDataSchema;
 export const roomDetailSuccessSchema = apiSuccessAnyDataSchema;
 export const roomMutationSuccessSchema = apiSuccessAnyDataSchema;

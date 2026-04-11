@@ -19,6 +19,7 @@ export function mapPropertiesWithRoomCounts(
   >();
 
   for (const room of roomsList) {
+    if (room.archivedAt) continue;
     const current = roomsCounts.get(room.propertyId) ?? {
       totalRooms: 0,
       occupiedRooms: 0,

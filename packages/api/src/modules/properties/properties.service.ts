@@ -6,6 +6,7 @@ import {
   and,
   inArray,
   desc,
+  isNull,
 } from "@reentwise/database";
 import {
   planLimitsService,
@@ -15,11 +16,19 @@ import { PropertyNotFoundError } from "@reentwise/api/src/modules/properties/lib
 import { mapPropertiesWithRoomCounts } from "@reentwise/api/src/modules/properties/lib/properties-with-room-counts";
 
 export class PropertiesService {
-  async getOwnerProperties(ownerId: string) {
+  async getOwnerProperties(
+    ownerId: string,
+    options?: { includeArchived?: boolean },
+  ) {
+    const includeArchived = options?.includeArchived === true;
     const propertiesResult = await db
       .select()
       .from(properties)
-      .where(eq(properties.ownerId, ownerId))
+      .where(
+        includeArchived
+          ? eq(properties.ownerId, ownerId)
+          : and(eq(properties.ownerId, ownerId), isNull(properties.archivedAt)),
+      )
       .orderBy(desc(properties.createdAt));
 
     if (propertiesResult.length === 0) {
@@ -53,7 +62,9 @@ export class PropertiesService {
     const roomsResult = await db
       .select()
       .from(rooms)
-      .where(eq(rooms.propertyId, propertyId));
+      .where(
+        and(eq(rooms.propertyId, propertyId), isNull(rooms.archivedAt)),
+      );
 
     const totalRooms = roomsResult.length;
     const occupiedRooms = roomsResult.filter(
@@ -64,6 +75,7 @@ export class PropertiesService {
       id: propertyResult.id,
       name: propertyResult.name,
       address: propertyResult.address,
+      archivedAt: propertyResult.archivedAt?.toISOString() ?? null,
       totalRooms,
       occupiedRooms,
     };
@@ -109,6 +121,29 @@ export class PropertiesService {
 
     if (!propertyResult) {
       throw new PropertyNotFoundError("Failed to update property");
+    }
+
+    return propertyResult;
+  }
+
+  async setPropertyArchived(
+    ownerId: string,
+    propertyId: string,
+    archived: boolean,
+  ) {
+    const [propertyResult] = await db
+      .update(properties)
+      .set({
+        archivedAt: archived ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(properties.id, propertyId), eq(properties.ownerId, ownerId)),
+      )
+      .returning();
+
+    if (!propertyResult) {
+      throw new PropertyNotFoundError();
     }
 
     return propertyResult;

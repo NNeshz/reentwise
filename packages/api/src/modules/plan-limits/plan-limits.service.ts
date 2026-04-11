@@ -223,6 +223,42 @@ export class PlanLimitsService {
 
     return { ok: true };
   }
+
+  /**
+   * Vista de solo lectura para el cliente autenticado: tier efectivo, límites
+   * del plan y uso actual (activos, sin archivados).
+   */
+  async getOwnerPlanReadModel(ownerId: string) {
+    const ctx = await this.getLimitsContext(ownerId);
+    if (!ctx) return null;
+
+    const [activeProperties, activeRooms] = await Promise.all([
+      countActivePropertiesForOwner(ownerId),
+      countActiveRoomsForOwnerAcrossProperties(ownerId),
+    ]);
+
+    return {
+      effectiveTier: ctx.effectiveTier,
+      planTier: ctx.user.planTier,
+      subscriptionStatus: ctx.user.subscriptionStatus,
+      subscriptionCurrentPeriodEnd:
+        ctx.user.subscriptionCurrentPeriodEnd?.toISOString() ?? null,
+      limits: {
+        maxProperties: ctx.limits.maxProperties,
+        maxRooms: ctx.limits.maxRooms,
+        roomsLimitMode: ctx.limits.roomsLimitMode,
+        allowReminderT7: ctx.limits.allowReminderT7,
+        allowReminderT3: ctx.limits.allowReminderT3,
+        allowReminderToday: ctx.limits.allowReminderToday,
+        allowEmailPaymentRegistered: ctx.limits.allowEmailPaymentRegistered,
+        allowWhatsappPaymentReceipt: ctx.limits.allowWhatsappPaymentReceipt,
+      },
+      usage: {
+        activeProperties,
+        activeRooms,
+      },
+    };
+  }
 }
 
 export const planLimitsService = new PlanLimitsService();

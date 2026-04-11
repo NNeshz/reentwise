@@ -38,7 +38,7 @@ export function AuditsList() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <AuditsResultSummary
         totalItems={pagination?.totalItems ?? 0}
         isFetching={isFetching}

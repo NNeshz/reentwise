@@ -14,6 +14,11 @@ import {
   billingServerErrorSchema,
 } from "@reentwise/api/src/modules/billing/billing.schema";
 import { openApiTags } from "@reentwise/api/src/utils/openapi-meta";
+import { planLimitsService } from "@reentwise/api/src/modules/plan-limits/plan-limits.service";
+import {
+  apiSuccessAnyDataSchema,
+  apiErrorEnvelopeSchema,
+} from "@reentwise/api/src/utils/api-envelope.schema";
 
 function mapBillingOwnerError(
   e: unknown,
@@ -69,6 +74,30 @@ export const billingOwnerRoutes = new Elysia({
         summary: "Crear sesión de checkout (Polar)",
         description:
           "Devuelve `data.url` al checkout alojado en Polar. `productId` debe coincidir con `POLAR_PRODUCT_*` en el servidor.",
+        tags: [openApiTags.Billing],
+      },
+    },
+  )
+  .get(
+    "/plan",
+    async ({ user, set }) => {
+      const data = await planLimitsService.getOwnerPlanReadModel(user.id);
+      if (!data) {
+        set.status = 404;
+        return apiError(404, "No se pudo resolver el plan del usuario");
+      }
+      return apiSuccess("Plan y uso actual", data);
+    },
+    {
+      authenticated: true,
+      response: {
+        200: apiSuccessAnyDataSchema,
+        404: apiErrorEnvelopeSchema(404),
+      },
+      detail: {
+        summary: "Plan, límites y uso (solo lectura)",
+        description:
+          "Tier efectivo, límites de `plan_limits` y conteos activos (sin propiedades ni cuartos archivados).",
         tags: [openApiTags.Billing],
       },
     },
