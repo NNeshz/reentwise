@@ -43,7 +43,7 @@ export function TenantRowCard({ tenant, onAction }: Props) {
     <Card className="overflow-hidden p-0 transition-colors">
       <div className="flex items-center gap-4 p-4">
         <Avatar size="lg" className="h-10 w-10 shrink-0 border">
-          <AvatarFallback className="bg-primary/10 text-sm text-primary">
+          <AvatarFallback className="bg-primary/10 text-sm text-primary-figure">
             {tenant.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>

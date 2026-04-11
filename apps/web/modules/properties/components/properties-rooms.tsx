@@ -36,13 +36,21 @@ export function PropertiesRooms({
       <SheetContent className="w-full sm:max-w-lg">
         <SheetHeader>
           {isPending ? (
-            <PropertiesSheetHeaderSkeleton />
+            <>
+              <SheetTitle className="sr-only">Cargando propiedad</SheetTitle>
+              <PropertiesSheetHeaderSkeleton />
+            </>
           ) : error ? (
-            <PropertiesSheetError
-              error={error}
-              onRetry={() => void refetch()}
-              isRetrying={isRefetching}
-            />
+            <>
+              <SheetTitle className="sr-only">
+                Error al cargar la propiedad
+              </SheetTitle>
+              <PropertiesSheetError
+                error={error}
+                onRetry={() => void refetch()}
+                isRetrying={isRefetching}
+              />
+            </>
           ) : property ? (
             <div className="flex items-center space-x-4">
               <PropertiesUpdate
@@ -66,7 +74,7 @@ export function PropertiesRooms({
         </SheetHeader>
         {!error && property ? (
           <div className="min-h-0 flex-1 overflow-hidden px-4">
-            <RoomsList propertyId={propertyId} />
+            <RoomsList propertyId={propertyId} nestedInParentSheet />
           </div>
         ) : null}
         {!error && property ? (

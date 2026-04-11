@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { openAPI } from "better-auth/plugins";
 
-import { db } from "@reentwise/database";
+import { account, db, session, user, verification } from "@reentwise/database";
 
 const isProduction = process.env.NODE_ENV === "production";
 const trustedOrigins = [
@@ -14,7 +14,8 @@ const trustedOrigins = [
 export const auth = betterAuth({
   appName: "reentwise",
   database: drizzleAdapter(db, {
-    provider: "pg"
+    provider: "pg",
+    schema: { user, session, account, verification },
   }),
   secret: process.env.AUTH_SECRET,
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,

@@ -10,6 +10,7 @@
     "shadcn": "bun --filter @reentwise/ui shadcn",
     "db:generate": "bun --filter @reentwise/database db:generate",
     "db:migrate": "bun --filter @reentwise/database db:migrate",
+    "db:ensure-plan-limits": "bun --filter @reentwise/database db:ensure-plan-limits",
     "db:push": "bun --filter @reentwise/database db:push",
     "db:studio": "bun --filter @reentwise/database db:studio",
     "db:devreset": "bun --filter @reentwise/database db:devreset",

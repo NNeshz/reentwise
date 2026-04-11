@@ -52,7 +52,12 @@ export function RoomsStatus({
           </span>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent position="popper" align="end" sideOffset={2}>
+      <SelectContent
+        position="popper"
+        align="end"
+        sideOffset={2}
+        className="z-200 shadow-none"
+      >
         {ROOM_STATUS_VALUES.map((option) => {
           const optionBadge = getRoomStatusBadge(option);
           return (

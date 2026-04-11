@@ -23,10 +23,13 @@ export function RoomsDetails({
   propertyId,
   roomId,
   children,
+  nestedInParentSheet = false,
 }: {
   propertyId: string;
   roomId: string;
   children: React.ReactNode;
+  /** Si el listado vive dentro del Sheet de propiedad (evita modal anidado roto). */
+  nestedInParentSheet?: boolean;
 }) {
   const { data: room, isPending, error, refetch, isRefetching } = useRoom(
     propertyId,
@@ -35,23 +38,35 @@ export function RoomsDetails({
 
   const activeTenant = room?.tenants?.[0];
   const roomPriceNum = room?.price ? Number(room.price) : undefined;
+  const tenantCount = room?.tenants?.length ?? 0;
+  const canAssignOrCreateTenant = tenantCount === 0;
 
   return (
-    <Sheet>
+    <Sheet modal={!nestedInParentSheet}>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent className="w-full sm:max-w-lg">
-        <SheetHeader>
+      <SheetContent
+        nested={nestedInParentSheet}
+        className="flex h-full max-h-dvh w-full flex-col sm:max-w-lg"
+      >
+        <SheetHeader className="shrink-0">
           {isPending ? (
-            <RoomsDetailSheetHeaderSkeleton />
+            <>
+              <SheetTitle className="sr-only">Cargando habitación</SheetTitle>
+              <RoomsDetailSheetHeaderSkeleton />
+            </>
           ) : error ? (
-            <RoomsDetailSheetError
-              error={error}
-              onRetry={() => void refetch()}
-              isRetrying={isRefetching}
-            />
+            <>
+              <SheetTitle className="sr-only">Error al cargar habitación</SheetTitle>
+              <RoomsDetailSheetError
+                error={error}
+                onRetry={() => void refetch()}
+                isRetrying={isRefetching}
+              />
+            </>
           ) : room ? (
             <div className="flex items-center space-x-4">
               <RoomsUpdate
+                nestedInSheet
                 propertyId={propertyId}
                 roomId={roomId}
                 roomNumber={room.roomNumber}
@@ -60,7 +75,11 @@ export function RoomsDetails({
               />
               <div>
                 <SheetTitle>{room.roomNumber}</SheetTitle>
-                <SheetDescription>Detalles de la habitación.</SheetDescription>
+                <SheetDescription>
+                  {tenantCount === 0
+                    ? "Crea o asigna un inquilino a esta habitación."
+                    : "Detalles de la habitación."}
+                </SheetDescription>
               </div>
             </div>
           ) : (
@@ -72,39 +91,41 @@ export function RoomsDetails({
         </SheetHeader>
 
         {isPending ? (
-          <div className="mt-4 px-4">
+          <div className="mt-4 shrink-0 px-4">
             <Skeleton className="h-52 w-full rounded-xl" />
           </div>
         ) : null}
 
         {!error && room ? (
-          <div className="mt-4 space-y-4 px-4">
-            <RoomDetailSummaryCard
-              propertyId={propertyId}
-              roomId={roomId}
-              room={room}
-            />
-            {activeTenant ? (
-              <RoomDetailTenantCard roomId={roomId} tenant={activeTenant} />
+          <>
+            <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
+                <RoomDetailSummaryCard
+                  propertyId={propertyId}
+                  roomId={roomId}
+                  room={room}
+                />
+                {activeTenant ? (
+                  <RoomDetailTenantCard roomId={roomId} tenant={activeTenant} />
+                ) : null}
+              </div>
+            </div>
+            {canAssignOrCreateTenant ? (
+              <SheetFooter className="shrink-0">
+                <TenantsCreateAndAssign
+                  nestedInSheet
+                  roomId={roomId}
+                  roomPrice={
+                    roomPriceNum !== undefined && Number.isFinite(roomPriceNum)
+                      ? roomPriceNum
+                      : undefined
+                  }
+                />
+                <TenantsAsign nestedInSheet roomId={roomId} />
+              </SheetFooter>
             ) : null}
-          </div>
+          </>
         ) : null}
-
-        <SheetFooter>
-          {!error && room && room.tenants.length === 0 ? (
-            <>
-              <TenantsCreateAndAssign
-                roomId={roomId}
-                roomPrice={
-                  roomPriceNum !== undefined && Number.isFinite(roomPriceNum)
-                    ? roomPriceNum
-                    : undefined
-                }
-              />
-              <TenantsAsign roomId={roomId} />
-            </>
-          ) : null}
-        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

@@ -10,6 +10,7 @@
   "scripts": {
     "db:generate": "bun --env-file=../../.env drizzle-kit generate",
     "db:migrate": "bun --env-file=../../.env drizzle-kit migrate",
+    "db:ensure-plan-limits": "bun --env-file=../../.env ./ensure-plan-limits.ts",
     "db:push": "bun --env-file=../../.env drizzle-kit push",
     "db:studio": "bun --env-file=../../.env drizzle-kit studio",
     "db:devreset": "bun --env-file=../../.env ./devreset.ts"

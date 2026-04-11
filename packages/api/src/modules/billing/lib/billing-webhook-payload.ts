@@ -40,3 +40,17 @@ export function readNestedCustomerExternalId(
   if (!c) return null;
   return readTrimmedString(c, "external_id", "externalId");
 }
+
+/**
+ * Polar puede enviar `product_id` plano o una lista `products` en checkout/suscripción.
+ */
+export function readPolarProductId(obj: Record<string, unknown>): string | null {
+  const direct = readTrimmedString(obj, "product_id", "productId");
+  if (direct) return direct;
+  const products = obj.products ?? obj["products"];
+  if (!Array.isArray(products) || products.length === 0) return null;
+  const first = products[0];
+  if (typeof first === "string" && first.trim()) return first.trim();
+  const rec = asRecord(first);
+  return rec ? readTrimmedString(rec, "product_id", "productId", "id") : null;
+}

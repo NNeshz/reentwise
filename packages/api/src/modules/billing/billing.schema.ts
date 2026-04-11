@@ -16,6 +16,7 @@ export const billingCheckoutSuccessSchema = apiSuccessEnvelopeSchema(
 );
 
 export const billingBadRequestSchema = apiErrorEnvelopeSchema(400);
+export const billingConflictSchema = apiErrorEnvelopeSchema(409);
 export const billingServiceUnavailableSchema = apiErrorEnvelopeSchema(503);
 export const billingServerErrorSchema = apiErrorEnvelopeSchema(500);
 

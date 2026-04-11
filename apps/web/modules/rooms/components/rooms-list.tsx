@@ -38,7 +38,14 @@ function useFilteredSortedRooms(
   }, [rooms, search, sortBy]);
 }
 
-export function RoomsList({ propertyId }: { propertyId: string }) {
+export function RoomsList({
+  propertyId,
+  nestedInParentSheet = false,
+}: {
+  propertyId: string;
+  /** Listado dentro del Sheet de la propiedad (habilita `modal={false}` en cada habitación). */
+  nestedInParentSheet?: boolean;
+}) {
   const { data: rooms = [], isPending, error, refetch, isRefetching } =
     useRooms(propertyId);
 
@@ -71,10 +78,16 @@ export function RoomsList({ propertyId }: { propertyId: string }) {
             {visible.map((room) => (
               <RoomsDetails
                 key={room.id}
+                nestedInParentSheet={nestedInParentSheet}
                 propertyId={propertyId}
                 roomId={room.id}
               >
-                <RoomListCard room={room} />
+                <button
+                  type="button"
+                  className="group w-full cursor-pointer rounded-xl border-0 bg-transparent p-0 text-left outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <RoomListCard room={room} />
+                </button>
               </RoomsDetails>
             ))}
           </div>

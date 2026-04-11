@@ -25,17 +25,26 @@ import { IconPlus } from "@tabler/icons-react"
 import { useIsMobile } from "@reentwise/ui/src/hooks/use-mobile"
 import { TenantsCreateAndAssignForm } from "./tenants-create-and-assign-form"
 
-export function TenantsCreateAndAssign({ roomId, roomPrice }: { roomId: string, roomPrice?: number }) {
+type TenantsCreateAndAssignProps = {
+  roomId: string
+  roomPrice?: number
+  /** Ver `TenantsAsign` — mismo patrón para sheet dentro de sheet. */
+  nestedInSheet?: boolean
+}
+
+export function TenantsCreateAndAssign({ roomId, roomPrice, nestedInSheet = false }: TenantsCreateAndAssignProps) {
   const [open, setOpen] = React.useState(false)
   const isMobile = useIsMobile()
 
   if (!isMobile) {
     return (
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
         <SheetTrigger asChild>
-          <Button><IconPlus /> Crear inquilino</Button>
+          <Button type="button" className="w-full">
+            <IconPlus /> Crear inquilino
+          </Button>
         </SheetTrigger>
-        <SheetContent className="w-full sm:max-w-lg">
+        <SheetContent nested={nestedInSheet} className="w-full sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Agregar inquilino</SheetTitle>
             <SheetDescription>

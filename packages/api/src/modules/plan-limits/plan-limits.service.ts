@@ -25,6 +25,28 @@ export type {
 } from "@reentwise/api/src/modules/plan-limits/types/plan-limits.types";
 
 export class PlanLimitsService {
+  /**
+   * Fila `plan_limits` para el tier resuelto; si falta (migración incompleta u
+   * inconsistencia), usa la fila `freemium` para no bloquear con un mensaje
+   * falso de "usuario no encontrado".
+   */
+  private async loadPlanLimitsRowForTier(
+    tier: PlanTier,
+  ): Promise<typeof planLimits.$inferSelect | null> {
+    const [forTier] = await db
+      .select()
+      .from(planLimits)
+      .where(eq(planLimits.tier, tier))
+      .limit(1);
+    if (forTier) return forTier;
+    const [freemium] = await db
+      .select()
+      .from(planLimits)
+      .where(eq(planLimits.tier, "freemium"))
+      .limit(1);
+    return freemium ?? null;
+  }
+
   async getLimitsContext(
     ownerId: string,
   ): Promise<OwnerPlanLimitsContext | null> {
@@ -35,11 +57,7 @@ export class PlanLimitsService {
       .limit(1);
     if (!u) return null;
     const effectiveTier = getEffectivePlanTier(u);
-    const [limits] = await db
-      .select()
-      .from(planLimits)
-      .where(eq(planLimits.tier, effectiveTier))
-      .limit(1);
+    const limits = await this.loadPlanLimitsRowForTier(effectiveTier);
     if (!limits) return null;
     return { user: u, effectiveTier, limits };
   }
@@ -80,11 +98,22 @@ export class PlanLimitsService {
       limitsRows.map((row) => [row.tier, row] as const),
     );
 
+    let freemiumFallback = limitsByTier.get("freemium");
+    if (!freemiumFallback) {
+      const [fb] = await db
+        .select()
+        .from(planLimits)
+        .where(eq(planLimits.tier, "freemium"))
+        .limit(1);
+      freemiumFallback = fb;
+    }
+
     for (const id of unique) {
       const u = byId.get(id);
       if (!u) continue;
       const effectiveTier = getEffectivePlanTier(u);
-      const limits = limitsByTier.get(effectiveTier);
+      const limits =
+        limitsByTier.get(effectiveTier) ?? freemiumFallback ?? null;
       if (!limits) continue;
       out.set(id, { user: u, effectiveTier, limits });
     }
@@ -95,8 +124,28 @@ export class PlanLimitsService {
   async assertCanCreateProperty(
     ownerId: string,
   ): Promise<{ ok: true } | { ok: false; message: string }> {
+    if (!ownerId?.trim()) {
+      return {
+        ok: false,
+        message: "Sesión inválida: no se pudo determinar el usuario.",
+      };
+    }
     const ctx = await this.getLimitsContext(ownerId);
-    if (!ctx) return { ok: false, message: "Usuario no encontrado" };
+    if (!ctx) {
+      const [row] = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.id, ownerId))
+        .limit(1);
+      if (!row) {
+        return { ok: false, message: "Usuario no encontrado" };
+      }
+      return {
+        ok: false,
+        message:
+          "No hay límites de plan configurados en la base de datos (tabla plan_limits). Ejecuta las migraciones.",
+      };
+    }
 
     const n = await countActivePropertiesForOwner(ownerId);
 
@@ -113,8 +162,28 @@ export class PlanLimitsService {
     ownerId: string,
     propertyId: string,
   ): Promise<{ ok: true } | { ok: false; message: string }> {
+    if (!ownerId?.trim()) {
+      return {
+        ok: false,
+        message: "Sesión inválida: no se pudo determinar el usuario.",
+      };
+    }
     const ctx = await this.getLimitsContext(ownerId);
-    if (!ctx) return { ok: false, message: "Usuario no encontrado" };
+    if (!ctx) {
+      const [row] = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.id, ownerId))
+        .limit(1);
+      if (!row) {
+        return { ok: false, message: "Usuario no encontrado" };
+      }
+      return {
+        ok: false,
+        message:
+          "No hay límites de plan configurados en la base de datos (tabla plan_limits). Ejecuta las migraciones.",
+      };
+    }
 
     const [prop] = await db
       .select({ id: properties.id })

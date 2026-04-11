@@ -17,6 +17,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /* Same hue/chroma as primary; darker in light mode for icons/text on white cards */
+  --color-primary-figure: var(--primary-figure);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -57,10 +59,13 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.9482 0.1679 115.28);
   --primary-foreground: oklch(0.205 0 0);
+  /* Readable brand tint on white (same hue/chroma as --primary, lower lightness) */
+  --primary-figure: oklch(0.52 0.1679 115.28);
   --secondary: oklch(0.97 0 0 / 15%);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* Slightly darker grays for icons + secondary copy on white */
+  --muted-foreground: oklch(0.42 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -93,10 +98,12 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.9482 0.1679 115.28);
   --primary-foreground: oklch(0.205 0 0);
+  --primary-figure: var(--primary);
   --secondary: oklch(0.97 0 0 / 15%);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  /* Brighter gray so icons + hints read clearly on dark surfaces */
+  --muted-foreground: oklch(0.8 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);

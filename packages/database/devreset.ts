@@ -1,8 +1,9 @@
 /**
- * Destructive: drops all tables (and public enums) in schema `public`.
+ * Destructive: drops all tables (and public enums) in schema `public`,
+ * and schema `drizzle` (historial de migraciones de drizzle-kit).
  * Only runs when NODE_ENV is exactly "development" — refuses otherwise.
  *
- * Usage from repo root: `bun run db:devreset`
+ * Usage from repo root: `bun run db:devreset` then `bun run db:migrate`.
  * Ensure `.env` has NODE_ENV=development (or prefix the command).
  */
 import postgres from "postgres";
@@ -44,8 +45,10 @@ async function main() {
       END
       $drop$;
     `);
+    await sql.unsafe(`DROP SCHEMA IF EXISTS "drizzle" CASCADE;`);
     console.log("Dropped all tables and enum types in schema public.");
-    console.log("Run db:migrate or db:push to recreate the schema.");
+    console.log('Dropped schema "drizzle" (migration history).');
+    console.log("Run db:migrate to apply drizzle/0000_init.sql from a clean state.");
   } finally {
     await sql.end({ timeout: 5 });
   }

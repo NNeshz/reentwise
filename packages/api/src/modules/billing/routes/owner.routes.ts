@@ -1,6 +1,7 @@
 import Elysia from "elysia";
 import { betterAuthPlugin } from "@reentwise/api/src/utils/better-auth-plugin";
 import { billingModule } from "@reentwise/api/src/modules/billing/billing.module";
+import { BillingActivePolarSubscriptionError } from "@reentwise/api/src/modules/billing/lib/billing-active-polar-subscription-error";
 import { BillingNotConfiguredError } from "@reentwise/api/src/modules/billing/lib/billing-not-configured-error";
 import { InvalidBillingProductError } from "@reentwise/api/src/modules/billing/lib/invalid-billing-product-error";
 import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
@@ -8,6 +9,7 @@ import {
   billingCreateCheckoutBodySchema,
   billingCheckoutSuccessSchema,
   billingBadRequestSchema,
+  billingConflictSchema,
   billingServiceUnavailableSchema,
   billingServerErrorSchema,
 } from "@reentwise/api/src/modules/billing/billing.schema";
@@ -20,6 +22,10 @@ function mapBillingOwnerError(
   if (e instanceof InvalidBillingProductError) {
     set.status = 400;
     return apiError(400, e.message);
+  }
+  if (e instanceof BillingActivePolarSubscriptionError) {
+    set.status = 409;
+    return apiError(409, e.message);
   }
   if (e instanceof BillingNotConfiguredError) {
     set.status = 503;
@@ -55,6 +61,7 @@ export const billingOwnerRoutes = new Elysia({
       response: {
         200: billingCheckoutSuccessSchema,
         400: billingBadRequestSchema,
+        409: billingConflictSchema,
         500: billingServerErrorSchema,
         503: billingServiceUnavailableSchema,
       },

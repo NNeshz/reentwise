@@ -2,6 +2,7 @@ import { Polar } from "@polar-sh/sdk";
 import { Webhook, WebhookVerificationError } from "standardwebhooks";
 import { and, db, eq, user, type PlanTier } from "@reentwise/database";
 import { env } from "@reentwise/api/src/utils/envs";
+import { BillingActivePolarSubscriptionError } from "@reentwise/api/src/modules/billing/lib/billing-active-polar-subscription-error";
 import { BillingNotConfiguredError } from "@reentwise/api/src/modules/billing/lib/billing-not-configured-error";
 import { InvalidBillingProductError } from "@reentwise/api/src/modules/billing/lib/invalid-billing-product-error";
 import {
@@ -14,11 +15,40 @@ import {
   asRecord,
   parseIsoDate,
   readNestedCustomerExternalId,
+  readPolarProductId,
   readTrimmedString,
   userIdFromMetadata,
 } from "@reentwise/api/src/modules/billing/lib/billing-webhook-payload";
 
 let polarSingleton: Polar | null = null;
+
+function isPolarResourceNotFound(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "error" in e &&
+    (e as { error: string }).error === "ResourceNotFound"
+  );
+}
+
+function isPolarHttpLikeError(
+  e: unknown,
+): e is { message: string; body: string } {
+  if (typeof e !== "object" || e === null) return false;
+  const o = e as Record<string, unknown>;
+  return (
+    typeof o.message === "string" &&
+    typeof o.body === "string"
+  );
+}
+
+/** Subconjunto del modelo Polar `active_subscriptions` (evita imports profundos del SDK). */
+type PolarActiveSubscriptionRow = {
+  id: string;
+  productId: string;
+  status: string;
+  currentPeriodEnd: Date;
+};
 
 function getPolar(): Polar {
   const key = env.POLAR_ACCESS_TOKEN;
@@ -35,6 +65,69 @@ function getPolar(): Polar {
 }
 
 export class BillingService {
+  private static readonly ACTIVE_SUB_CHECKOUT_MESSAGE =
+    "Polar ya tiene una suscripción activa o en prueba vinculada a tu cuenta. Hemos actualizado tu plan en la aplicación. Para contratar otro producto, cancela la suscripción actual en el portal de Polar o cámbiala desde ahí.";
+
+  /**
+   * Aplica una fila de `active_subscriptions` de Polar al usuario local (misma lógica
+   * que el webhook `customer.state_changed`).
+   */
+  private async applyPolarActiveSubscriptionToUser(
+    userId: string,
+    polarCustomerId: string,
+    sub: PolarActiveSubscriptionRow,
+  ): Promise<void> {
+    const tier = planTierFromProductId(sub.productId);
+    const mapped = mapProviderSubscriptionStatus(
+      String(sub.status),
+    ) as SubscriptionStatus;
+
+    await db
+      .update(user)
+      .set({
+        billingCustomerId: polarCustomerId,
+        billingSubscriptionId: sub.id,
+        billingPriceId: sub.productId,
+        subscriptionStatus: mapped,
+        ...(tier ? { planTier: tier as PlanTier } : {}),
+        subscriptionCurrentPeriodEnd: sub.currentPeriodEnd,
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, userId));
+  }
+
+  /**
+   * Si existe cliente Polar por `external_id` = userId y tiene suscripciones activas,
+   * sincroniza la BD local.
+   */
+  private async syncLocalUserFromPolarIfActive(userId: string): Promise<void> {
+    try {
+      const polar = getPolar();
+      const state = await polar.customers.getStateExternal({
+        externalId: userId,
+      });
+      if (state.type !== "individual" && state.type !== "team") {
+        return;
+      }
+      const subs = state.activeSubscriptions;
+      if (!subs.length) return;
+      await this.applyPolarActiveSubscriptionToUser(
+        userId,
+        state.id,
+        subs[0]!,
+      );
+    } catch (e) {
+      if (isPolarResourceNotFound(e)) return;
+      console.warn("[billing] syncLocalUserFromPolarIfActive:", e);
+    }
+  }
+
+  private isPolarActiveSubscriptionCheckoutError(e: unknown): boolean {
+    if (!isPolarHttpLikeError(e)) return false;
+    const combined = `${e.message}\n${e.body}`;
+    return /already have an active subscription/i.test(combined);
+  }
+
   async createCheckoutSession(input: { userId: string; productId: string }) {
     const allowed = configuredProductIds();
     if (allowed.length > 0 && !allowed.includes(input.productId)) {
@@ -44,22 +137,57 @@ export class BillingService {
     const polar = getPolar();
     const baseUrl = env.NEXT_PUBLIC_FRONTEND_URL.replace(/\/$/, "");
 
-    const checkout = await polar.checkouts.create({
-      products: [input.productId],
-      externalCustomerId: input.userId,
-      metadata: { user_id: input.userId },
-      successUrl: `${baseUrl}/exito`,
-      returnUrl: `${baseUrl}/cancelado`,
-      trialInterval: "day",
-      trialIntervalCount: 30,
-      allowTrial: true,
-    });
-
-    if (!checkout.url?.trim()) {
-      throw new Error("Polar no devolvió URL de checkout");
+    try {
+      const state = await polar.customers.getStateExternal({
+        externalId: input.userId,
+      });
+      if (state.type === "individual" || state.type === "team") {
+        if (state.activeSubscriptions.length > 0) {
+          await this.applyPolarActiveSubscriptionToUser(
+            input.userId,
+            state.id,
+            state.activeSubscriptions[0]!,
+          );
+          throw new BillingActivePolarSubscriptionError(
+            BillingService.ACTIVE_SUB_CHECKOUT_MESSAGE,
+          );
+        }
+      }
+    } catch (e) {
+      if (e instanceof BillingActivePolarSubscriptionError) throw e;
+      if (isPolarResourceNotFound(e)) {
+        // Aún no hay cliente en Polar con este external_id: checkout puede crearse.
+      } else {
+        console.warn("[billing] getStateExternal antes de checkout:", e);
+      }
     }
 
-    return { url: checkout.url };
+    try {
+      const checkout = await polar.checkouts.create({
+        products: [input.productId],
+        externalCustomerId: input.userId,
+        metadata: { user_id: input.userId },
+        successUrl: `${baseUrl}/exito`,
+        returnUrl: `${baseUrl}/cancelado`,
+        trialInterval: "day",
+        trialIntervalCount: 30,
+        allowTrial: true,
+      });
+
+      if (!checkout.url?.trim()) {
+        throw new Error("Polar no devolvió URL de checkout");
+      }
+
+      return { url: checkout.url };
+    } catch (e) {
+      if (this.isPolarActiveSubscriptionCheckoutError(e)) {
+        await this.syncLocalUserFromPolarIfActive(input.userId);
+        throw new BillingActivePolarSubscriptionError(
+          BillingService.ACTIVE_SUB_CHECKOUT_MESSAGE,
+        );
+      }
+      throw e;
+    }
   }
 
   async handleWebhookRequest(request: Request, rawBody: string) {
@@ -166,7 +294,7 @@ export class BillingService {
 
     const id = readTrimmedString(sub, "id");
     const customerId = readTrimmedString(sub, "customer_id", "customerId");
-    const productId = readTrimmedString(sub, "product_id", "productId");
+    const productId = readPolarProductId(sub);
     const status = readTrimmedString(sub, "status") ?? "active";
     const end = parseIsoDate(sub.current_period_end ?? sub.currentPeriodEnd);
     if (!id || !customerId || !productId || !end) return;
@@ -249,7 +377,7 @@ export class BillingService {
     if (!customerId) return;
 
     const subInnerId = readTrimmedString(sub, "id");
-    const productId = readTrimmedString(sub, "product_id", "productId");
+    const productId = readPolarProductId(sub);
     const status = readTrimmedString(sub, "status") ?? "active";
     const end = parseIsoDate(sub.current_period_end ?? sub.currentPeriodEnd);
     if (!subInnerId || !productId || !end) return;
@@ -323,7 +451,7 @@ export class BillingService {
     if (!first) return;
 
     const subId = readTrimmedString(first, "id");
-    const productId = readTrimmedString(first, "product_id", "productId");
+    const productId = readPolarProductId(first);
     const status = readTrimmedString(first, "status") ?? "active";
     const end = parseIsoDate(first.current_period_end ?? first.currentPeriodEnd);
     if (!subId || !productId || !end) return;
@@ -365,7 +493,7 @@ export class BillingService {
       "subscription_id",
       "subscriptionId",
     );
-    const productId = readTrimmedString(data, "product_id", "productId");
+    const productId = readPolarProductId(data);
 
     const patch: {
       updatedAt: Date;
@@ -385,7 +513,13 @@ export class BillingService {
         const tier = planTierFromProductId(productId);
         if (tier) patch.planTier = tier;
       }
-      patch.subscriptionStatus = "trialing";
+      const nestedSub = asRecord(data.subscription ?? data["subscription"]);
+      const polarSubStatus = nestedSub
+        ? readTrimmedString(nestedSub, "status")
+        : null;
+      patch.subscriptionStatus = polarSubStatus
+        ? mapProviderSubscriptionStatus(polarSubStatus)
+        : "trialing";
     }
 
     await db.update(user).set(patch).where(eq(user.id, userId));

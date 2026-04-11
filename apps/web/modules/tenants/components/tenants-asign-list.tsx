@@ -133,7 +133,7 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
   };
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 space-y-3 px-4">
       {tenantsList.map((tenant) => (
         <Card
           key={tenant.id}

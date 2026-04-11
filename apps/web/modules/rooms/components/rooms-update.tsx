@@ -31,25 +31,27 @@ export function RoomsUpdate({
   roomNumber,
   price,
   notes,
+  nestedInSheet = false,
 }: {
   propertyId: string;
   roomId: string;
   roomNumber: string;
   price: string;
   notes: string;
+  nestedInSheet?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const isMobile = useIsMobile();
 
   if (!isMobile) {
     return (
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
         <SheetTrigger asChild>
-          <Button>
+          <Button type="button" size="icon" variant="outline" aria-label="Editar habitación">
             <IconEdit />
           </Button>
         </SheetTrigger>
-        <SheetContent className="w-full sm:max-w-lg">
+        <SheetContent nested={nestedInSheet} className="w-full sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Editar habitación</SheetTitle>
             <SheetDescription>
@@ -73,7 +75,7 @@ export function RoomsUpdate({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button>
+        <Button type="button" size="icon" variant="outline" aria-label="Editar habitación">
           <IconEdit />
         </Button>
       </DrawerTrigger>

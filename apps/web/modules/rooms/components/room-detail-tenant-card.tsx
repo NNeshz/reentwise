@@ -46,7 +46,7 @@ export function RoomDetailTenantCard({ roomId, tenant }: Props) {
     <Card className="rounded-xl border-primary/20 bg-primary/5 shadow-md">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary-figure">
             <IconUser className="size-4" stroke={2} />
           </span>
           Inquilino actual
