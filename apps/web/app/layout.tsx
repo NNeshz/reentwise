@@ -18,6 +18,10 @@ const hostGrotesk = Host_Grotesk({
 export const metadata: Metadata = {
   title: "Reentwise — Recordatorios constantes, pagos asegurados",
   description: "No cobres más, deja esa tarea delegada.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
   verification: {
     other: {
       "facebook-domain-verification": "hci0wgulr1ybujqc9qkpxake93wa78",
