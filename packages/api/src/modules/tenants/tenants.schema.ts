@@ -61,6 +61,8 @@ export const assignTenantBodySchema = t.Object({
   notes: t.Optional(t.String()),
   firstMonthRent: t.Optional(t.Number()),
   deposit: t.Optional(t.Number()),
+  contractStartsAt: t.Optional(t.String({ format: "date-time" })),
+  contractEndsAt: t.Optional(t.String({ format: "date-time" })),
 });
 
 export const reassignTenantBodySchema = t.Optional(

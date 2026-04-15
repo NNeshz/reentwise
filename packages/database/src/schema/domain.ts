@@ -14,6 +14,8 @@ import {
   paymentStatusEnum,
   paymentMethodEnum,
   roomStatusEnum,
+  contractStatusEnum,
+  expenseCategoryEnum,
   auditChannelEnum,
   auditStatusEnum,
 } from "../enums/app";
@@ -80,11 +82,44 @@ export const tenants = pgTable("tenants", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+/**
+ * Contrato / arrendamiento: acuerdo acotado en el tiempo entre dueño e inquilino.
+ * Cada renovación es una fila nueva; la anterior queda en `renewed` o `terminated`.
+ */
+export const contracts = pgTable("contracts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id),
+  roomId: uuid("room_id")
+    .notNull()
+    .references(() => rooms.id),
+  status: contractStatusEnum("status").notNull().default("draft"),
+  rentAmount: decimal("rent_amount", { precision: 10, scale: 2 }).notNull(),
+  paymentDay: integer("payment_day").notNull(),
+  deposit: decimal("deposit", { precision: 10, scale: 2 }).default("0.00"),
+  startsAt: timestamp("starts_at", { mode: "date", withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { mode: "date", withTimezone: true }),
+  signedAt: timestamp("signed_at", { mode: "date", withTimezone: true }),
+  terminatedAt: timestamp("terminated_at", { mode: "date", withTimezone: true }),
+  /** FK al contrato anterior cuando es renovación. */
+  previousContractId: uuid("previous_contract_id"),
+  pdfUrl: text("pdf_url"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const payments = pgTable("payments", {
   id: uuid("id").defaultRandom().primaryKey(),
   tenantId: uuid("tenant_id")
     .notNull()
     .references(() => tenants.id),
+  /** Nullable para compatibilidad con cobros pre-contratos; nuevos cobros deben llenarlo. */
+  contractId: uuid("contract_id").references(() => contracts.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).default(
     "0.00",
@@ -117,4 +152,24 @@ export const audits = pgTable("audits", {
     .notNull()
     .defaultNow(),
   note: varchar("note", { length: 160 }).notNull(),
+});
+
+/** Gastos del dueño (mantenimiento, impuestos, seguros, etc.). */
+export const expenses = pgTable("expenses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id),
+  propertyId: uuid("property_id").references(() => properties.id),
+  roomId: uuid("room_id").references(() => rooms.id),
+  category: expenseCategoryEnum("category").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  vendor: text("vendor"),
+  receiptUrl: text("receipt_url"),
+  incurredAt: timestamp("incurred_at", { mode: "date", withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });

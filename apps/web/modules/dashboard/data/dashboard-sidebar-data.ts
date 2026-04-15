@@ -5,6 +5,7 @@ import {
   IconHelpCircle,
   IconHome,
   IconMessageCircle,
+  IconReceipt,
   IconUsers,
 } from "@tabler/icons-react";
 import type {
@@ -32,6 +33,11 @@ export const dashboardNavMain: DashboardNavMainItem[] = [
     title: "Inquilinos",
     url: "/dashboard/tenants",
     icon: IconUsers,
+  },
+  {
+    title: "Gastos",
+    url: "/dashboard/expenses",
+    icon: IconReceipt,
   },
   {
     title: "Auditorías",

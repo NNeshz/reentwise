@@ -35,5 +35,25 @@ export const auditStatusEnum = pgEnum("audit_status", [
   "failed",
 ]);
 
+export const contractStatusEnum = pgEnum("contract_status", [
+  "draft",
+  "active",
+  "renewed",
+  "terminated",
+  "expired",
+]);
+
+export const expenseCategoryEnum = pgEnum("expense_category", [
+  "maintenance",
+  "repair",
+  "tax",
+  "insurance",
+  "utility",
+  "administration",
+  "other",
+]);
+
 export type AuditChannel = (typeof auditChannelEnum.enumValues)[number];
 export type AuditStatus = (typeof auditStatusEnum.enumValues)[number];
+export type ContractStatus = (typeof contractStatusEnum.enumValues)[number];
+export type ExpenseCategory = (typeof expenseCategoryEnum.enumValues)[number];

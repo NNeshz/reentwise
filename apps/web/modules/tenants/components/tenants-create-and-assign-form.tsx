@@ -130,6 +130,8 @@ const formSchema = z.object({
     .min(0, "El monto no puede ser negativo")
     .optional(),
   deposit: z.number().min(0, "El depósito no puede ser negativo").optional(),
+  contractStartsAt: z.string().optional(),
+  contractEndsAt: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -174,6 +176,8 @@ export function TenantsCreateAndAssignForm({
       adjustFirstMonth: false,
       firstMonthRent: undefined,
       deposit: undefined,
+      contractStartsAt: new Date().toISOString().slice(0, 10),
+      contractEndsAt: "",
     },
   });
 
@@ -229,6 +233,12 @@ export function TenantsCreateAndAssignForm({
           ? values.firstMonthRent
           : undefined,
       deposit: values.deposit !== undefined ? values.deposit : undefined,
+      contractStartsAt: values.contractStartsAt
+        ? new Date(values.contractStartsAt).toISOString()
+        : undefined,
+      contractEndsAt: values.contractEndsAt
+        ? new Date(values.contractEndsAt).toISOString()
+        : undefined,
     });
     form.reset();
     onSuccess?.();
@@ -462,6 +472,48 @@ export function TenantsCreateAndAssignForm({
               </FormItem>
             )}
           />
+
+          <Separator />
+
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Contrato</p>
+            <p className="text-muted-foreground text-xs">
+              Fechas del arrendamiento. El contrato se crea automáticamente al asignar.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="contractStartsAt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Inicio</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contractEndsAt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fin (opcional)</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormDescription className="sr-only">
+                    Dejar vacío para contrato indefinido
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           {!embedded && <Separator />}
 

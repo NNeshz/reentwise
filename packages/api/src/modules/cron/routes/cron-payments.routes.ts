@@ -52,7 +52,7 @@ export const cronPaymentsRoutes = new Elysia({
         summary:
           "Rutina diaria de cobranza y recordatorios (T-7…T-4, T-3…T-1, día de pago, +2 mora)",
         description:
-          "Autenticación: header `Authorization: Bearer <CRON_SECRET>`. Incluye backfill de cobros: genera pagos pendientes/mora para periodos cuyo día de cobro ya pasó si el cron falló o no corrió. En T-7 y T-3 se crea el cobro `pending` del periodo (si no existe) para que el dueño pueda registrar pagos en la app. Recordatorios usan ventana catch-up si el cron no corrió el día exacto. Fecha “hoy” según `CRON_TIMEZONE` (por defecto America/Mexico_City).",
+          "Autenticación: header `Authorization: Bearer <CRON_SECRET>`. Incluye backfill de cobros: genera pagos pendientes/mora para periodos cuyo día de cobro ya pasó si el cron falló o no corrió. En T-7 y T-3 se crea el cobro `pending` del periodo (si no existe) para que el dueño pueda registrar pagos en la app. Recordatorios usan ventana catch-up si el cron no corrió el día exacto. Fecha “hoy” según `user.timezone` del dueño si existe; si no, `CRON_TIMEZONE` (por defecto America/Mexico_City).",
         tags: [openApiTags.Cron],
       },
     },

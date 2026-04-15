@@ -5,6 +5,5 @@ import type { SettingsNavItem } from "@/modules/settings/types/settings.types";
  */
 export const settingsNavItems: SettingsNavItem[] = [
   { label: "General", href: "/dashboard/settings" },
-  { label: "WhatsApp", href: "/dashboard/settings/whatsapp" },
   { label: "Cuenta", href: "/dashboard/settings/account" },
 ];

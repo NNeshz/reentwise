@@ -110,6 +110,8 @@ class TenantsService {
       notes?: string;
       firstMonthRent?: number;
       deposit?: number;
+      contractStartsAt?: string;
+      contractEndsAt?: string;
     },
   ): Promise<TenantCore> {
     const response = await apiClient.tenants.owner.assign({ roomId }).post(data);

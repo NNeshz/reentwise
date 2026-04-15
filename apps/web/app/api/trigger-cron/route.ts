@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+/**
+ * Vercel Cron invoca esta ruta según `vercel.json`. Los horarios del cron de Vercel son siempre **UTC**
+ * (p. ej. 14:00 UTC corresponde a 08:00 en America/Mexico_City con offset UTC-6).
+ */
 export async function GET(request: Request) {
   // 1. Vercel envía automáticamente una cabecera de autorización a sus cron jobs
   const authHeader = request.headers.get('authorization');

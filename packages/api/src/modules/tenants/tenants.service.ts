@@ -5,6 +5,7 @@ import {
   gt,
   gte,
   tenants,
+  contracts,
   and,
   rooms,
   properties,
@@ -315,6 +316,8 @@ export class TenantsService {
       notes?: string;
       firstMonthRent?: number;
       deposit?: number;
+      contractStartsAt?: string;
+      contractEndsAt?: string;
     },
   ) {
     assertPaymentDayRange(body.paymentDay);
@@ -372,8 +375,29 @@ export class TenantsService {
         });
       }
 
+      const startsAt = body.contractStartsAt
+        ? new Date(body.contractStartsAt)
+        : new Date();
+
+      const [contract] = await tx
+        .insert(contracts)
+        .values({
+          ownerId: tenantOwnerId!,
+          tenantId: newTenant.id,
+          roomId,
+          rentAmount: room.price.toString(),
+          paymentDay: body.paymentDay,
+          deposit: body.deposit?.toString() ?? "0.00",
+          startsAt,
+          endsAt: body.contractEndsAt ? new Date(body.contractEndsAt) : null,
+          status: "active",
+          signedAt: startsAt,
+        })
+        .returning();
+
       return {
         newTenant,
+        contract,
         welcomePropertyName: room.propertyName,
         welcomeRoomNumber: room.roomNumber,
         welcomeRent: room.price,

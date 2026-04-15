@@ -20,6 +20,10 @@ function invalidateAfterTenantMutation(
     queryKey: queryKeys.properties.all,
     refetchType: "all",
   });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.contracts.all,
+    refetchType: "all",
+  });
 }
 
 export function useTenantsQuery() {
@@ -52,6 +56,8 @@ export function useCreateAndAssignTenant(roomId: string) {
       notes?: string;
       firstMonthRent?: number;
       deposit?: number;
+      contractStartsAt?: string;
+      contractEndsAt?: string;
     }) => tenantsService.createAndAssignTenant(roomId, data),
     onSuccess: () => {
       invalidateAfterTenantMutation(queryClient);

@@ -7,5 +7,7 @@ export const createApiClient: (
   treaty<server>(url, {
     fetch: {
       credentials: "include",
+      /** Owner/session JSON must not be served from the browser HTTP cache after refresh. */
+      cache: "no-store",
     },
   }).api;

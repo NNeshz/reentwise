@@ -38,11 +38,13 @@ import { dateYmdUtc } from "@reentwise/api/src/modules/cron/utils/date-ymd";
 import { buildReminderTriggersForDay } from "@reentwise/api/src/modules/cron/lib/reminder-triggers";
 import { backfillRentPaymentsForTenant } from "@reentwise/api/src/modules/cron/lib/backfill-rent-payments";
 import { dispatchCronReminderAudits } from "@reentwise/api/src/modules/cron/lib/dispatch-reminder-audits";
-import { wallYmdInCronTz } from "@reentwise/api/src/modules/cron/utils/cron-calendar";
+import {
+  ownerWallClockTz,
+  wallYmdForOwner,
+} from "@reentwise/api/src/modules/cron/utils/cron-calendar";
 
 export class CronService {
   async runDailyTasks() {
-    const todayWall = wallYmdInCronTz(new Date());
     const logs: string[] = [];
 
     const activeRows = await db
@@ -62,8 +64,16 @@ export class CronService {
       activeRows.map((r) => r.property.ownerId),
     );
 
-    for (const { tenant, room } of activeRows) {
-      await backfillRentPaymentsForTenant(tenant, room, todayWall, logs);
+    for (const { tenant, room, owner } of activeRows) {
+      const tz = ownerWallClockTz(owner.timezone);
+      const todayWall = wallYmdForOwner(new Date(), owner.timezone);
+      await backfillRentPaymentsForTenant(
+        tenant,
+        room,
+        todayWall,
+        logs,
+        tz,
+      );
     }
 
     for (const { tenant, room, property, owner } of activeRows) {
@@ -73,6 +83,7 @@ export class CronService {
         continue;
       }
 
+      const todayWall = wallYmdForOwner(new Date(), owner.timezone);
       const triggers = buildReminderTriggersForDay(todayWall, tenant.paymentDay);
       for (const t of triggers) {
         await this.processTenant(

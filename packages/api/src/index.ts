@@ -11,9 +11,12 @@ import { pingRoutes } from "@reentwise/api/src/modules/ping/ping.routes";
 
 import { ownerMetricsRoutes } from "@reentwise/api/src/modules/metrics/metrics.routes";
 import { ownerPropertyRoutes } from "@reentwise/api/src/modules/properties/properties.routes";
+import { ownerSettingsRoutes } from "@reentwise/api/src/modules/settings/settings.routes";
 import { ownerRoomsRoutes } from "@reentwise/api/src/modules/rooms/rooms.routes";
 import { ownerTenantsRoutes } from "@reentwise/api/src/modules/tenants/tenants.routes";
 import { ownerPaymentsRoutes } from "@reentwise/api/src/modules/payments/payments.routes";
+import { ownerContractRoutes } from "@reentwise/api/src/modules/contracts/contracts.routes";
+import { ownerExpenseRoutes } from "@reentwise/api/src/modules/expenses/expenses.routes";
 import { ownerAuditsRoutes } from "@reentwise/api/src/modules/audits/audits.routes";
 import { cronPaymentsRoutes } from "@reentwise/api/src/modules/cron/cron.routes";
 import { billingRoutes } from "@reentwise/api/src/modules/billing/billing.routes";
@@ -41,9 +44,12 @@ export const api = new Elysia({
   .use(emailRoutes)
   .use(pingRoutes)
   .use(ownerPropertyRoutes)
+  .use(ownerSettingsRoutes)
   .use(ownerRoomsRoutes)
   .use(ownerTenantsRoutes)
   .use(ownerPaymentsRoutes)
+  .use(ownerContractRoutes)
+  .use(ownerExpenseRoutes)
   .use(ownerAuditsRoutes)
   .use(ownerMetricsRoutes)
   .use(

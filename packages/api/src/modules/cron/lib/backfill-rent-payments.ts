@@ -4,6 +4,7 @@ import { getPaymentDateForMonth } from "@reentwise/api/src/modules/tenants/tenan
 import {
   type WallYmd,
   calendarDaysBetween,
+  cronTimezone,
   wallYmdInCronTz,
 } from "@reentwise/api/src/modules/cron/utils/cron-calendar";
 
@@ -14,8 +15,12 @@ function periodKey(year: number, month: number): string {
   return `${year}-${month}`;
 }
 
-function wallYmdFromDateField(d: Date): WallYmd {
-  return wallYmdInCronTz(d);
+function wallYmdFromDateField(d: Date, tz: string): WallYmd {
+  try {
+    return wallYmdInCronTz(d, tz);
+  } catch {
+    return wallYmdInCronTz(d, cronTimezone());
+  }
 }
 
 /**
@@ -27,10 +32,11 @@ export async function backfillRentPaymentsForTenant(
   room: typeof rooms.$inferSelect,
   todayWall: WallYmd,
   logs: string[],
+  wallClockTz: string,
 ): Promise<void> {
   const startWall = tenant.startDate
-    ? wallYmdFromDateField(new Date(tenant.startDate))
-    : wallYmdFromDateField(new Date(tenant.createdAt ?? Date.now()));
+    ? wallYmdFromDateField(new Date(tenant.startDate), wallClockTz)
+    : wallYmdFromDateField(new Date(tenant.createdAt ?? Date.now()), wallClockTz);
 
   const capFirst = new Date(
     todayWall.y,

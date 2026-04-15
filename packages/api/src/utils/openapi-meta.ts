@@ -10,11 +10,14 @@ export const openApiTags = {
   Rooms: "Rooms",
   Tenants: "Tenants",
   Payments: "Payments",
+  Contracts: "Contracts",
+  Expenses: "Expenses",
   Metrics: "Metrics",
   Audits: "Audits",
   Cron: "Cron",
   Billing: "Billing",
   Webhooks: "Webhooks",
+  Settings: "Settings",
 } as const;
 
 const envelopeDoc = [
@@ -65,6 +68,16 @@ export const openApiDocumentation = {
       description: "Listado y operaciones sobre pagos mensuales (owner).",
     },
     {
+      name: openApiTags.Contracts,
+      description:
+        "Contratos / arrendamientos: ciclo de vida, PDF y renovaciones.",
+    },
+    {
+      name: openApiTags.Expenses,
+      description:
+        "Gastos del propietario (mantenimiento, impuestos, seguros, etc.).",
+    },
+    {
       name: openApiTags.Metrics,
       description: "Métricas y tarjetas del dashboard.",
     },
@@ -83,6 +96,11 @@ export const openApiDocumentation = {
     {
       name: openApiTags.Webhooks,
       description: "Endpoints para proveedores externos (firma obligatoria).",
+    },
+    {
+      name: openApiTags.Settings,
+      description:
+        "Preferencias de cuenta del propietario (moneda, zona horaria, datos fiscales).",
     },
   ],
 };

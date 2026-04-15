@@ -16,4 +16,13 @@ export const queryKeys = {
   payments: {
     all: ["payments"] as const,
   },
+  contracts: {
+    all: ["contracts"] as const,
+  },
+  expenses: {
+    all: ["expenses"] as const,
+  },
+  settings: {
+    ownerProfile: ["settings", "ownerProfile"] as const,
+  },
 } as const;

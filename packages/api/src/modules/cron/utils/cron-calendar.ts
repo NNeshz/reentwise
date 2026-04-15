@@ -9,6 +9,30 @@ export function cronTimezone(): string {
   return env.CRON_TIMEZONE?.trim() || DEFAULT_TZ;
 }
 
+/** IANA del dueño si está en perfil; si no, misma TZ que el resto del cron (`CRON_TIMEZONE`). */
+export function ownerWallClockTz(
+  ownerTimezone: string | null | undefined,
+): string {
+  const t = ownerTimezone?.trim();
+  if (t) return t;
+  return cronTimezone();
+}
+
+/**
+ * Fecha civil “hoy” para el dueño. Si `user.timezone` no es IANA válida, se usa `cronTimezone()`.
+ */
+export function wallYmdForOwner(
+  instant: Date,
+  ownerTimezone: string | null | undefined,
+): WallYmd {
+  const tz = ownerWallClockTz(ownerTimezone);
+  try {
+    return wallYmdInCronTz(instant, tz);
+  } catch {
+    return wallYmdInCronTz(instant, cronTimezone());
+  }
+}
+
 /**
  * Fecha civil (año-mes-día) en la zona del cron, a partir de un instante.
  * Evita que un servidor en UTC dispare recordatorios un día antes/después.
