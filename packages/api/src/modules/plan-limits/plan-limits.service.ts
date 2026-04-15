@@ -252,6 +252,7 @@ export class PlanLimitsService {
         allowReminderToday: ctx.limits.allowReminderToday,
         allowEmailPaymentRegistered: ctx.limits.allowEmailPaymentRegistered,
         allowWhatsappPaymentReceipt: ctx.limits.allowWhatsappPaymentReceipt,
+        allowWhatsappAbonoReceipt: ctx.limits.allowWhatsappAbonoReceipt,
       },
       usage: {
         activeProperties,

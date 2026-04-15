@@ -48,7 +48,10 @@ export async function sendPayReceiptNotifications(
 
   const outstanding = Math.max(0, amount - newAmountPaid);
 
-  if (limits?.allowWhatsappPaymentReceipt) {
+  const sendWaPartial = limits?.allowWhatsappPaymentReceipt && limits?.allowWhatsappAbonoReceipt;
+  const sendWaFull = limits?.allowWhatsappPaymentReceipt;
+
+  if (newStatus === "partial" ? sendWaPartial : sendWaFull) {
     if (newStatus === "partial") {
       await auditsService.withWhatsAppAudit(
         {

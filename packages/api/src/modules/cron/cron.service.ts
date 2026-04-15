@@ -1,4 +1,4 @@
-import { db, eq, and } from "@reentwise/database";
+import { db, eq, and, isNull } from "@reentwise/database";
 import {
   tenants,
   payments,
@@ -37,6 +37,7 @@ import {
 import { dateYmdUtc } from "@reentwise/api/src/modules/cron/utils/date-ymd";
 import { buildReminderTriggersForDay } from "@reentwise/api/src/modules/cron/lib/reminder-triggers";
 import { backfillRentPaymentsForTenant } from "@reentwise/api/src/modules/cron/lib/backfill-rent-payments";
+import { enforceRoomLimitsForOwners } from "@reentwise/api/src/modules/cron/lib/enforce-room-limits";
 import { dispatchCronReminderAudits } from "@reentwise/api/src/modules/cron/lib/dispatch-reminder-audits";
 import {
   ownerWallClockTz,
@@ -58,11 +59,13 @@ export class CronService {
       .innerJoin(rooms, eq(tenants.roomId, rooms.id))
       .innerJoin(properties, eq(rooms.propertyId, properties.id))
       .innerJoin(user, eq(properties.ownerId, user.id))
-      .where(eq(rooms.status, "occupied"));
+      .where(and(eq(rooms.status, "occupied"), isNull(rooms.archivedAt)));
 
-    const limitsByOwner = await planLimitsService.getLimitsContexts(
-      activeRows.map((r) => r.property.ownerId),
-    );
+    const ownerIds = [...new Set(activeRows.map((r) => r.property.ownerId))];
+    const limitsByOwner = await planLimitsService.getLimitsContexts(ownerIds);
+
+    // Archiva aleatoriamente cuartos en exceso antes de procesar recordatorios
+    await enforceRoomLimitsForOwners(ownerIds, limitsByOwner, logs);
 
     for (const { tenant, room, owner } of activeRows) {
       const tz = ownerWallClockTz(owner.timezone);

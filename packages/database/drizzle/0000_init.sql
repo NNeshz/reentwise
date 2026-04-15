@@ -104,12 +104,12 @@ CREATE TABLE "plan_limits" (
 	"allow_whatsapp_payment_receipt" boolean NOT NULL
 );
 --> statement-breakpoint
-INSERT INTO "plan_limits" ("tier", "max_properties", "max_rooms", "rooms_limit_mode", "allow_reminder_t7", "allow_reminder_t3", "allow_reminder_today", "allow_email_payment_registered", "allow_whatsapp_payment_receipt") VALUES
-	('freemium', 1, 2, 'total', false, true, false, false, false),
-	('trial', 2, 15, 'total', true, true, true, true, false),
-	('basico', 2, 5, 'per_property', true, true, true, true, false),
-	('pro', 4, 60, 'total', true, true, true, true, true),
-	('patron', 12, 200, 'total', true, true, true, true, true);
+INSERT INTO "plan_limits" ("tier", "max_properties", "max_rooms", "rooms_limit_mode", "allow_reminder_t7", "allow_reminder_t3", "allow_reminder_today", "allow_email_payment_registered", "allow_whatsapp_payment_receipt", "allow_whatsapp_abono_receipt") VALUES
+	('freemium', 1, 2, 'total', false, true, false, false, true, false),
+	('trial', 2, 15, 'total', true, true, true, true, true, true),
+	('basico', 2, 5, 'total', false, true, true, true, true, true),
+	('pro', 4, 15, 'total', true, true, true, true, true, true),
+	('patron', 12, 25, 'total', true, true, true, true, true, true);
 --> statement-breakpoint
 CREATE TABLE "properties" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

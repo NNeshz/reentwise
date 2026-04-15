@@ -33,6 +33,9 @@ export const planLimits = pgTable("plan_limits", {
   allowWhatsappPaymentReceipt: boolean(
     "allow_whatsapp_payment_receipt",
   ).notNull(),
+  allowWhatsappAbonoReceipt: boolean(
+    "allow_whatsapp_abono_receipt",
+  ).notNull(),
 });
 
 export const properties = pgTable("properties", {
