@@ -149,7 +149,7 @@ export function TenantEditSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="overflow-y-auto sm:max-w-md">
+      <SheetContent className="!block overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Editar inquilino</SheetTitle>
           <SheetDescription>

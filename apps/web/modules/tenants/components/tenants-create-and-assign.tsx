@@ -6,89 +6,76 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@reentwise/ui/src/components/sheet"
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@reentwise/ui/src/components/drawer"
-
 import { IconPlus } from "@tabler/icons-react"
-import { useIsMobile } from "@reentwise/ui/src/hooks/use-mobile"
-import { TenantsCreateAndAssignForm } from "./tenants-create-and-assign-form"
+import { useCreateAndAssignTenant } from "@/modules/tenants/hooks/use-tenants"
+import {
+  TenantsCreateAndAssignForm,
+  type CreateAndAssignData,
+} from "./tenants-create-and-assign-form"
 
-type TenantsCreateAndAssignProps = {
+export function TenantsCreateAndAssign({
+  roomId,
+  roomPrice,
+  nestedInSheet = false,
+}: {
   roomId: string
   roomPrice?: number
-  /** Ver `TenantsAsign` — mismo patrón para sheet dentro de sheet. */
   nestedInSheet?: boolean
-}
-
-export function TenantsCreateAndAssign({ roomId, roomPrice, nestedInSheet = false }: TenantsCreateAndAssignProps) {
+}) {
   const [open, setOpen] = React.useState(false)
-  const isMobile = useIsMobile()
+  const formId = React.useId()
+  const createAndAssign = useCreateAndAssignTenant(roomId)
 
-  if (!isMobile) {
-    return (
-      <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
-        <SheetTrigger asChild>
-          <Button type="button" className="w-full">
-            <IconPlus /> Crear inquilino
-          </Button>
-        </SheetTrigger>
-        <SheetContent nested={nestedInSheet} className="w-full sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle>Agregar inquilino</SheetTitle>
-            <SheetDescription>
-              Agrega un nuevo inquilino para que puedas gestionarlo.
-            </SheetDescription>
-          </SheetHeader>
-          <TenantsCreateAndAssignForm
-            roomId={roomId}
-            roomPrice={roomPrice}
-            embedded
-            onSuccess={() => setOpen(false)}
-          />
-        </SheetContent>
-      </Sheet>
-    )
+  const handleSubmit = async (data: CreateAndAssignData) => {
+    await createAndAssign.mutateAsync(data)
+    setOpen(false)
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button
-          className="w-full"
-        ><IconPlus /> Crear inquilino</Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="text-left">
-          <DrawerTitle>Crear inquilino</DrawerTitle>
-          <DrawerDescription>
-            Agrega un nuevo inquilino para que puedas gestionarlo.
-          </DrawerDescription>
-        </DrawerHeader>
-        <TenantsCreateAndAssignForm
-          roomId={roomId}
-          roomPrice={roomPrice}
-          className="px-4"
-          embedded
-          onSuccess={() => setOpen(false)}
-        />
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancelar</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+    <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
+      <SheetTrigger asChild>
+        <Button type="button" className="w-full">
+          <IconPlus /> Crear inquilino
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        nested={nestedInSheet}
+        className="flex h-full max-h-dvh w-full flex-col sm:max-w-lg"
+      >
+        <SheetHeader className="shrink-0">
+          <SheetTitle>Agregar inquilino</SheetTitle>
+          <SheetDescription>
+            Crea y asigna un nuevo inquilino a esta habitación.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {open && (
+            <TenantsCreateAndAssignForm
+              formId={formId}
+              roomPrice={roomPrice}
+              onSubmit={handleSubmit}
+              isPending={createAndAssign.isPending}
+            />
+          )}
+        </div>
+
+        <SheetFooter className="shrink-0 border-t flex-col gap-2 px-4 pb-4 pt-3">
+          <Button
+            type="submit"
+            form={formId}
+            className="w-full"
+            disabled={createAndAssign.isPending}
+          >
+            {createAndAssign.isPending ? "Agregando..." : "Agregar inquilino"}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

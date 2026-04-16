@@ -5,10 +5,6 @@
 --   pro:      max_rooms=15
 --   patron:   max_rooms=25
 
-ALTER TABLE "plan_limits"
-  ADD COLUMN "allow_whatsapp_abono_receipt" boolean NOT NULL DEFAULT false;
---> statement-breakpoint
-
 -- freemium: habilita WA para pago completo; abono queda false (default)
 UPDATE "plan_limits"
 SET "allow_whatsapp_payment_receipt" = true

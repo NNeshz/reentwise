@@ -39,6 +39,8 @@ const envSchema = t.Object({
   POLAR_PRODUCT_PATRON: t.Optional(t.String()),
   /** IANA TZ para fechas del cron (recordatorios / backfill). Ej: America/Mexico_City */
   CRON_TIMEZONE: t.Optional(t.String()),
+  /** Secret para autenticar el endpoint POST /cron/payments/daily */
+  CRON_SECRET: t.Optional(t.String()),
 });
 
 type EnvSchema = typeof envSchema.static;
@@ -124,6 +126,7 @@ declare global {
       POLAR_PRODUCT_PRO?: string;
       POLAR_PRODUCT_PATRON?: string;
       CRON_TIMEZONE?: string;
+      CRON_SECRET?: string;
     }
   }
 }

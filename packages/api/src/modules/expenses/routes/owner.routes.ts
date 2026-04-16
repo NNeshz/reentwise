@@ -5,6 +5,7 @@ import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
 import { ExpenseNotFoundError } from "@reentwise/api/src/modules/expenses/lib/expense-not-found-error";
 import {
   expenseIdParamsSchema,
+  expensesListQuerySchema,
   createExpenseBodySchema,
   updateExpenseBodySchema,
   expensesSuccessSchema,
@@ -35,9 +36,16 @@ export const ownerExpenseRoutes = new Elysia({
   .use(expensesModule)
   .get(
     "/",
-    async ({ user, expensesService, set }) => {
+    async ({ user, query, expensesService, set }) => {
       try {
-        const data = await expensesService.getExpensesByOwner(user.id);
+        const data = await expensesService.getExpensesByOwner(user.id, {
+          from: query.from,
+          to: query.to,
+          year: query.year,
+          month: query.month,
+          propertyId: query.propertyId,
+          category: query.category,
+        });
         return apiSuccess("Gastos obtenidos", data);
       } catch (e) {
         return mapExpenseRouteError(e, set);
@@ -45,9 +53,12 @@ export const ownerExpenseRoutes = new Elysia({
     },
     {
       authenticated: true,
+      query: expensesListQuerySchema,
       detail: {
         tags: [openApiTags.Expenses],
         summary: "Listar gastos del dueño",
+        description:
+          "Filtros opcionales: `from`/`to` (ISO date YYYY-MM-DD), `year`, `month` (1-12), `propertyId`, `category`.",
       },
       response: { 200: expensesSuccessSchema, 500: expensesError500Schema },
     },

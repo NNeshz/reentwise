@@ -54,9 +54,15 @@ export async function enforceRoomLimitsForOwners(
 
     if (ownerRooms.length <= maxRooms) continue;
 
-    // Orden aleatorio; los que superan el límite se archivan
-    const shuffled = [...ownerRooms].sort(() => Math.random() - 0.5);
-    const toArchive = shuffled.slice(maxRooms);
+    // Primero vacantes (aleatorio dentro del grupo), luego ocupados (aleatorio).
+    // Así se preservan cuartos con inquilinos activos mientras sea posible.
+    const vacant = ownerRooms
+      .filter((r) => r.status !== "occupied")
+      .sort(() => Math.random() - 0.5);
+    const occupied = ownerRooms
+      .filter((r) => r.status === "occupied")
+      .sort(() => Math.random() - 0.5);
+    const toArchive = [...vacant, ...occupied].slice(maxRooms);
     const now = new Date();
 
     for (const room of toArchive) {

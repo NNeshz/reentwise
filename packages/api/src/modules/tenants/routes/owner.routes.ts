@@ -108,9 +108,9 @@ export const ownerTenantsRoutes = new Elysia({
   )
   .get(
     "/:roomId",
-    async ({ params, tenantsService, set }) => {
+    async ({ user, params, tenantsService, set }) => {
       try {
-        const data = await tenantsService.getRoomTenants(params.roomId);
+        const data = await tenantsService.getRoomTenants(params.roomId, user.id);
         return apiSuccess("Room tenants retrieved successfully", data);
       } catch (e) {
         return mapTenantsError(e, set);
@@ -128,9 +128,9 @@ export const ownerTenantsRoutes = new Elysia({
   )
   .post(
     "/:roomId",
-    async ({ params, body, tenantsService, set }) => {
+    async ({ user, params, body, tenantsService, set }) => {
       try {
-        const data = await tenantsService.createTenant(params.roomId, body);
+        const data = await tenantsService.createTenant(params.roomId, user.id, body);
         return apiSuccess("Tenant created successfully", data);
       } catch (e) {
         return mapTenantsError(e, set);
@@ -149,10 +149,11 @@ export const ownerTenantsRoutes = new Elysia({
   )
   .post(
     "/assign/:roomId",
-    async ({ params, body, tenantsService, set }) => {
+    async ({ user, params, body, tenantsService, set }) => {
       try {
         const data = await tenantsService.createAndAssignTenant(
           params.roomId,
+          user.id,
           body,
         );
         return apiSuccess("Tenant assigned successfully", data);
@@ -173,11 +174,12 @@ export const ownerTenantsRoutes = new Elysia({
   )
   .post(
     "/reassign/:roomId/:tenantId",
-    async ({ params, body, tenantsService, set }) => {
+    async ({ user, params, body, tenantsService, set }) => {
       try {
         const data = await tenantsService.reassignTenant(
           params.roomId,
           params.tenantId,
+          user.id,
           body ?? undefined,
         );
         return apiSuccess("Tenant reassigned successfully", data);
@@ -275,11 +277,12 @@ export const ownerTenantsRoutes = new Elysia({
   )
   .delete(
     "/:roomId/:id",
-    async ({ params, tenantsService, set }) => {
+    async ({ user, params, tenantsService, set }) => {
       try {
         const data = await tenantsService.deleteTenant(
           params.roomId,
           params.id,
+          user.id,
         );
         return apiSuccess("Tenant deleted successfully", data);
       } catch (e) {

@@ -8,7 +8,6 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@reentwise/ui/src/components/sheet";
-
 import { RoomsList } from "@/modules/rooms/components/rooms-list";
 import { PropertiesUpdate } from "@/modules/properties/components/properties-update";
 import { RoomsCreate } from "@/modules/rooms/components/rooms-create";
@@ -23,18 +22,14 @@ type PropertiesRoomsProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function PropertiesRooms({
-  propertyId,
-  open,
-  onOpenChange,
-}: PropertiesRoomsProps) {
+export function PropertiesRooms({ propertyId, open, onOpenChange }: PropertiesRoomsProps) {
   const { data: property, isPending, error, refetch, isRefetching } =
     useProperty(propertyId);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg">
-        <SheetHeader>
+      <SheetContent className="flex h-full max-h-dvh w-full flex-col sm:max-w-lg">
+        <SheetHeader className="shrink-0">
           {isPending ? (
             <>
               <SheetTitle className="sr-only">Cargando propiedad</SheetTitle>
@@ -42,9 +37,7 @@ export function PropertiesRooms({
             </>
           ) : error ? (
             <>
-              <SheetTitle className="sr-only">
-                Error al cargar la propiedad
-              </SheetTitle>
+              <SheetTitle className="sr-only">Error al cargar la propiedad</SheetTitle>
               <PropertiesSheetError
                 error={error}
                 onRetry={() => void refetch()}
@@ -54,6 +47,7 @@ export function PropertiesRooms({
           ) : property ? (
             <div className="flex items-center space-x-4">
               <PropertiesUpdate
+                nestedInSheet
                 propertyId={propertyId}
                 propertyName={property.name}
                 propertyAddress={property.address}
@@ -78,8 +72,8 @@ export function PropertiesRooms({
           </div>
         ) : null}
         {!error && property ? (
-          <SheetFooter>
-            <RoomsCreate propertyId={propertyId} />
+          <SheetFooter className="shrink-0">
+            <RoomsCreate nestedInSheet propertyId={propertyId} />
           </SheetFooter>
         ) : null}
       </SheetContent>

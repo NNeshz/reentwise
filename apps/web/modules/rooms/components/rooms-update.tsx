@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { Button } from "@reentwise/ui/src/components/button";
+import * as React from "react"
+import { Button } from "@reentwise/ui/src/components/button"
 import {
   Sheet,
   SheetContent,
@@ -9,21 +9,9 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@reentwise/ui/src/components/sheet";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@reentwise/ui/src/components/drawer";
-
-import { IconEdit } from "@tabler/icons-react";
-import { useIsMobile } from "@reentwise/ui/src/hooks/use-mobile";
-import { RoomsUpdateForm } from "./rooms-update-form";
+} from "@reentwise/ui/src/components/sheet"
+import { IconEdit } from "@tabler/icons-react"
+import { RoomsUpdateForm } from "./rooms-update-form"
 
 export function RoomsUpdate({
   propertyId,
@@ -33,75 +21,46 @@ export function RoomsUpdate({
   notes,
   nestedInSheet = false,
 }: {
-  propertyId: string;
-  roomId: string;
-  roomNumber: string;
-  price: string;
-  notes: string;
-  nestedInSheet?: boolean;
+  propertyId: string
+  roomId: string
+  roomNumber: string
+  price: string
+  notes: string
+  nestedInSheet?: boolean
 }) {
-  const [open, setOpen] = React.useState(false);
-  const isMobile = useIsMobile();
+  const [open, setOpen] = React.useState(false)
 
-  if (!isMobile) {
-    return (
-      <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
-        <SheetTrigger asChild>
-          <Button type="button" size="icon" variant="outline" aria-label="Editar habitación">
-            <IconEdit />
-          </Button>
-        </SheetTrigger>
-        <SheetContent nested={nestedInSheet} className="w-full sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle>Editar habitación</SheetTitle>
-            <SheetDescription>
-              Actualiza los datos de esta habitación.
-            </SheetDescription>
-          </SheetHeader>
+  return (
+    <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
+      <SheetTrigger asChild>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          aria-label="Editar habitación"
+        >
+          <IconEdit />
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        nested={nestedInSheet}
+        className="!block w-full overflow-y-auto sm:max-w-lg"
+      >
+        <SheetHeader>
+          <SheetTitle>Editar habitación</SheetTitle>
+          <SheetDescription>Actualiza los datos de esta habitación.</SheetDescription>
+        </SheetHeader>
+        {open && (
           <RoomsUpdateForm
             propertyId={propertyId}
             roomId={roomId}
             roomNumber={roomNumber}
             price={price}
             notes={notes}
-            embedded
             onSuccess={() => setOpen(false)}
           />
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button type="button" size="icon" variant="outline" aria-label="Editar habitación">
-          <IconEdit />
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="text-left">
-          <DrawerTitle>Editar habitación</DrawerTitle>
-          <DrawerDescription>
-            Actualiza los datos de esta habitación.
-          </DrawerDescription>
-        </DrawerHeader>
-        <RoomsUpdateForm
-          propertyId={propertyId}
-          roomId={roomId}
-          roomNumber={roomNumber}
-          price={price}
-          notes={notes}
-          className="px-4"
-          embedded
-          onSuccess={() => setOpen(false)}
-        />
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancelar</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
+        )}
+      </SheetContent>
+    </Sheet>
+  )
 }

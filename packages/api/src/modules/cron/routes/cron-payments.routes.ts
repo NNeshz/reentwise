@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import { env } from "@reentwise/api/src/utils/envs";
 import { cronModule } from "@reentwise/api/src/modules/cron/cron.module";
 import {
   cronDailySuccessResponseSchema,
@@ -16,8 +17,12 @@ export const cronPaymentsRoutes = new Elysia({
   .post(
     "/daily",
     async ({ headers, set, cronService }) => {
-      const authHeader = headers.authorization;
-      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      const secret = env.CRON_SECRET?.trim();
+      if (!secret) {
+        set.status = 500;
+        return apiError(500, "CRON_SECRET no está configurado en el servidor");
+      }
+      if (headers.authorization !== `Bearer ${secret}`) {
         set.status = 401;
         return apiError(401, "No autorizado");
       }

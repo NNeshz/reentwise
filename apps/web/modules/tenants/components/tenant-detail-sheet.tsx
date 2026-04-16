@@ -62,7 +62,7 @@ export function TenantDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="overflow-y-auto sm:max-w-md">
+      <SheetContent className="!block overflow-y-auto sm:max-w-md">
         <SheetHeader className="items-center text-center">
           <Avatar size="lg" className="h-16 w-16 border">
             <AvatarFallback className="bg-primary/10 text-lg text-primary-figure">

@@ -101,7 +101,8 @@ CREATE TABLE "plan_limits" (
 	"allow_reminder_t3" boolean NOT NULL,
 	"allow_reminder_today" boolean NOT NULL,
 	"allow_email_payment_registered" boolean NOT NULL,
-	"allow_whatsapp_payment_receipt" boolean NOT NULL
+	"allow_whatsapp_payment_receipt" boolean NOT NULL,
+	"allow_whatsapp_abono_receipt" boolean NOT NULL DEFAULT false
 );
 --> statement-breakpoint
 INSERT INTO "plan_limits" ("tier", "max_properties", "max_rooms", "rooms_limit_mode", "allow_reminder_t7", "allow_reminder_t3", "allow_reminder_today", "allow_email_payment_registered", "allow_whatsapp_payment_receipt", "allow_whatsapp_abono_receipt") VALUES

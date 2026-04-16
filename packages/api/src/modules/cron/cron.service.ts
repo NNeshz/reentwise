@@ -38,6 +38,11 @@ import { dateYmdUtc } from "@reentwise/api/src/modules/cron/utils/date-ymd";
 import { buildReminderTriggersForDay } from "@reentwise/api/src/modules/cron/lib/reminder-triggers";
 import { backfillRentPaymentsForTenant } from "@reentwise/api/src/modules/cron/lib/backfill-rent-payments";
 import { enforceRoomLimitsForOwners } from "@reentwise/api/src/modules/cron/lib/enforce-room-limits";
+import { reactivateRoomsForOwners } from "@reentwise/api/src/modules/cron/lib/reactivate-room-limits";
+import {
+  enforcePropertyLimitsForOwners,
+  reactivatePropertiesForOwners,
+} from "@reentwise/api/src/modules/cron/lib/enforce-property-limits";
 import { dispatchCronReminderAudits } from "@reentwise/api/src/modules/cron/lib/dispatch-reminder-audits";
 import {
   ownerWallClockTz,
@@ -64,8 +69,13 @@ export class CronService {
     const ownerIds = [...new Set(activeRows.map((r) => r.property.ownerId))];
     const limitsByOwner = await planLimitsService.getLimitsContexts(ownerIds);
 
-    // Archiva aleatoriamente cuartos en exceso antes de procesar recordatorios
+    // 1. Downgrade: archiva propiedades en exceso (vacantes o con menos cuartos primero)
+    await enforcePropertyLimitsForOwners(ownerIds, logs);
+    // 2. Downgrade: archiva cuartos en exceso (vacantes antes que ocupados)
     await enforceRoomLimitsForOwners(ownerIds, limitsByOwner, logs);
+    // 3. Upgrade / re-pago: reactiva propiedades y cuartos si el plan tiene espacio
+    await reactivatePropertiesForOwners(logs);
+    await reactivateRoomsForOwners(logs);
 
     for (const { tenant, room, owner } of activeRows) {
       const tz = ownerWallClockTz(owner.timezone);

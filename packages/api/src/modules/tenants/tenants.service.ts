@@ -52,6 +52,20 @@ function assertPaymentDayRange(paymentDay: number) {
 }
 
 export class TenantsService {
+  /** Verifica que el cuarto pertenece al owner autenticado; lanza RoomNotFoundError si no. */
+  private async requireRoomOwnership(
+    roomId: string,
+    ownerId: string,
+  ): Promise<void> {
+    const [row] = await db
+      .select({ id: rooms.id })
+      .from(rooms)
+      .innerJoin(properties, eq(rooms.propertyId, properties.id))
+      .where(and(eq(rooms.id, roomId), eq(properties.ownerId, ownerId)))
+      .limit(1);
+    if (!row) throw new RoomNotFoundError("Cuarto no encontrado");
+  }
+
   private async sendTenantCreatedEmailSafe(input: {
     tenantId: string;
     tenantEmail: string;
@@ -209,7 +223,8 @@ export class TenantsService {
     };
   }
 
-  async getRoomTenants(roomId: string) {
+  async getRoomTenants(roomId: string, ownerId: string) {
+    await this.requireRoomOwnership(roomId, ownerId);
     const tenantsResult = await db.query.tenants.findMany({
       where: eq(tenants.roomId, roomId),
     });
@@ -218,6 +233,7 @@ export class TenantsService {
 
   async createTenant(
     roomId: string,
+    ownerId: string,
     body: {
       name: string;
       whatsapp: string;
@@ -237,7 +253,7 @@ export class TenantsService {
       })
       .from(rooms)
       .leftJoin(properties, eq(rooms.propertyId, properties.id))
-      .where(eq(rooms.id, roomId));
+      .where(and(eq(rooms.id, roomId), eq(properties.ownerId, ownerId)));
     const roomRow = roomOwnerRes[0];
     if (!roomRow) {
       throw new RoomNotFoundError();
@@ -308,6 +324,7 @@ export class TenantsService {
 
   async createAndAssignTenant(
     roomId: string,
+    ownerId: string,
     body: {
       name: string;
       whatsapp: string;
@@ -332,7 +349,7 @@ export class TenantsService {
         })
         .from(rooms)
         .leftJoin(properties, eq(rooms.propertyId, properties.id))
-        .where(eq(rooms.id, roomId));
+        .where(and(eq(rooms.id, roomId), eq(properties.ownerId, ownerId)));
 
       const room = roomData[0];
       if (!room) {
@@ -457,6 +474,7 @@ export class TenantsService {
   async reassignTenant(
     roomId: string,
     tenantId: string,
+    ownerId: string,
     body?: { paymentDay?: number },
   ) {
     if (
@@ -466,12 +484,20 @@ export class TenantsService {
       throw new TenantValidationError(PAYMENT_DAY_ERROR);
     }
 
+    // Verifica que el cuarto destino pertenece al owner
+    await this.requireRoomOwnership(roomId, ownerId);
+
     const tenantRecord = await db.query.tenants.findFirst({
       where: eq(tenants.id, tenantId),
     });
 
     if (!tenantRecord) {
       throw new TenantNotFoundError();
+    }
+
+    // Verifica que el inquilino también pertenece al owner
+    if (tenantRecord.ownerId !== ownerId) {
+      throw new RoomNotFoundError("Inquilino no encontrado");
     }
 
     const oldRoomId = tenantRecord.roomId;
@@ -571,7 +597,9 @@ export class TenantsService {
     return updated[0]!;
   }
 
-  async deleteTenant(roomId: string, tenantId: string) {
+  async deleteTenant(roomId: string, tenantId: string, ownerId: string) {
+    await this.requireRoomOwnership(roomId, ownerId);
+
     const tenantResult = await db
       .delete(tenants)
       .where(and(eq(tenants.id, tenantId), eq(tenants.roomId, roomId)))

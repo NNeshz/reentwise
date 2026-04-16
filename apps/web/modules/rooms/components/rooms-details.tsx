@@ -28,7 +28,6 @@ export function RoomsDetails({
   propertyId: string;
   roomId: string;
   children: React.ReactNode;
-  /** Si el listado vive dentro del Sheet de propiedad (evita modal anidado roto). */
   nestedInParentSheet?: boolean;
 }) {
   const { data: room, isPending, error, refetch, isRefetching } = useRoom(

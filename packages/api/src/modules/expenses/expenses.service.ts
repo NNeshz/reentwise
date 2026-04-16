@@ -2,14 +2,64 @@ import {
   db,
   eq,
   and,
+  gte,
+  lte,
   desc,
   expenses,
   properties,
   rooms,
+  sql,
 } from "@reentwise/database";
 
+export type ExpensesListFilters = {
+  from?: string;
+  to?: string;
+  year?: number;
+  month?: number;
+  propertyId?: string;
+  category?: typeof expenses.$inferSelect["category"];
+};
+
 export class ExpensesService {
-  async getExpensesByOwner(ownerId: string) {
+  async getExpensesByOwner(ownerId: string, filters: ExpensesListFilters = {}) {
+    const conditions: ReturnType<typeof and>[] = [eq(expenses.ownerId, ownerId)];
+
+    // Rango explícito from/to (incluye el día completo en "to")
+    if (filters.from) {
+      conditions.push(gte(expenses.incurredAt, new Date(filters.from)));
+    }
+    if (filters.to) {
+      const toEnd = new Date(filters.to);
+      toEnd.setUTCHours(23, 59, 59, 999);
+      conditions.push(lte(expenses.incurredAt, toEnd));
+    }
+
+    // Año / mes exacto (generado como rango si no se usó from/to)
+    if (!filters.from && !filters.to && filters.year) {
+      const y = filters.year;
+      const m = filters.month;
+      if (m && m >= 1 && m <= 12) {
+        // Primer y último día del mes
+        const start = new Date(Date.UTC(y, m - 1, 1));
+        const end = new Date(Date.UTC(y, m, 1));
+        conditions.push(gte(expenses.incurredAt, start));
+        conditions.push(lte(expenses.incurredAt, new Date(end.getTime() - 1)));
+      } else {
+        // Todo el año
+        const start = new Date(Date.UTC(y, 0, 1));
+        const end = new Date(Date.UTC(y + 1, 0, 1));
+        conditions.push(gte(expenses.incurredAt, start));
+        conditions.push(lte(expenses.incurredAt, new Date(end.getTime() - 1)));
+      }
+    }
+
+    if (filters.propertyId) {
+      conditions.push(eq(expenses.propertyId, filters.propertyId));
+    }
+    if (filters.category) {
+      conditions.push(eq(expenses.category, filters.category));
+    }
+
     return db
       .select({
         expense: expenses,
@@ -19,7 +69,7 @@ export class ExpensesService {
       .from(expenses)
       .leftJoin(properties, eq(expenses.propertyId, properties.id))
       .leftJoin(rooms, eq(expenses.roomId, rooms.id))
-      .where(eq(expenses.ownerId, ownerId))
+      .where(and(...conditions))
       .orderBy(desc(expenses.incurredAt));
   }
 
