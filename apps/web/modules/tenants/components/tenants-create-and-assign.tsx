@@ -39,7 +39,7 @@ export function TenantsCreateAndAssign({
           <IconPlus /> Crear inquilino
         </Button>
       </SheetTrigger>
-      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="block! w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Agregar inquilino</SheetTitle>
           <SheetDescription>
