@@ -6,7 +6,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetFooter,
 } from "@reentwise/ui/src/components/sheet";
 import { RoomsList } from "@/modules/rooms/components/rooms-list";
 import { PropertiesUpdate } from "@/modules/properties/components/properties-update";
@@ -28,8 +27,8 @@ export function PropertiesRooms({ propertyId, open, onOpenChange }: PropertiesRo
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex h-full max-h-dvh w-full flex-col sm:max-w-lg">
-        <SheetHeader className="shrink-0">
+      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
           {isPending ? (
             <>
               <SheetTitle className="sr-only">Cargando propiedad</SheetTitle>
@@ -47,7 +46,6 @@ export function PropertiesRooms({ propertyId, open, onOpenChange }: PropertiesRo
           ) : property ? (
             <div className="flex items-center space-x-4">
               <PropertiesUpdate
-                nestedInSheet
                 propertyId={propertyId}
                 propertyName={property.name}
                 propertyAddress={property.address}
@@ -67,14 +65,10 @@ export function PropertiesRooms({ propertyId, open, onOpenChange }: PropertiesRo
           )}
         </SheetHeader>
         {!error && property ? (
-          <div className="min-h-0 flex-1 overflow-hidden px-4">
-            <RoomsList propertyId={propertyId} nestedInParentSheet />
+          <div className="px-4 pt-4 pb-4 space-y-4">
+            <RoomsList propertyId={propertyId} />
+            <RoomsCreate propertyId={propertyId} />
           </div>
-        ) : null}
-        {!error && property ? (
-          <SheetFooter className="shrink-0">
-            <RoomsCreate nestedInSheet propertyId={propertyId} />
-          </SheetFooter>
         ) : null}
       </SheetContent>
     </Sheet>

@@ -6,7 +6,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetFooter,
   SheetTrigger,
 } from "@reentwise/ui/src/components/sheet";
 import { Skeleton } from "@reentwise/ui/src/components/skeleton";
@@ -23,12 +22,10 @@ export function RoomsDetails({
   propertyId,
   roomId,
   children,
-  nestedInParentSheet = false,
 }: {
   propertyId: string;
   roomId: string;
   children: React.ReactNode;
-  nestedInParentSheet?: boolean;
 }) {
   const { data: room, isPending, error, refetch, isRefetching } = useRoom(
     propertyId,
@@ -41,13 +38,10 @@ export function RoomsDetails({
   const canAssignOrCreateTenant = tenantCount === 0;
 
   return (
-    <Sheet modal={!nestedInParentSheet}>
+    <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent
-        nested={nestedInParentSheet}
-        className="flex h-full max-h-dvh w-full flex-col sm:max-w-lg"
-      >
-        <SheetHeader className="shrink-0">
+      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
           {isPending ? (
             <>
               <SheetTitle className="sr-only">Cargando habitación</SheetTitle>
@@ -65,7 +59,6 @@ export function RoomsDetails({
           ) : room ? (
             <div className="flex items-center space-x-4">
               <RoomsUpdate
-                nestedInSheet
                 propertyId={propertyId}
                 roomId={roomId}
                 roomNumber={room.roomNumber}
@@ -90,29 +83,24 @@ export function RoomsDetails({
         </SheetHeader>
 
         {isPending ? (
-          <div className="mt-4 shrink-0 px-4">
+          <div className="mt-4 px-4">
             <Skeleton className="h-52 w-full rounded-xl" />
           </div>
         ) : null}
 
         {!error && room ? (
-          <>
-            <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
-              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
-                <RoomDetailSummaryCard
-                  propertyId={propertyId}
-                  roomId={roomId}
-                  room={room}
-                />
-                {activeTenant ? (
-                  <RoomDetailTenantCard roomId={roomId} tenant={activeTenant} />
-                ) : null}
-              </div>
-            </div>
+          <div className="space-y-4 px-4 pt-4 pb-4">
+            <RoomDetailSummaryCard
+              propertyId={propertyId}
+              roomId={roomId}
+              room={room}
+            />
+            {activeTenant ? (
+              <RoomDetailTenantCard roomId={roomId} tenant={activeTenant} />
+            ) : null}
             {canAssignOrCreateTenant ? (
-              <SheetFooter className="shrink-0">
+              <div className="flex flex-col gap-2 pt-2">
                 <TenantsCreateAndAssign
-                  nestedInSheet
                   roomId={roomId}
                   roomPrice={
                     roomPriceNum !== undefined && Number.isFinite(roomPriceNum)
@@ -120,10 +108,10 @@ export function RoomsDetails({
                       : undefined
                   }
                 />
-                <TenantsAsign nestedInSheet roomId={roomId} />
-              </SheetFooter>
+                <TenantsAsign roomId={roomId} />
+              </div>
             ) : null}
-          </>
+          </div>
         ) : null}
       </SheetContent>
     </Sheet>

@@ -4,7 +4,11 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
+import { CalendarIcon } from "lucide-react"
 import { Button } from "@reentwise/ui/src/components/button"
+import { Calendar } from "@reentwise/ui/src/components/calendar"
 import {
   Form,
   FormControl,
@@ -137,22 +141,76 @@ export type CreateAndAssignData = {
   contractEndsAt?: string
 }
 
+/** Parsea YYYY-MM-DD evitando el desplazamiento de zona horaria. */
+function parseDateString(value: string | undefined): Date | undefined {
+  if (!value) return undefined
+  const parts = value.split("-").map(Number)
+  const y = parts[0] ?? new Date().getFullYear()
+  const m = parts[1] ?? 1
+  const d = parts[2] ?? 1
+  return new Date(y, m - 1, d)
+}
+
+/** Selector de fecha inline: botón que muestra la fecha seleccionada y toggle de calendario. */
+function InlineDatePicker({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string | undefined
+  onChange: (v: string | undefined) => void
+  placeholder: string
+}) {
+  const [open, setOpen] = React.useState(false)
+  const selected = parseDateString(value)
+
+  return (
+    <div className="space-y-2">
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full justify-start font-normal"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <CalendarIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />
+        {selected ? (
+          format(selected, "d 'de' MMMM, yyyy", { locale: es })
+        ) : (
+          <span className="text-muted-foreground">{placeholder}</span>
+        )}
+      </Button>
+      {open && (
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(day) => {
+            if (day) {
+              const y = day.getFullYear()
+              const m = String(day.getMonth() + 1).padStart(2, "0")
+              const d = String(day.getDate()).padStart(2, "0")
+              onChange(`${y}-${m}-${d}`)
+            } else {
+              onChange(undefined)
+            }
+            setOpen(false)
+          }}
+          locale={es}
+          className="rounded-md border"
+        />
+      )}
+    </div>
+  )
+}
+
 /**
  * Formulario de alta + asignación de inquilino.
- *
- * El padre (sheet wrapper) es dueño de la mutación y controla open/close.
- * Este componente solo valida, transforma los datos y llama `onSubmit`.
- *
- * El `formId` permite que el botón de envío viva en el SheetFooter del padre
- * usando `<Button type="submit" form={formId}>`.
+ * El botón de envío vive dentro del formulario.
  */
 export function TenantsCreateAndAssignForm({
-  formId,
   roomPrice,
   onSubmit,
   isPending,
 }: {
-  formId: string
   roomPrice?: number
   onSubmit: (data: CreateAndAssignData) => Promise<void>
   isPending: boolean
@@ -242,7 +300,6 @@ export function TenantsCreateAndAssignForm({
   return (
     <Form {...form}>
       <form
-        id={formId}
         onSubmit={form.handleSubmit(handleSubmit)}
         className="flex flex-col gap-4 px-4 py-4"
       >
@@ -469,37 +526,44 @@ export function TenantsCreateAndAssignForm({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <FormField
-            control={form.control}
-            name="contractStartsAt"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Inicio</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="contractEndsAt"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fin (opcional)</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormDescription className="sr-only">
-                  Dejar vacío para contrato indefinido
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="contractStartsAt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Inicio del contrato</FormLabel>
+              <FormControl>
+                <InlineDatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Selecciona fecha de inicio"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="contractEndsAt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fin del contrato (opcional)</FormLabel>
+              <FormControl>
+                <InlineDatePicker
+                  value={field.value || undefined}
+                  onChange={field.onChange}
+                  placeholder="Sin fecha de fin (indefinido)"
+                />
+              </FormControl>
+              <FormDescription>
+                Dejar sin seleccionar para contrato indefinido.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -526,6 +590,14 @@ export function TenantsCreateAndAssignForm({
             </FormItem>
           )}
         />
+
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isPending}
+        >
+          {isPending ? "Agregando..." : "Agregar inquilino"}
+        </Button>
 
         <Button
           type="button"

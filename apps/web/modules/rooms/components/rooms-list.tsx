@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { ScrollArea } from "@reentwise/ui/src/components/scroll-area";
 import { useRooms } from "@/modules/rooms/hooks/use-rooms";
 import { useRoomsFiltersForProperty } from "@/modules/rooms/store/use-rooms-filters";
 import type { RoomListItem } from "@/modules/rooms/types/rooms.types";
@@ -40,11 +39,8 @@ function useFilteredSortedRooms(
 
 export function RoomsList({
   propertyId,
-  nestedInParentSheet = false,
 }: {
   propertyId: string;
-  /** Listado dentro del Sheet de la propiedad (habilita `modal={false}` en cada habitación). */
-  nestedInParentSheet?: boolean;
 }) {
   const { data: rooms = [], isPending, error, refetch, isRefetching } =
     useRooms(propertyId);
@@ -73,25 +69,22 @@ export function RoomsList({
       ) : visible.length === 0 ? (
         <RoomsListEmpty variant="no-matches" />
       ) : (
-        <ScrollArea className="h-full min-h-0 pr-2">
-          <div className={ROOMS_LIST_STACK_CLASS}>
-            {visible.map((room) => (
-              <RoomsDetails
-                key={room.id}
-                nestedInParentSheet={nestedInParentSheet}
-                propertyId={propertyId}
-                roomId={room.id}
+        <div className={ROOMS_LIST_STACK_CLASS}>
+          {visible.map((room) => (
+            <RoomsDetails
+              key={room.id}
+              propertyId={propertyId}
+              roomId={room.id}
+            >
+              <button
+                type="button"
+                className="group w-full cursor-pointer rounded-xl border-0 bg-transparent p-0 text-left outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <button
-                  type="button"
-                  className="group w-full cursor-pointer rounded-xl border-0 bg-transparent p-0 text-left outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <RoomListCard room={room} />
-                </button>
-              </RoomsDetails>
-            ))}
-          </div>
-        </ScrollArea>
+                <RoomListCard room={room} />
+              </button>
+            </RoomsDetails>
+          ))}
+        </div>
       )}
     </>
   );

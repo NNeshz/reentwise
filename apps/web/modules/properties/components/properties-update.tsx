@@ -17,17 +17,15 @@ export function PropertiesUpdate({
   propertyId,
   propertyName,
   propertyAddress,
-  nestedInSheet = false,
 }: {
   propertyId: string
   propertyName: string
   propertyAddress: string | null
-  nestedInSheet?: boolean
 }) {
   const [open, setOpen] = React.useState(false)
 
   return (
-    <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           type="button"
@@ -38,10 +36,8 @@ export function PropertiesUpdate({
           <IconEdit />
         </Button>
       </SheetTrigger>
-      <SheetContent
-        nested={nestedInSheet}
-        className="!block w-full overflow-y-auto sm:max-w-lg"
-      >
+      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+
         <SheetHeader>
           <SheetTitle>Editar propiedad</SheetTitle>
           <SheetDescription>Actualiza los datos de la propiedad.</SheetDescription>

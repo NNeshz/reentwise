@@ -15,24 +15,20 @@ import { TenantsAsignList } from "./tenants-asign-list"
 
 export function TenantsAsign({
   roomId,
-  nestedInSheet = false,
 }: {
   roomId: string
-  nestedInSheet?: boolean
 }) {
   const [open, setOpen] = React.useState(false)
 
   return (
-    <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="outline" type="button" className="w-full">
           <IconUserPlus /> Asignar inquilino
         </Button>
       </SheetTrigger>
-      <SheetContent
-        nested={nestedInSheet}
-        className="!block w-full overflow-y-auto sm:max-w-lg"
-      >
+      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+
         <SheetHeader>
           <SheetTitle>Asignar inquilino</SheetTitle>
           <SheetDescription>

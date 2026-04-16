@@ -19,19 +19,17 @@ export function RoomsUpdate({
   roomNumber,
   price,
   notes,
-  nestedInSheet = false,
 }: {
   propertyId: string
   roomId: string
   roomNumber: string
   price: string
   notes: string
-  nestedInSheet?: boolean
 }) {
   const [open, setOpen] = React.useState(false)
 
   return (
-    <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           type="button"
@@ -42,10 +40,8 @@ export function RoomsUpdate({
           <IconEdit />
         </Button>
       </SheetTrigger>
-      <SheetContent
-        nested={nestedInSheet}
-        className="!block w-full overflow-y-auto sm:max-w-lg"
-      >
+      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+
         <SheetHeader>
           <SheetTitle>Editar habitación</SheetTitle>
           <SheetDescription>Actualiza los datos de esta habitación.</SheetDescription>

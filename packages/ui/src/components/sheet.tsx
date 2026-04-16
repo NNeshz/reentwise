@@ -49,24 +49,18 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
-  nested = false,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
-  /** Dentro de otro Sheet/Dialog: subir z-index para que overlay y panel queden encima. */
-  nested?: boolean
 }) {
-  const zOverlay = nested ? "z-[100]" : "z-50"
-  const zContent = nested ? "z-[110]" : "z-50"
   return (
     <SheetPortal>
-      <SheetOverlay className={zOverlay} />
+      <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
-          zContent,
+          "fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
           side === "right" &&
             "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
           side === "left" &&

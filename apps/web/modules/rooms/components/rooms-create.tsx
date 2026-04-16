@@ -15,24 +15,20 @@ import { RoomsCreateForm } from "./rooms-create-form"
 
 export function RoomsCreate({
   propertyId,
-  nestedInSheet = false,
 }: {
   propertyId: string
-  nestedInSheet?: boolean
 }) {
   const [open, setOpen] = React.useState(false)
 
   return (
-    <Sheet open={open} onOpenChange={setOpen} modal={!nestedInSheet}>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button>
           <IconPlus /> Agregar habitación
         </Button>
       </SheetTrigger>
-      <SheetContent
-        nested={nestedInSheet}
-        className="!block w-full overflow-y-auto sm:max-w-lg"
-      >
+      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+
         <SheetHeader>
           <SheetTitle>Agregar habitación</SheetTitle>
           <SheetDescription>
