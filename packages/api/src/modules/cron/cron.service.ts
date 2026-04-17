@@ -33,7 +33,11 @@ import {
   emailReminder3d,
   emailReminderToday,
   emailExpirationNotice,
+  emailOwnerCronSummary,
+  type OwnerCronSummaryItem,
 } from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
+import { emailService } from "@reentwise/api/src/modules/email/email.service";
+import { env } from "@reentwise/api/src/utils/envs";
 import { dateYmdUtc } from "@reentwise/api/src/modules/cron/utils/date-ymd";
 import { buildReminderTriggersForDay } from "@reentwise/api/src/modules/cron/lib/reminder-triggers";
 import { backfillRentPaymentsForTenant } from "@reentwise/api/src/modules/cron/lib/backfill-rent-payments";
@@ -89,6 +93,11 @@ export class CronService {
       );
     }
 
+    const ownerSummaries = new Map<
+      string,
+      { owner: typeof user.$inferSelect; items: OwnerCronSummaryItem[] }
+    >();
+
     for (const { tenant, room, property, owner } of activeRows) {
       const limitsCtx = limitsByOwner.get(property.ownerId);
       if (!limitsCtx) {
@@ -99,7 +108,7 @@ export class CronService {
       const todayWall = wallYmdForOwner(new Date(), owner.timezone);
       const triggers = buildReminderTriggersForDay(todayWall, tenant.paymentDay);
       for (const t of triggers) {
-        await this.processTenant(
+        const item = await this.processTenant(
           tenant,
           room,
           property,
@@ -109,10 +118,59 @@ export class CronService {
           t.kind,
           logs,
         );
+        if (item) {
+          const existing = ownerSummaries.get(owner.id);
+          if (existing) {
+            existing.items.push(item);
+          } else {
+            ownerSummaries.set(owner.id, { owner, items: [item] });
+          }
+        }
       }
     }
 
+    await this.sendOwnerSummaries(ownerSummaries, logs);
+
     return logs;
+  }
+
+  private async sendOwnerSummaries(
+    ownerSummaries: Map<
+      string,
+      { owner: typeof user.$inferSelect; items: OwnerCronSummaryItem[] }
+    >,
+    logs: string[],
+  ) {
+    const frontendUrl =
+      env.NEXT_PUBLIC_FRONTEND_URL ?? "https://reentwise.com";
+    const auditsUrl = `${frontendUrl}/dashboard/audits`;
+    const today = new Date();
+    const date = today.toLocaleDateString("es-MX", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "America/Mexico_City",
+    });
+
+    for (const { owner, items } of ownerSummaries.values()) {
+      if (!owner.email) continue;
+      const { subject, html, text } = emailOwnerCronSummary({
+        ownerName: owner.name ?? "dueño",
+        date,
+        items,
+        auditsUrl,
+      });
+      const ymd = today.toISOString().slice(0, 10);
+      await emailService.sendHtml({
+        to: owner.email,
+        subject,
+        html,
+        text,
+        tags: [{ name: "type", value: "cron_owner_summary" }, { name: "module", value: "cron" }],
+        idempotencyKey: `cron|owner-summary|${ymd}|${owner.id}`,
+      });
+      logs.push(`[SUMMARY] Resumen enviado a ${owner.name} (${items.length} inquilinos)`);
+    }
   }
 
   private async processTenant(
@@ -124,15 +182,15 @@ export class CronService {
     targetDate: Date,
     kind: CronReminderKind,
     logs: string[],
-  ) {
+  ): Promise<OwnerCronSummaryItem | null> {
     const targetMonth = targetDate.getUTCMonth() + 1;
     const targetYear = targetDate.getUTCFullYear();
     const ymd = dateYmdUtc(targetDate);
     const noteBase = cronReminderNotePrefix(kind, ymd, tenant.id);
     const { limits } = limitsCtx;
 
-    if (kind === "t7" && !limits.allowReminderT7) return;
-    if (kind === "t3" && !limits.allowReminderT3) return;
+    if (kind === "t7" && !limits.allowReminderT7) return null;
+    if (kind === "t3" && !limits.allowReminderT3) return null;
 
     let existingPayment = await db.query.payments.findFirst({
       where: and(
@@ -190,7 +248,7 @@ export class CronService {
         noteBase,
         "email",
       ));
-    if (waComplete && emailComplete) return;
+    if (waComplete && emailComplete) return null;
 
     const propertyLabel = formatKapsoPropertyLabel({
       propertyName: property.name,
@@ -218,7 +276,7 @@ export class CronService {
     };
 
     if (kind === "t7" || kind === "t3") {
-      if (paidOrAnnulled) return;
+      if (paidOrAnnulled) return null;
 
       const body =
         kind === "t7"
@@ -245,7 +303,11 @@ export class CronService {
       });
 
       logs.push(`[${kind.toUpperCase()}] Recordatorio a ${tenant.name}`);
-      return;
+      return {
+        tenantName: tenant.name,
+        amountFormatted,
+        kindLabel: kind === "t7" ? "Recordatorio 7 días" : "Recordatorio 3 días",
+      };
     }
 
     if (kind === "t0") {
@@ -258,14 +320,14 @@ export class CronService {
           status: "pending",
         });
       } else if (paidOrAnnulled) {
-        return;
+        return null;
       }
 
       if (!limits.allowReminderToday) {
         logs.push(
           `[T0] Cobro generado para ${tenant.name} (${targetMonth}/${targetYear}; sin WhatsApp/correo: plan ${limitsCtx.effectiveTier})`,
         );
-        return;
+        return null;
       }
 
       const todayParams = {
@@ -293,7 +355,7 @@ export class CronService {
       });
 
       logs.push(`[T0] Día de pago / cobro generado para ${tenant.name}`);
-      return;
+      return { tenantName: tenant.name, amountFormatted, kindLabel: "Día de pago" };
     }
 
     // late: +2d mora; mismo permiso que "hoy" solo para avisos (el estado mora aplica igual)
@@ -312,17 +374,20 @@ export class CronService {
         existingPayment.status === "paid" ||
         existingPayment.status === "annulled"
       ) {
-        return;
+        return null;
       }
 
       if (!limits.allowReminderToday) {
         logs.push(
           `[LATE] Mora aplicada ${tenant.name} (sin aviso: plan ${limitsCtx.effectiveTier})`,
         );
-        return;
+        return null;
       }
 
       const amountNum = Number(room.price);
+      const totalPending = formatKapsoCurrencyMx(
+        amountNum - Number(existingPayment.amountPaid || 0),
+      );
       const expParams = {
         ownerName: owner.name,
         tenantName: tenant.name,
@@ -331,9 +396,7 @@ export class CronService {
         daysElapsedLabel: "2",
         originalAmountFormatted: formatKapsoCurrencyMx(amountNum),
         lateFeeFormatted: formatKapsoCurrencyMx(0),
-        totalPendingFormatted: formatKapsoCurrencyMx(
-          amountNum - Number(existingPayment.amountPaid || 0),
-        ),
+        totalPendingFormatted: totalPending,
       };
 
       await dispatchCronReminderAudits({
@@ -354,7 +417,10 @@ export class CronService {
       });
 
       logs.push(`[LATE] Aviso mora a ${tenant.name}`);
+      return { tenantName: tenant.name, amountFormatted: totalPending, kindLabel: "Aviso de mora" };
     }
+
+    return null;
   }
 }
 
