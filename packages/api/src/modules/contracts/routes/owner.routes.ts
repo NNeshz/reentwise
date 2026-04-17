@@ -5,7 +5,9 @@ import { apiSuccess, apiError } from "@reentwise/api/src/utils/api-envelope";
 import { ContractNotFoundError } from "@reentwise/api/src/modules/contracts/lib/contract-not-found-error";
 import {
   contractIdParamsSchema,
+  contractsListQuerySchema,
   createContractBodySchema,
+  updateContractBodySchema,
   setPdfUrlBodySchema,
   contractsSuccessSchema,
   contractsError404Schema,
@@ -35,9 +37,11 @@ export const ownerContractRoutes = new Elysia({
   .use(contractsModule)
   .get(
     "/",
-    async ({ user, contractsService, set }) => {
+    async ({ user, query, contractsService, set }) => {
       try {
-        const data = await contractsService.getContractsByOwner(user.id);
+        const data = await contractsService.getContractsByOwner(user.id, {
+          search: query.search,
+        });
         return apiSuccess("Contratos obtenidos", data);
       } catch (e) {
         return mapContractRouteError(e, set);
@@ -45,11 +49,42 @@ export const ownerContractRoutes = new Elysia({
     },
     {
       authenticated: true,
+      query: contractsListQuerySchema,
       detail: {
         tags: [openApiTags.Contracts],
         summary: "Listar contratos del dueño",
       },
       response: { 200: contractsSuccessSchema, 500: contractsError500Schema },
+    },
+  )
+  .patch(
+    "/:contractId",
+    async ({ user, params, body, contractsService, set }) => {
+      try {
+        const data = await contractsService.updateContract(
+          params.contractId,
+          user.id,
+          body,
+        );
+        if (!data) throw new ContractNotFoundError();
+        return apiSuccess("Contrato actualizado", data);
+      } catch (e) {
+        return mapContractRouteError(e, set);
+      }
+    },
+    {
+      authenticated: true,
+      params: contractIdParamsSchema,
+      body: updateContractBodySchema,
+      detail: {
+        tags: [openApiTags.Contracts],
+        summary: "Actualizar campos editables del contrato",
+      },
+      response: {
+        200: contractsSuccessSchema,
+        404: contractsError404Schema,
+        500: contractsError500Schema,
+      },
     },
   )
   .get(

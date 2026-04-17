@@ -80,7 +80,6 @@ export function useUpdateTenant() {
       name?: string;
       whatsapp?: string;
       email?: string;
-      paymentDay?: number;
       notes?: string;
     }) => {
       const { tenantId, ...body } = input;
@@ -112,6 +111,16 @@ export function useDeleteTenant() {
         errorMessageFromUnknown(error, "Error al eliminar el inquilino"),
       );
     },
+  });
+}
+
+export function useTenantDetail(tenantId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: [...queryKeys.tenants.all, "detail", tenantId],
+    queryFn: () => tenantsService.getTenantById(tenantId!),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    enabled: !!tenantId && enabled,
   });
 }
 

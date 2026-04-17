@@ -223,6 +223,28 @@ export const ownerTenantsRoutes = new Elysia({
       },
     },
   )
+  .get(
+    "/by-id/:tenantId",
+    async ({ params, user, tenantsService, set }) => {
+      try {
+        const data = await tenantsService.getTenantById(params.tenantId, user.id);
+        return apiSuccess("Tenant retrieved successfully", data);
+      } catch (e) {
+        return mapTenantsError(e, set);
+      }
+    },
+    {
+      authenticated: true,
+      params: tenantIdParamsSchema,
+      response: tenantResponses,
+      detail: {
+        summary: "Detalle completo de un inquilino",
+        description:
+          "Retorna el inquilino, cuarto, propiedad, contrato más reciente y pago del mes actual.",
+        tags: [openApiTags.Tenants],
+      },
+    },
+  )
   .put(
     "/by-id/:tenantId",
     async ({ params, body, user, tenantsService, set }) => {

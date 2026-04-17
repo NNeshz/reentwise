@@ -3,6 +3,11 @@ import type {
   AccountStatusResponse,
   RoomTenantsResponse,
   TenantCore,
+  TenantDetail,
+  TenantDetailContract,
+  TenantDetailProperty,
+  TenantDetailRecord,
+  TenantDetailRoom,
   TenantListRow,
   TenantPaymentRecord,
   TenantPaymentsResponse,
@@ -175,6 +180,86 @@ export function parseTenantPaymentsResponse(
     throw new Error("Respuesta inválida de pagos");
   }
   return { payments: o.payments.map(parseTenantPaymentRecord) };
+}
+
+function parseTenantDetailRecord(value: unknown): TenantDetailRecord {
+  if (value === null || typeof value !== "object") {
+    throw new Error("Formato inválido de inquilino (detalle)");
+  }
+  const o = value as Record<string, unknown>;
+  if (typeof o.id !== "string" || typeof o.name !== "string") {
+    throw new Error("Formato inválido de inquilino (detalle)");
+  }
+  return {
+    id: o.id,
+    name: o.name,
+    whatsapp: typeof o.whatsapp === "string" ? o.whatsapp : "",
+    email: typeof o.email === "string" ? o.email : "",
+    paymentDay: typeof o.paymentDay === "number" ? o.paymentDay : 0,
+    deposit: o.deposit != null ? String(o.deposit) : null,
+    startDate: typeof o.startDate === "string" ? o.startDate : null,
+    notes: typeof o.notes === "string" ? o.notes : null,
+    roomId: typeof o.roomId === "string" ? o.roomId : null,
+    createdAt: typeof o.createdAt === "string" ? o.createdAt : null,
+  };
+}
+
+function parseTenantDetailRoom(value: unknown): TenantDetailRoom | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object") return null;
+  const r = value as Record<string, unknown>;
+  if (typeof r.id !== "string") return null;
+  return {
+    id: r.id,
+    roomNumber: typeof r.roomNumber === "string" ? r.roomNumber : null,
+    status: typeof r.status === "string" ? r.status : null,
+  };
+}
+
+function parseTenantDetailProperty(value: unknown): TenantDetailProperty | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object") return null;
+  const p = value as Record<string, unknown>;
+  if (typeof p.id !== "string") return null;
+  return {
+    id: p.id,
+    name: typeof p.name === "string" ? p.name : null,
+  };
+}
+
+function parseTenantDetailContract(value: unknown): TenantDetailContract | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object") return null;
+  const c = value as Record<string, unknown>;
+  if (typeof c.id !== "string") return null;
+  return {
+    id: c.id,
+    status: typeof c.status === "string" ? c.status : "draft",
+    rentAmount: c.rentAmount != null ? String(c.rentAmount) : "0",
+    paymentDay: typeof c.paymentDay === "number" ? c.paymentDay : 0,
+    deposit: c.deposit != null ? String(c.deposit) : "0",
+    startsAt: typeof c.startsAt === "string" ? c.startsAt : "",
+    endsAt: typeof c.endsAt === "string" ? c.endsAt : null,
+    signedAt: typeof c.signedAt === "string" ? c.signedAt : null,
+    terminatedAt: typeof c.terminatedAt === "string" ? c.terminatedAt : null,
+    notes: typeof c.notes === "string" ? c.notes : null,
+  };
+}
+
+export function parseTenantDetail(data: unknown): TenantDetail {
+  if (data === null || typeof data !== "object") {
+    throw new Error("Respuesta inválida del detalle de inquilino");
+  }
+  const o = data as Record<string, unknown>;
+  return {
+    tenant: parseTenantDetailRecord(o.tenant),
+    room: parseTenantDetailRoom(o.room),
+    property: parseTenantDetailProperty(o.property),
+    contract: parseTenantDetailContract(o.contract),
+    currentMonthPayment: o.currentMonthPayment != null
+      ? parseTenantPaymentRecord(o.currentMonthPayment)
+      : null,
+  };
 }
 
 function parseAccountStatusItem(value: unknown): AccountStatusItem {

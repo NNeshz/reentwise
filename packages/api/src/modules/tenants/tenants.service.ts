@@ -541,7 +541,6 @@ export class TenantsService {
       name?: string;
       whatsapp?: string;
       email?: string;
-      paymentDay?: number;
       notes?: string;
     },
   ) {
@@ -572,10 +571,6 @@ export class TenantsService {
     if (body.name !== undefined) patch.name = body.name;
     if (body.whatsapp !== undefined) patch.whatsapp = body.whatsapp;
     if (body.email !== undefined) patch.email = body.email;
-    if (body.paymentDay !== undefined) {
-      assertPaymentDayRange(body.paymentDay);
-      patch.paymentDay = body.paymentDay;
-    }
     if (body.notes !== undefined) patch.notes = body.notes;
 
     if (Object.keys(patch).length === 0) {
@@ -730,6 +725,70 @@ export class TenantsService {
     }
 
     return deleted;
+  }
+
+  async getTenantById(tenantId: string, ownerId: string) {
+    const [row] = await db
+      .select({
+        tenant: tenants,
+        roomId: rooms.id,
+        roomNumber: rooms.roomNumber,
+        roomStatus: rooms.status,
+        propertyId: properties.id,
+        propertyName: properties.name,
+        propertyOwnerId: properties.ownerId,
+      })
+      .from(tenants)
+      .leftJoin(rooms, eq(tenants.roomId, rooms.id))
+      .leftJoin(properties, eq(rooms.propertyId, properties.id))
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+
+    if (!row) throw new TenantNotFoundError();
+
+    const isOwner =
+      row.tenant.ownerId === ownerId || row.propertyOwnerId === ownerId;
+    if (!isOwner)
+      throw new TenantForbiddenError("Not authorized to view this tenant");
+
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const [contract, currentMonthPayment] = await Promise.all([
+      db
+        .select()
+        .from(contracts)
+        .where(eq(contracts.tenantId, tenantId))
+        .orderBy(desc(contracts.createdAt))
+        .limit(1)
+        .then((r) => r[0] ?? null),
+      db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.tenantId, tenantId),
+            eq(payments.month, currentMonth),
+            eq(payments.year, currentYear),
+            eq(payments.isAnnulled, false),
+          ),
+        )
+        .limit(1)
+        .then((r) => r[0] ?? null),
+    ]);
+
+    return {
+      tenant: row.tenant,
+      room: row.roomId
+        ? { id: row.roomId, roomNumber: row.roomNumber, status: row.roomStatus }
+        : null,
+      property: row.propertyId
+        ? { id: row.propertyId, name: row.propertyName }
+        : null,
+      contract,
+      currentMonthPayment,
+    };
   }
 
   async getPaymentsByTenant(tenantId: string, ownerId: string) {

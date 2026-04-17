@@ -1,7 +1,5 @@
 "use client";
 
-import { Card } from "@reentwise/ui/src/components/card";
-import { Badge } from "@reentwise/ui/src/components/badge";
 import { Button } from "@reentwise/ui/src/components/button";
 import {
   DropdownMenu,
@@ -11,13 +9,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@reentwise/ui/src/components/dropdown-menu";
-import {
-  IconDotsVertical,
-  IconPencil,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconDotsVertical, IconPencil, IconTrash } from "@tabler/icons-react";
 import type { ExpenseListRow } from "@/modules/expenses/types/expenses.types";
 import {
+  EXPENSES_TABLE_GRID_CLASS,
   EXPENSE_CATEGORY_LABELS,
   formatExpenseCurrency,
   formatExpenseDate,
@@ -35,42 +30,42 @@ type Props = {
   onAction: (target: DialogTarget) => void;
 };
 
-export function ExpenseRowCard({ row, onAction }: Props) {
+export function ExpenseRow({ row, onAction }: Props) {
   const { expense, property, room } = row;
-  const categoryLabel =
-    EXPENSE_CATEGORY_LABELS[expense.category] ?? expense.category;
+  const categoryLabel = EXPENSE_CATEGORY_LABELS[expense.category] ?? expense.category;
 
   const locationParts: string[] = [];
   if (property) locationParts.push(property.name);
   if (room) locationParts.push(`Cuarto ${room.roomNumber}`);
-  const locationText = locationParts.length > 0 ? locationParts.join(" · ") : null;
+  const locationText = locationParts.length > 0 ? locationParts.join(" · ") : "—";
 
   return (
-    <Card className="overflow-hidden p-0 transition-colors">
-      <div className="flex items-center gap-4 p-4">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">
-          {categoryLabel.slice(0, 3).toUpperCase()}
-        </div>
+    <li className="py-1 text-sm">
+      <div className={`${EXPENSES_TABLE_GRID_CLASS} items-center`}>
+        <span className="font-mono text-xs text-muted-foreground">
+          {formatExpenseDate(expense.incurredAt)}
+        </span>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-semibold text-foreground">
-              {expense.description || categoryLabel}
-            </p>
-            <Badge variant="outline" className="shrink-0 text-[10px]">
-              {categoryLabel}
-            </Badge>
-          </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-            <span>{formatExpenseDate(expense.incurredAt)}</span>
-            {locationText && <span className="truncate">{locationText}</span>}
-            {expense.vendor && (
-              <span className="truncate">{expense.vendor}</span>
-            )}
-          </div>
-        </div>
+        <span className="text-sm text-foreground">
+          {categoryLabel}
+        </span>
 
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+        <span className="min-w-0 text-xs text-muted-foreground">
+          <span className="line-clamp-2">{locationText}</span>
+        </span>
+
+        <span className="min-w-0">
+          <span className="line-clamp-1 font-medium text-foreground">
+            {expense.description || categoryLabel}
+          </span>
+          {expense.vendor && (
+            <span className="line-clamp-1 text-xs text-muted-foreground">
+              {expense.vendor}
+            </span>
+          )}
+        </span>
+
+        <span className="text-right font-semibold tabular-nums text-foreground">
           {formatExpenseCurrency(expense.amount)}
         </span>
 
@@ -106,6 +101,6 @@ export function ExpenseRowCard({ row, onAction }: Props) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </Card>
+    </li>
   );
 }

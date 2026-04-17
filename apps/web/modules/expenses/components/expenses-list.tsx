@@ -3,11 +3,8 @@
 import { useState } from "react";
 import { useExpenses } from "@/modules/expenses/hooks/use-expenses";
 import type { ExpenseListRow } from "@/modules/expenses/types/expenses.types";
-import { EXPENSES_LIST_STACK_CLASS } from "@/modules/expenses/lib/expense-display";
-import {
-  ExpenseRowCard,
-  type ExpenseRowAction,
-} from "@/modules/expenses/components/expense-row-card";
+import { ExpenseRow, type ExpenseRowAction } from "@/modules/expenses/components/expense-row";
+import { ExpensesTableHeader } from "@/modules/expenses/components/expenses-table-header";
 import { ExpenseEditSheet } from "@/modules/expenses/components/expense-edit-sheet";
 import { ExpenseDeleteDialog } from "@/modules/expenses/components/expense-delete-dialog";
 import { ExpensesListSkeleton } from "@/modules/expenses/components/expenses-list-skeleton";
@@ -20,7 +17,7 @@ type DialogTarget = {
 };
 
 export function ExpensesList() {
-  const { data, isPending, error, refetch, isRefetching } = useExpenses();
+  const { data, isPending, error, refetch, isRefetching, isFetching } = useExpenses();
 
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
 
@@ -50,19 +47,22 @@ export function ExpensesList() {
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        {expenses.length} gasto{expenses.length !== 1 ? "s" : ""} registrado
-        {expenses.length !== 1 ? "s" : ""}
-      </p>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>
+          {expenses.length} gasto{expenses.length !== 1 ? "s" : ""}
+          {isFetching ? " · actualizando…" : ""}
+        </span>
+      </div>
 
-      <ul className={EXPENSES_LIST_STACK_CLASS} role="list">
-        {expenses.map((row) => (
-          <li key={row.expense.id}>
-            <ExpenseRowCard row={row} onAction={setDialogTarget} />
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto">
+        <ExpensesTableHeader />
+        <ul className="flex flex-col gap-1" role="list">
+          {expenses.map((row) => (
+            <ExpenseRow key={row.expense.id} row={row} onAction={setDialogTarget} />
+          ))}
+        </ul>
+      </div>
 
       <ExpenseEditSheet
         row={activeExpense}

@@ -4,6 +4,7 @@ import type {
   AccountStatusResponse,
   RoomTenantsResponse,
   TenantCore,
+  TenantDetail,
   TenantPaymentsResponse,
   TenantPaymentFilterStatus,
   TenantsListResponse,
@@ -12,6 +13,7 @@ import {
   parseAccountStatusResponse,
   parseRoomTenantsResponse,
   parseTenantCore,
+  parseTenantDetail,
   parseTenantPaymentsResponse,
   parseTenantsListResponse,
 } from "@/modules/tenants/lib/validate-tenant-payload";
@@ -133,7 +135,6 @@ class TenantsService {
       name?: string;
       whatsapp?: string;
       email?: string;
-      paymentDay?: number;
       notes?: string;
     },
   ): Promise<TenantCore> {
@@ -245,6 +246,33 @@ class TenantsService {
     return parseTenantCore(unwrapped);
   }
 
+  async getTenantById(tenantId: string): Promise<TenantDetail> {
+    const owner = apiClient.tenants.owner as unknown as Record<
+      string,
+      (params: { tenantId: string }) => {
+        get: (opts?: Record<string, unknown>) => Promise<{
+          data: unknown;
+          error: { value: unknown } | null;
+        }>;
+      }
+    >;
+    const byId = owner["by-id"];
+    if (!byId) {
+      throw new Error("Ruta de detalle no disponible en el cliente");
+    }
+    const response = await byId({ tenantId }).get();
+
+    if (response.error) {
+      throw toServiceError(
+        response.error.value,
+        "No se pudo cargar el detalle del inquilino",
+      );
+    }
+
+    const unwrapped = unwrapEnvelopeData(response.data);
+    return parseTenantDetail(unwrapped);
+  }
+
   async getPaymentsByTenant(tenantId: string): Promise<TenantPaymentsResponse> {
     const owner = apiClient.tenants.owner as unknown as Record<
       string,
@@ -311,6 +339,11 @@ export type {
   AccountStatusResponse,
   RoomTenantsResponse,
   TenantCore,
+  TenantDetail,
+  TenantDetailContract,
+  TenantDetailProperty,
+  TenantDetailRecord,
+  TenantDetailRoom,
   TenantListRow,
   TenantPaymentFilterStatus,
   TenantPaymentRecord,

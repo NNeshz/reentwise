@@ -41,6 +41,11 @@ import { useCreateExpense } from "@/modules/expenses/hooks/use-expenses";
 import { useProperties } from "@/modules/properties/hooks/use-properties";
 import { EXPENSE_CATEGORY_OPTIONS } from "@/modules/expenses/lib/expense-display";
 import type { ExpenseCategory } from "@/modules/expenses/types/expenses.types";
+import {
+  InlineDatePicker,
+  todayLocalDateString,
+  dateInputToIso,
+} from "@/utils/inline-date-picker";
 
 const NONE_VALUE = "__none__";
 
@@ -66,10 +71,6 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-function todayDateString() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function ExpenseCreateSheet({
   open,
   onOpenChange,
@@ -88,7 +89,7 @@ export function ExpenseCreateSheet({
       description: "",
       vendor: "",
       propertyId: NONE_VALUE,
-      incurredAt: todayDateString(),
+      incurredAt: todayLocalDateString(),
     },
   });
 
@@ -103,7 +104,7 @@ export function ExpenseCreateSheet({
           ? values.propertyId
           : undefined,
       incurredAt: values.incurredAt
-        ? new Date(values.incurredAt).toISOString()
+        ? dateInputToIso(values.incurredAt)
         : undefined,
     });
     form.reset();
@@ -112,7 +113,7 @@ export function ExpenseCreateSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col overflow-y-auto sm:max-w-md">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Nuevo gasto</SheetTitle>
           <SheetDescription>
@@ -256,7 +257,11 @@ export function ExpenseCreateSheet({
                 <FormItem>
                   <FormLabel>Fecha del gasto</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <InlineDatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Selecciona la fecha"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

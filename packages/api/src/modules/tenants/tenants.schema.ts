@@ -75,7 +75,6 @@ export const updateTenantBodySchema = t.Object({
   name: t.Optional(t.String()),
   whatsapp: t.Optional(t.String()),
   email: t.Optional(t.String()),
-  paymentDay: t.Optional(t.Number()),
   notes: t.Optional(t.String()),
 });
 

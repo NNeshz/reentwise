@@ -2,6 +2,7 @@ import {
   db,
   eq,
   and,
+  ilike,
   contracts,
   tenants,
   rooms,
@@ -9,19 +10,49 @@ import {
 } from "@reentwise/database";
 
 export class ContractsService {
-  async getContractsByOwner(ownerId: string) {
+  async getContractsByOwner(ownerId: string, filters: { search?: string } = {}) {
+    const conditions = [eq(contracts.ownerId, ownerId)];
+    if (filters.search?.trim()) {
+      conditions.push(ilike(tenants.name, `%${filters.search.trim()}%`));
+    }
     return db
       .select({
         contract: contracts,
-        tenant: tenants,
-        room: rooms,
-        property: properties,
+        tenant: { id: tenants.id, name: tenants.name, whatsapp: tenants.whatsapp, email: tenants.email },
+        room: { id: rooms.id, roomNumber: rooms.roomNumber },
+        property: { id: properties.id, name: properties.name },
       })
       .from(contracts)
       .innerJoin(tenants, eq(contracts.tenantId, tenants.id))
       .innerJoin(rooms, eq(contracts.roomId, rooms.id))
       .innerJoin(properties, eq(rooms.propertyId, properties.id))
-      .where(eq(contracts.ownerId, ownerId));
+      .where(and(...conditions));
+  }
+
+  async updateContract(
+    contractId: string,
+    ownerId: string,
+    patch: {
+      rentAmount?: string;
+      paymentDay?: number;
+      deposit?: string;
+      endsAt?: string | null;
+      notes?: string | null;
+    },
+  ) {
+    const updatePayload: Record<string, unknown> = { updatedAt: new Date() };
+    if (patch.rentAmount !== undefined) updatePayload.rentAmount = patch.rentAmount;
+    if (patch.paymentDay !== undefined) updatePayload.paymentDay = patch.paymentDay;
+    if (patch.deposit !== undefined) updatePayload.deposit = patch.deposit;
+    if ("endsAt" in patch) updatePayload.endsAt = patch.endsAt ? new Date(patch.endsAt) : null;
+    if ("notes" in patch) updatePayload.notes = patch.notes ?? null;
+
+    const [updated] = await db
+      .update(contracts)
+      .set(updatePayload)
+      .where(and(eq(contracts.id, contractId), eq(contracts.ownerId, ownerId)))
+      .returning();
+    return updated ?? null;
   }
 
   async getContractById(contractId: string, ownerId: string) {

@@ -45,6 +45,11 @@ import type {
   ExpenseCategory,
   ExpenseListRow,
 } from "@/modules/expenses/types/expenses.types";
+import {
+  InlineDatePicker,
+  isoToDateInput,
+  dateInputToIso,
+} from "@/utils/inline-date-picker";
 
 const NONE_VALUE = "__none__";
 
@@ -69,15 +74,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-function toDateInput(dateStr: string | null): string {
-  if (!dateStr) return "";
-  try {
-    return new Date(dateStr).toISOString().slice(0, 10);
-  } catch {
-    return "";
-  }
-}
 
 export function ExpenseEditSheet({
   row,
@@ -113,7 +109,7 @@ export function ExpenseEditSheet({
         description: row.expense.description ?? "",
         vendor: row.expense.vendor ?? "",
         propertyId: row.expense.propertyId ?? NONE_VALUE,
-        incurredAt: toDateInput(row.expense.incurredAt),
+        incurredAt: isoToDateInput(row.expense.incurredAt),
       });
     }
   }, [row, open, reset]);
@@ -132,7 +128,7 @@ export function ExpenseEditSheet({
           ? values.propertyId
           : undefined,
       incurredAt: values.incurredAt
-        ? new Date(values.incurredAt).toISOString()
+        ? dateInputToIso(values.incurredAt)
         : undefined,
     });
     onOpenChange(false);
@@ -140,7 +136,7 @@ export function ExpenseEditSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col overflow-y-auto sm:max-w-md">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Editar gasto</SheetTitle>
           <SheetDescription>
@@ -281,7 +277,11 @@ export function ExpenseEditSheet({
                 <FormItem>
                   <FormLabel>Fecha del gasto</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <InlineDatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Selecciona la fecha"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

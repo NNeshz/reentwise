@@ -4,6 +4,7 @@ import {
   IconFileText,
   IconHelpCircle,
   IconHome,
+  IconList,
   IconMessageCircle,
   IconReceipt,
   IconUsers,
@@ -25,6 +26,11 @@ export const dashboardNavMain: DashboardNavMainItem[] = [
     url: "/dashboard/properties",
   },
   {
+    title: "Gastos",
+    url: "/dashboard/expenses",
+    icon: IconReceipt,
+  },
+  {
     title: "Pagos",
     url: "/dashboard/payments",
     icon: IconCurrencyDollar,
@@ -35,14 +41,14 @@ export const dashboardNavMain: DashboardNavMainItem[] = [
     icon: IconUsers,
   },
   {
-    title: "Gastos",
-    url: "/dashboard/expenses",
-    icon: IconReceipt,
+    title: "Contratos",
+    url: "/dashboard/contracts",
+    icon: IconFileText,
   },
   {
     title: "Auditorías",
     url: "/dashboard/audits",
-    icon: IconFileText,
+    icon: IconList,
   },
 ];
 

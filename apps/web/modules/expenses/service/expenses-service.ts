@@ -2,6 +2,7 @@ import { apiClient } from "@/utils/api-connection";
 import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import type {
   CreateExpenseInput,
+  ExpenseCategory,
   ExpenseListRow,
   UpdateExpenseInput,
 } from "@/modules/expenses/types/expenses.types";
@@ -32,8 +33,20 @@ type DynamicExpenseEndpoint = (params: { expenseId: string }) => {
 };
 
 class ExpensesService {
-  async getExpenses(): Promise<ExpenseListRow[]> {
-    const response = await apiClient.expenses.owner.get();
+  async getExpenses(params: {
+    category?: ExpenseCategory;
+    propertyId?: string;
+    year?: number;
+    month?: number;
+  } = {}): Promise<ExpenseListRow[]> {
+    const response = await apiClient.expenses.owner.get({
+      query: {
+        category: params.category,
+        propertyId: params.propertyId,
+        year: params.year,
+        month: params.month,
+      },
+    });
 
     if (response.error) {
       throw toServiceError(

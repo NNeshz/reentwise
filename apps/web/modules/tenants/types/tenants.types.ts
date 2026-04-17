@@ -72,6 +72,51 @@ export type RoomTenantsResponse = {
   tenantsFound: TenantCore[];
 };
 
+export type TenantDetailRecord = {
+  id: string;
+  name: string;
+  whatsapp: string;
+  email: string;
+  paymentDay: number;
+  deposit: string | null;
+  startDate: string | null;
+  notes: string | null;
+  roomId: string | null;
+  createdAt: string | null;
+};
+
+export type TenantDetailRoom = {
+  id: string;
+  roomNumber: string | null;
+  status: string | null;
+};
+
+export type TenantDetailProperty = {
+  id: string;
+  name: string | null;
+};
+
+export type TenantDetailContract = {
+  id: string;
+  status: string;
+  rentAmount: string;
+  paymentDay: number;
+  deposit: string;
+  startsAt: string;
+  endsAt: string | null;
+  signedAt: string | null;
+  terminatedAt: string | null;
+  notes: string | null;
+};
+
+export type TenantDetail = {
+  tenant: TenantDetailRecord;
+  room: TenantDetailRoom | null;
+  property: TenantDetailProperty | null;
+  contract: TenantDetailContract | null;
+  currentMonthPayment: TenantPaymentRecord | null;
+};
+
 export type AccountStatusItem = {
   tenantId: string;
   tenantName: string;

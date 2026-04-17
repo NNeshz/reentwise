@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { expensesService } from "@/modules/expenses/service/expenses-service";
+import { useExpensesFilters } from "@/modules/expenses/store/use-expenses-filters";
 import type {
   CreateExpenseInput,
   UpdateExpenseInput,
@@ -9,9 +10,18 @@ import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
 export function useExpenses() {
+  const { category, propertyId, year, month } = useExpensesFilters();
+
+  const queryParams = {
+    category: category || undefined,
+    propertyId: propertyId || undefined,
+    year: year ?? undefined,
+    month: month ?? undefined,
+  };
+
   return useQuery({
-    queryKey: queryKeys.expenses.all,
-    queryFn: () => expensesService.getExpenses(),
+    queryKey: [...queryKeys.expenses.all, queryParams],
+    queryFn: () => expensesService.getExpenses(queryParams),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   });

@@ -42,7 +42,6 @@ import { useUpdateTenant } from "@/modules/tenants/hooks/use-tenants";
 import {
   COUNTRY_CODES,
   NOTES_MAX_LENGTH,
-  PAYMENT_DAY_OPTIONS,
 } from "@/modules/tenants/components/tenants-create-and-assign-form";
 
 function defaultPhoneParts(whatsapp: string): { countryCode: string; phone: string } {
@@ -72,10 +71,6 @@ const editFormSchema = z.object({
     .string()
     .length(10, "El celular debe tener exactamente 10 dígitos.")
     .regex(/^\d+$/, "Solo ingresa números, sin espacios ni símbolos."),
-  paymentDay: z
-    .number()
-    .min(0, "Selecciona el día de pago.")
-    .max(31, "El día debe ser entre 0 y 31."),
   notes: z
     .string()
     .max(
@@ -111,7 +106,6 @@ export function TenantEditSheet({
         defaultPhone.length === 10
           ? defaultPhone
           : defaultPhone.replace(/\D/g, "").slice(0, 10),
-      paymentDay: tenant?.paymentDay ?? 1,
       notes: tenant?.notes ?? "",
     },
   });
@@ -127,7 +121,6 @@ export function TenantEditSheet({
       email: tenant.email,
       countryCode,
       phone: normalizedPhone,
-      paymentDay: tenant.paymentDay,
       notes: tenant.notes ?? "",
     });
   }, [tenant, open, form]);
@@ -141,7 +134,6 @@ export function TenantEditSheet({
       name: values.name.trim(),
       email: values.email.trim(),
       whatsapp,
-      paymentDay: values.paymentDay,
       notes: values.notes?.trim() || undefined,
     });
     onOpenChange(false);
@@ -149,7 +141,7 @@ export function TenantEditSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="!block overflow-y-auto sm:max-w-md">
+      <SheetContent className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Editar inquilino</SheetTitle>
           <SheetDescription>
@@ -160,8 +152,9 @@ export function TenantEditSheet({
 
         <Form {...form}>
           <form
+            id="tenant-edit-form"
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col gap-5 px-4 pb-4 pt-2"
+            className="flex flex-1 flex-col gap-5 px-4 pt-2"
           >
             <FormField
               control={form.control}
@@ -263,35 +256,6 @@ export function TenantEditSheet({
                 Mismo formato que al dar de alta: lada y 10 dígitos.
               </FormDescription>
             </div>
-
-            <FormField
-              control={form.control}
-              name="paymentDay"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Día de pago</FormLabel>
-                  <Select
-                    value={String(field.value)}
-                    onValueChange={(val) => field.onChange(parseInt(val, 10))}
-                    disabled={field.disabled}
-                  >
-                  <FormControl>
-                    <SelectTrigger ref={field.ref} className="w-full">
-                      <SelectValue placeholder="Selecciona el día del mes" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PAYMENT_DAY_OPTIONS.map(({ value, label }) => (
-                      <SelectItem key={value} value={String(value)}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}

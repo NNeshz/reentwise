@@ -95,6 +95,9 @@ export function TenantsList() {
         onOpenChange={(open) => {
           if (!open) closeDialog();
         }}
+        onEdit={() => {
+          if (activeTenant) setDialogTarget({ tenant: activeTenant, action: "edit" });
+        }}
       />
 
       <TenantEditSheet
