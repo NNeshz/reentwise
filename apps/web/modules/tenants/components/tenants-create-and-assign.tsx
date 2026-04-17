@@ -6,6 +6,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -15,6 +16,7 @@ import { useCreateAndAssignTenant } from "@/modules/tenants/hooks/use-tenants"
 import {
   TenantsCreateAndAssignForm,
   type CreateAndAssignData,
+  type TenantsCreateAndAssignFormHandle,
 } from "./tenants-create-and-assign-form"
 
 export function TenantsCreateAndAssign({
@@ -26,6 +28,8 @@ export function TenantsCreateAndAssign({
 }) {
   const [open, setOpen] = React.useState(false)
   const createAndAssign = useCreateAndAssignTenant(roomId)
+  const formRef = React.useRef<TenantsCreateAndAssignFormHandle>(null)
+  const formId = React.useId()
 
   const handleSubmit = async (data: CreateAndAssignData) => {
     await createAndAssign.mutateAsync(data)
@@ -39,20 +43,45 @@ export function TenantsCreateAndAssign({
           <IconPlus /> Crear inquilino
         </Button>
       </SheetTrigger>
-      <SheetContent className="block! w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Agregar inquilino</SheetTitle>
           <SheetDescription>
             Crea y asigna un nuevo inquilino a esta habitación.
           </SheetDescription>
         </SheetHeader>
+
         {open && (
-          <TenantsCreateAndAssignForm
-            roomPrice={roomPrice}
-            onSubmit={handleSubmit}
-            isPending={createAndAssign.isPending}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <TenantsCreateAndAssignForm
+              ref={formRef}
+              id={formId}
+              roomPrice={roomPrice}
+              onSubmit={handleSubmit}
+              isPending={createAndAssign.isPending}
+            />
+          </div>
         )}
+
+        <SheetFooter className="border-t pt-4">
+          <Button
+            type="submit"
+            form={formId}
+            className="w-full"
+            disabled={createAndAssign.isPending}
+          >
+            {createAndAssign.isPending ? "Agregando..." : "Agregar inquilino"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={createAndAssign.isPending}
+            onClick={() => formRef.current?.reset()}
+          >
+            Limpiar
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

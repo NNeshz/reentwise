@@ -4,21 +4,16 @@ import { Button } from "@reentwise/ui/src/components/button";
 import { IconFilterOff } from "@tabler/icons-react";
 import { useRoomsFiltersForProperty } from "@/modules/rooms/store/use-rooms-filters";
 import { RoomSearchFilter } from "@/modules/rooms/components/filters/room-search-filter";
-import { RoomSortFilter } from "@/modules/rooms/components/filters/room-sort-filter";
 
 export function RoomsFilters({ propertyId }: { propertyId: string }) {
-  const { search, sortBy, setSearch, setSortBy, resetFilters } =
+  const { search, setSearch, resetFilters } =
     useRoomsFiltersForProperty(propertyId);
 
-  const hasActiveFilters =
-    search.trim() !== "" || sortBy !== "roomNumber_asc";
+  const hasActiveFilters = search.trim() !== "";
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-      <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-        <RoomSearchFilter value={search} onChange={setSearch} />
-        <RoomSortFilter value={sortBy} onValueChange={setSortBy} />
-      </div>
+    <div className="flex items-center gap-2">
+      <RoomSearchFilter value={search} onChange={setSearch} />
       {hasActiveFilters ? (
         <Button
           type="button"
@@ -28,7 +23,7 @@ export function RoomsFilters({ propertyId }: { propertyId: string }) {
           onClick={() => resetFilters()}
         >
           <IconFilterOff className="size-4" />
-          Limpiar filtros
+          Limpiar
         </Button>
       ) : null}
     </div>

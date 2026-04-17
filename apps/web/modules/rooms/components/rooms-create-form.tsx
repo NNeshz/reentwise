@@ -1,9 +1,9 @@
 "use client"
 
+import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Button } from "@reentwise/ui/src/components/button"
 import { useCreateRoom } from "@/modules/rooms/hooks/use-rooms"
 import {
   Form,
@@ -44,116 +44,113 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-export function RoomsCreateForm({
-  propertyId,
-  onSuccess,
-}: {
+export type RoomsCreateFormHandle = { reset: () => void }
+
+type Props = {
+  id: string
   propertyId: string
   onSuccess?: () => void
-}) {
-  const createRoom = useCreateRoom(propertyId)
+  onPendingChange?: (isPending: boolean) => void
+}
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { roomNumber: "", price: "", notes: "" },
-  })
+export const RoomsCreateForm = React.forwardRef<RoomsCreateFormHandle, Props>(
+  function RoomsCreateForm({ id, propertyId, onSuccess, onPendingChange }, ref) {
+    const createRoom = useCreateRoom(propertyId)
 
-  const onSubmit = async (values: FormValues) => {
-    await createRoom.mutateAsync({
-      roomNumber: values.roomNumber.trim(),
-      price: values.price,
-      notes: values.notes?.trim() || undefined,
+    const form = useForm<FormValues>({
+      resolver: zodResolver(formSchema),
+      defaultValues: { roomNumber: "", price: "", notes: "" },
     })
-    onSuccess?.()
-  }
 
-  return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-4 px-4 pb-4 pt-2"
-      >
-        <FormField
-          control={form.control}
-          name="roomNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Identificador</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Habitación A-101"
-                  autoComplete="off"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    React.useImperativeHandle(ref, () => ({ reset: () => form.reset() }))
 
-        <FormField
-          control={form.control}
-          name="price"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Precio mensual</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="1000"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    React.useEffect(() => {
+      onPendingChange?.(createRoom.isPending)
+    }, [createRoom.isPending, onPendingChange])
 
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas (opcional)</FormLabel>
-              <FormControl>
-                <InputGroup>
-                  <InputGroupTextarea
-                    placeholder="Descripción de la habitación..."
-                    rows={3}
-                    className="min-h-20 resize-none"
+    const onSubmit = async (values: FormValues) => {
+      await createRoom.mutateAsync({
+        roomNumber: values.roomNumber.trim(),
+        price: values.price,
+        notes: values.notes?.trim() || undefined,
+      })
+      onSuccess?.()
+    }
+
+    return (
+      <Form {...form}>
+        <form
+          id={id}
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-4 px-4 py-2"
+        >
+          <FormField
+            control={form.control}
+            name="roomNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Identificador</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Habitación A-101"
+                    autoComplete="off"
                     {...field}
                   />
-                  <InputGroupAddon align="block-end">
-                    <InputGroupText className="tabular-nums">
-                      {(field.value || "").length}/{NOTES_MAX}
-                    </InputGroupText>
-                  </InputGroupAddon>
-                </InputGroup>
-              </FormControl>
-              <FormDescription>
-                Añade detalles para distinguirla de las demás.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className="flex flex-col gap-2 pt-2">
-          <Button type="submit" className="w-full" disabled={createRoom.isPending}>
-            {createRoom.isPending ? "Agregando..." : "Agregar habitación"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={createRoom.isPending}
-            onClick={() => form.reset()}
-          >
-            Limpiar
-          </Button>
-        </div>
-      </form>
-    </Form>
-  )
-}
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Precio mensual</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="1000"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notas (opcional)</FormLabel>
+                <FormControl>
+                  <InputGroup>
+                    <InputGroupTextarea
+                      placeholder="Descripción de la habitación..."
+                      rows={3}
+                      className="min-h-20 resize-none"
+                      {...field}
+                    />
+                    <InputGroupAddon align="block-end">
+                      <InputGroupText className="tabular-nums">
+                        {(field.value || "").length}/{NOTES_MAX}
+                      </InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </FormControl>
+                <FormDescription>
+                  Añade detalles para distinguirla de las demás.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </form>
+      </Form>
+    )
+  }
+)

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { CalendarIcon } from "lucide-react"
+import { IconCalendar } from "@tabler/icons-react"
 import { Button } from "@reentwise/ui/src/components/button"
 import { Calendar } from "@reentwise/ui/src/components/calendar"
 import {
@@ -172,7 +172,7 @@ function InlineDatePicker({
         className="w-full justify-start font-normal"
         onClick={() => setOpen((o) => !o)}
       >
-        <CalendarIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />
+        <IconCalendar className="mr-2 size-4 shrink-0 text-muted-foreground" />
         {selected ? (
           format(selected, "d 'de' MMMM, yyyy", { locale: es })
         ) : (
@@ -202,19 +202,19 @@ function InlineDatePicker({
   )
 }
 
-/**
- * Formulario de alta + asignación de inquilino.
- * El botón de envío vive dentro del formulario.
- */
-export function TenantsCreateAndAssignForm({
-  roomPrice,
-  onSubmit,
-  isPending,
-}: {
+export type TenantsCreateAndAssignFormHandle = { reset: () => void }
+
+type TenantsCreateAndAssignFormProps = {
+  id: string
   roomPrice?: number
   onSubmit: (data: CreateAndAssignData) => Promise<void>
   isPending: boolean
-}) {
+}
+
+export const TenantsCreateAndAssignForm = React.forwardRef<
+  TenantsCreateAndAssignFormHandle,
+  TenantsCreateAndAssignFormProps
+>(function TenantsCreateAndAssignForm({ id, roomPrice, onSubmit, isPending }, ref) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -231,6 +231,8 @@ export function TenantsCreateAndAssignForm({
       contractEndsAt: "",
     },
   })
+
+  React.useImperativeHandle(ref, () => ({ reset: () => form.reset() }))
 
   // Calcula prorrateo del primer mes automáticamente
   React.useEffect(() => {
@@ -300,6 +302,7 @@ export function TenantsCreateAndAssignForm({
   return (
     <Form {...form}>
       <form
+        id={id}
         onSubmit={form.handleSubmit(handleSubmit)}
         className="flex flex-col gap-4 px-4 py-4"
       >
@@ -591,24 +594,7 @@ export function TenantsCreateAndAssignForm({
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isPending}
-        >
-          {isPending ? "Agregando..." : "Agregar inquilino"}
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full"
-          disabled={isPending}
-          onClick={() => form.reset()}
-        >
-          Limpiar formulario
-        </Button>
       </form>
     </Form>
   )
-}
+})

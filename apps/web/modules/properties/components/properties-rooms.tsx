@@ -3,11 +3,13 @@
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetDescription,
 } from "@reentwise/ui/src/components/sheet";
 import { RoomsList } from "@/modules/rooms/components/rooms-list";
+import { RoomsFilters } from "@/modules/rooms/components/rooms-filters";
 import { PropertiesUpdate } from "@/modules/properties/components/properties-update";
 import { RoomsCreate } from "@/modules/rooms/components/rooms-create";
 import { useProperty } from "@/modules/properties/hooks/use-properties";
@@ -27,7 +29,7 @@ export function PropertiesRooms({ propertyId, open, onOpenChange }: PropertiesRo
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg" showCloseButton={true}>
         <SheetHeader>
           {isPending ? (
             <>
@@ -64,11 +66,19 @@ export function PropertiesRooms({ propertyId, open, onOpenChange }: PropertiesRo
             </div>
           )}
         </SheetHeader>
+
         {!error && property ? (
-          <div className="px-4 pt-4 pb-4 space-y-4">
-            <RoomsList propertyId={propertyId} />
-            <RoomsCreate propertyId={propertyId} />
-          </div>
+          <>
+            <div className="px-4">
+              <RoomsFilters propertyId={propertyId} />
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-2">
+              <RoomsList propertyId={propertyId} />
+            </div>
+            <SheetFooter className="border-t pt-4">
+              <RoomsCreate propertyId={propertyId} />
+            </SheetFooter>
+          </>
         ) : null}
       </SheetContent>
     </Sheet>

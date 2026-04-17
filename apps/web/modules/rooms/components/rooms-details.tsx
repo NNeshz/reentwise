@@ -3,6 +3,7 @@
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetDescription,
@@ -40,7 +41,7 @@ export function RoomsDetails({
   return (
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent className="!block w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
           {isPending ? (
             <>
@@ -82,36 +83,35 @@ export function RoomsDetails({
           )}
         </SheetHeader>
 
-        {isPending ? (
-          <div className="mt-4 px-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          {isPending ? (
             <Skeleton className="h-52 w-full rounded-xl" />
-          </div>
-        ) : null}
+          ) : !error && room ? (
+            <>
+              <RoomDetailSummaryCard
+                propertyId={propertyId}
+                roomId={roomId}
+                room={room}
+              />
+              {activeTenant ? (
+                <RoomDetailTenantCard roomId={roomId} tenant={activeTenant} />
+              ) : null}
+            </>
+          ) : null}
+        </div>
 
-        {!error && room ? (
-          <div className="space-y-4 px-4 pt-4 pb-4">
-            <RoomDetailSummaryCard
-              propertyId={propertyId}
+        {!error && room && canAssignOrCreateTenant ? (
+          <SheetFooter className="border-t pt-4 flex-col gap-2">
+            <TenantsCreateAndAssign
               roomId={roomId}
-              room={room}
+              roomPrice={
+                roomPriceNum !== undefined && Number.isFinite(roomPriceNum)
+                  ? roomPriceNum
+                  : undefined
+              }
             />
-            {activeTenant ? (
-              <RoomDetailTenantCard roomId={roomId} tenant={activeTenant} />
-            ) : null}
-            {canAssignOrCreateTenant ? (
-              <div className="flex flex-col gap-2 pt-2">
-                <TenantsCreateAndAssign
-                  roomId={roomId}
-                  roomPrice={
-                    roomPriceNum !== undefined && Number.isFinite(roomPriceNum)
-                      ? roomPriceNum
-                      : undefined
-                  }
-                />
-                <TenantsAsign roomId={roomId} />
-              </div>
-            ) : null}
-          </div>
+            <TenantsAsign roomId={roomId} />
+          </SheetFooter>
         ) : null}
       </SheetContent>
     </Sheet>

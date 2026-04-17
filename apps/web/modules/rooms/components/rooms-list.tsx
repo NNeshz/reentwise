@@ -10,7 +10,6 @@ import {
 } from "@/modules/rooms/lib/room-display";
 import { RoomsDetails } from "@/modules/rooms/components/rooms-details";
 import { RoomListCard } from "@/modules/rooms/components/room-list-card";
-import { RoomsFilters } from "@/modules/rooms/components/rooms-filters";
 import { RoomsListSkeleton } from "@/modules/rooms/components/rooms-list-skeleton";
 import { RoomsListEmpty } from "@/modules/rooms/components/rooms-list-empty";
 import { RoomsListError } from "@/modules/rooms/components/rooms-list-error";
@@ -63,7 +62,6 @@ export function RoomsList({
 
   return (
     <>
-      <RoomsFilters propertyId={propertyId} />
       {rooms.length === 0 ? (
         <RoomsListEmpty variant="no-data" />
       ) : visible.length === 0 ? (
