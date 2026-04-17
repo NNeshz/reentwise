@@ -30,7 +30,7 @@ type ContractByIdEndpoint = (params: { contractId: string }) => {
 };
 
 class ContractsService {
-  async getContracts(params: { search?: string } = {}): Promise<ContractsListResponse> {
+  async getContracts(params: { search?: string; page?: number } = {}): Promise<ContractsListResponse> {
     const ownerClient = apiClient.contracts.owner as unknown as {
       get: (opts?: {
         query?: Record<string, unknown>;
@@ -38,6 +38,7 @@ class ContractsService {
     };
     const query: Record<string, unknown> = {};
     if (params.search?.trim()) query.search = params.search.trim();
+    if (params.page && params.page > 1) query.page = params.page;
 
     const response = await ownerClient.get({ query });
 

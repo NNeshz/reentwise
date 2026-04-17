@@ -41,6 +41,7 @@ export const ownerContractRoutes = new Elysia({
       try {
         const data = await contractsService.getContractsByOwner(user.id, {
           search: query.search,
+          page: query.page ? Number(query.page) : 1,
         });
         return apiSuccess("Contratos obtenidos", data);
       } catch (e) {

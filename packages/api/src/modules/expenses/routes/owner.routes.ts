@@ -45,6 +45,7 @@ export const ownerExpenseRoutes = new Elysia({
           month: query.month,
           propertyId: query.propertyId,
           category: query.category,
+          page: query.page ? Number(query.page) : 1,
         });
         return apiSuccess("Gastos obtenidos", data);
       } catch (e) {

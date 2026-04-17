@@ -11,20 +11,24 @@ import { PaymentsListSkeleton } from "@/modules/payment/components/payments-list
 import { PaymentsListEmpty } from "@/modules/payment/components/payments-list-empty";
 import { PaymentsListError } from "@/modules/payment/components/payments-list-error";
 import { PaymentsResultSummary } from "@/modules/payment/components/payments-result-summary";
+import { PaymentsPagination } from "@/modules/payment/components/payments-pagination";
 
 export function PaymentsList() {
   const {
-    data: rows = [],
+    data,
     isPending,
     error,
     isFetching,
     refetch,
     isRefetching,
   } = usePayments();
-  const { month, year } = usePaymentsFilters();
+  const { month, year, setPage } = usePaymentsFilters();
   const [selectedRow, setSelectedRow] = React.useState<PaymentListRow | null>(
     null,
   );
+
+  const rows = data?.payments ?? [];
+  const pagination = data?.pagination;
 
   if (isPending) {
     return <PaymentsListSkeleton />;
@@ -47,7 +51,7 @@ export function PaymentsList() {
   return (
     <div className="space-y-4">
       <PaymentsResultSummary
-        count={rows.length}
+        count={pagination?.totalItems ?? rows.length}
         isFetching={isFetching && !isPending}
       />
 
@@ -63,6 +67,14 @@ export function PaymentsList() {
           </li>
         ))}
       </ul>
+
+      {pagination && (
+        <PaymentsPagination
+          pagination={pagination}
+          onPrevious={() => setPage(pagination.currentPage - 1)}
+          onNext={() => setPage(pagination.currentPage + 1)}
+        />
+      )}
 
       {selectedRow?.payment ? (
         <PaymentModal

@@ -1,5 +1,6 @@
 import { t } from "elysia";
 import {
+  apiSuccessAnyDataSchema,
   apiSuccessEnvelopeSchema,
   apiErrorEnvelopeSchema,
 } from "@reentwise/api/src/utils/api-envelope.schema";
@@ -15,6 +16,7 @@ export const getPaymentsQuerySchema = t.Object({
       t.Literal("paid"),
     ]),
   ),
+  page: t.Optional(t.Numeric()),
 });
 
 export const payPaymentBodySchema = t.Object({
@@ -30,9 +32,7 @@ export const paymentIdParamsSchema = t.Object({
   id: t.String(),
 });
 
-export const paymentsListSuccessSchema = apiSuccessEnvelopeSchema(
-  t.Array(t.Any()),
-);
+export const paymentsListSuccessSchema = apiSuccessAnyDataSchema;
 
 export const paymentPaySuccessSchema = apiSuccessEnvelopeSchema(t.Any());
 

@@ -5,6 +5,8 @@ import type {
   PaymentMutationRow,
   PaymentRoomSummary,
   PaymentTenantRow,
+  PaymentsListPagination,
+  PaymentsListResponse,
 } from "@/modules/payment/types/payment.types";
 
 function parsePaymentTenant(value: unknown): PaymentTenantRow {
@@ -79,11 +81,42 @@ export function parsePaymentListRow(value: unknown): PaymentListRow {
   };
 }
 
+function parsePagination(value: unknown): PaymentsListPagination {
+  if (value === null || typeof value !== "object") {
+    throw new Error("Formato inválido de paginación");
+  }
+  const p = value as Record<string, unknown>;
+  return {
+    currentPage: typeof p.currentPage === "number" ? p.currentPage : 1,
+    totalPages: typeof p.totalPages === "number" ? p.totalPages : 0,
+    totalItems: typeof p.totalItems === "number" ? p.totalItems : 0,
+    itemsPerPage: typeof p.itemsPerPage === "number" ? p.itemsPerPage : 50,
+    hasNextPage: typeof p.hasNextPage === "boolean" ? p.hasNextPage : false,
+    hasPreviousPage: typeof p.hasPreviousPage === "boolean" ? p.hasPreviousPage : false,
+    nextPage: typeof p.nextPage === "number" ? p.nextPage : null,
+    previousPage: typeof p.previousPage === "number" ? p.previousPage : null,
+  };
+}
+
 export function parsePaymentsList(data: unknown): PaymentListRow[] {
   if (!Array.isArray(data)) {
     throw new Error("Se esperaba un listado de pagos");
   }
   return data.map(parsePaymentListRow);
+}
+
+export function parsePaymentsListResponse(data: unknown): PaymentsListResponse {
+  if (data === null || typeof data !== "object") {
+    throw new Error("Respuesta inválida de pagos");
+  }
+  const o = data as Record<string, unknown>;
+  if (!Array.isArray(o.payments)) {
+    throw new Error("Se esperaba un listado de pagos");
+  }
+  return {
+    payments: o.payments.map(parsePaymentListRow),
+    pagination: parsePagination(o.pagination),
+  };
 }
 
 const PAYMENT_METHODS: readonly PaymentMethod[] = [

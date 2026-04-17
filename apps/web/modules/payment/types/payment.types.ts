@@ -1,6 +1,22 @@
 /** Filtro de estado en listado owner (mes/año). */
 export type PaymentStatusFilter = "pending" | "partial" | "paid";
 
+export type PaymentsListPagination = {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  nextPage: number | null;
+  previousPage: number | null;
+};
+
+export type PaymentsListResponse = {
+  payments: PaymentListRow[];
+  pagination: PaymentsListPagination;
+};
+
 export type PaymentMethod = "cash" | "transfer" | "deposit";
 
 export type PaymentTenantRow = {

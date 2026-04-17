@@ -44,3 +44,19 @@ export type CreateExpenseInput = {
 };
 
 export type UpdateExpenseInput = Partial<CreateExpenseInput>;
+
+export type ExpensesListPagination = {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  nextPage: number | null;
+  previousPage: number | null;
+};
+
+export type ExpensesListResponse = {
+  expenses: ExpenseListRow[];
+  pagination: ExpensesListPagination;
+};

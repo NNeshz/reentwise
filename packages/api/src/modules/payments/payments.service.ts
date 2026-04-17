@@ -7,6 +7,7 @@ import {
   isNull,
   isNotNull,
   exists,
+  count,
   payments,
   tenants,
   rooms,
@@ -61,65 +62,87 @@ export class PaymentsService {
     year: number,
     search?: string,
     status?: PaymentStatusFilter,
+    page = 1,
+    limit = 50,
   ) {
-    return db
-      .select({
-        tenant: tenants,
-        room: rooms,
-        payment: payments,
-      })
-      .from(tenants)
-      .leftJoin(rooms, eq(tenants.roomId, rooms.id))
-      .leftJoin(properties, eq(rooms.propertyId, properties.id))
-      .leftJoin(
-        payments,
-        and(
-          eq(payments.tenantId, tenants.id),
-          eq(payments.month, month),
-          eq(payments.year, year),
-          eq(payments.isAnnulled, false),
-        ),
-      )
-      .where(
-        and(
-          or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
-          tenantReachedBillingPeriod(year, month),
-          or(
-            isNotNull(tenants.roomId),
-            /**
-             * Sin cuarto (desvinculado): solo en meses con fila de cobro de ese
-             * periodo; no repetir en meses futuros solo por pagos pasados.
-             */
-            exists(
-              db
-                .select({ id: payments.id })
-                .from(payments)
-                .where(
-                  and(
-                    eq(payments.tenantId, tenants.id),
-                    eq(payments.month, month),
-                    eq(payments.year, year),
-                    or(
-                      eq(payments.isAnnulled, false),
-                      isNull(payments.isAnnulled),
-                    ),
-                  ),
+    const offset = (page - 1) * limit;
+
+    const whereClause = and(
+      or(eq(tenants.ownerId, ownerId), eq(properties.ownerId, ownerId)),
+      tenantReachedBillingPeriod(year, month),
+      or(
+        isNotNull(tenants.roomId),
+        exists(
+          db
+            .select({ id: payments.id })
+            .from(payments)
+            .where(
+              and(
+                eq(payments.tenantId, tenants.id),
+                eq(payments.month, month),
+                eq(payments.year, year),
+                or(
+                  eq(payments.isAnnulled, false),
+                  isNull(payments.isAnnulled),
                 ),
+              ),
             ),
-          ),
-          search
-            ? or(
-                ilike(tenants.name, `%${search}%`),
-                ilike(tenants.whatsapp, `%${search}%`),
-              )
-            : undefined,
-          status === "pending"
-            ? or(eq(payments.status, "pending"), isNull(payments.id))
-            : undefined,
-          status === "partial" ? eq(payments.status, "partial") : undefined,
-          status === "paid" ? eq(payments.status, "paid") : undefined,
         ),
-      );
+      ),
+      search
+        ? or(
+            ilike(tenants.name, `%${search}%`),
+            ilike(tenants.whatsapp, `%${search}%`),
+          )
+        : undefined,
+      status === "pending"
+        ? or(eq(payments.status, "pending"), isNull(payments.id))
+        : undefined,
+      status === "partial" ? eq(payments.status, "partial") : undefined,
+      status === "paid" ? eq(payments.status, "paid") : undefined,
+    );
+
+    const joins = (qb: ReturnType<typeof db.select>) =>
+      qb
+        .from(tenants)
+        .leftJoin(rooms, eq(tenants.roomId, rooms.id))
+        .leftJoin(properties, eq(rooms.propertyId, properties.id))
+        .leftJoin(
+          payments,
+          and(
+            eq(payments.tenantId, tenants.id),
+            eq(payments.month, month),
+            eq(payments.year, year),
+            eq(payments.isAnnulled, false),
+          ),
+        )
+        .where(whereClause);
+
+    const [rows, totalResult] = await Promise.all([
+      joins(
+        db.select({ tenant: tenants, room: rooms, payment: payments }),
+      )
+        .limit(limit)
+        .offset(offset),
+      joins(db.select({ count: count() })),
+    ]);
+
+    const total = Number(totalResult[0]?.count ?? 0);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      payments: rows,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+        nextPage: page < totalPages ? page + 1 : null,
+        previousPage: page > 1 ? page - 1 : null,
+      },
+    };
   }
 
   private async getPaymentRowForOwner(ownerId: string, paymentId: string) {

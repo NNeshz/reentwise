@@ -5,10 +5,11 @@ import type {
   PaymentMethod,
   PaymentMutationRow,
   PaymentStatusFilter,
+  PaymentsListResponse,
 } from "@/modules/payment/types/payment.types";
 import {
   parsePaymentMutationRow,
-  parsePaymentsList,
+  parsePaymentsListResponse,
 } from "@/modules/payment/lib/validate-payment-payload";
 
 function toServiceError(value: unknown, fallback: string): Error {
@@ -31,7 +32,8 @@ class PaymentService {
     year: number;
     search?: string;
     status?: PaymentStatusFilter;
-  }): Promise<PaymentListRow[]> {
+    page?: number;
+  }): Promise<PaymentsListResponse> {
     const query: Record<string, string> = {
       month: String(params.month),
       year: String(params.year),
@@ -39,6 +41,7 @@ class PaymentService {
 
     if (params.search?.trim()) query.search = params.search.trim();
     if (params.status) query.status = params.status;
+    if (params.page && params.page > 1) query.page = String(params.page);
 
     const response = await apiClient.payments.owner.get({ query });
 
@@ -50,7 +53,7 @@ class PaymentService {
     }
 
     const unwrapped = unwrapEnvelopeData(response.data);
-    return parsePaymentsList(unwrapped);
+    return parsePaymentsListResponse(unwrapped);
   }
 
   async payPayment(
@@ -86,4 +89,6 @@ export type {
   PaymentRoomSummary,
   PaymentStatusFilter,
   PaymentTenantRow,
+  PaymentsListPagination,
+  PaymentsListResponse,
 } from "@/modules/payment/types/payment.types";

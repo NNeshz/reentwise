@@ -17,6 +17,7 @@ export const tenantsListQuerySchema = t.Object({
   ),
   propertyId: t.Optional(t.String()),
   page: t.Optional(t.Number()),
+  limit: t.Optional(t.Number()),
 });
 
 export const tenantsAccountStatusQuerySchema = t.Object({

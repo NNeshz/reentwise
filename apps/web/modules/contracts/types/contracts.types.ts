@@ -44,7 +44,21 @@ export type ContractListRow = {
   property: ContractPropertySummary;
 };
 
-export type ContractsListResponse = ContractListRow[];
+export type ContractsListPagination = {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  nextPage: number | null;
+  previousPage: number | null;
+};
+
+export type ContractsListResponse = {
+  contracts: ContractListRow[];
+  pagination: ContractsListPagination;
+};
 
 export type UpdateContractInput = {
   rentAmount?: string;

@@ -116,9 +116,10 @@ export class TenantsService {
       status?: "pending" | "partial" | "paid" | "late" | "annulled";
       propertyId?: string;
       page?: number;
+      limit?: number;
     },
   ) {
-    const limit = 50;
+    const limit = Math.min(query.limit ?? 50, 500);
     const page = query.page ?? 1;
     const offset = (page - 1) * limit;
     const now = new Date();

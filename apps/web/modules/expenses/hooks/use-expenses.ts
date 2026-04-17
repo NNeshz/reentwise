@@ -10,13 +10,14 @@ import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
 export function useExpenses() {
-  const { category, propertyId, year, month } = useExpensesFilters();
+  const { category, propertyId, year, month, page } = useExpensesFilters();
 
   const queryParams = {
     category: category || undefined,
     propertyId: propertyId || undefined,
     year: year ?? undefined,
     month: month ?? undefined,
+    page,
   };
 
   return useQuery({

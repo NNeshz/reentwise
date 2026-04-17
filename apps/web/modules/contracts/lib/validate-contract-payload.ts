@@ -6,6 +6,7 @@ import type {
   ContractTenantSummary,
   ContractStatus,
   ContractsListResponse,
+  ContractsListPagination,
 } from "@/modules/contracts/types/contracts.types";
 
 function parseContractRecord(value: unknown): ContractRecord {
@@ -78,7 +79,33 @@ function parseContractListRow(value: unknown): ContractListRow {
   };
 }
 
+function parsePagination(value: unknown): ContractsListPagination {
+  if (value === null || typeof value !== "object") {
+    throw new Error("Formato inválido de paginación");
+  }
+  const p = value as Record<string, unknown>;
+  return {
+    currentPage: typeof p.currentPage === "number" ? p.currentPage : 1,
+    totalPages: typeof p.totalPages === "number" ? p.totalPages : 0,
+    totalItems: typeof p.totalItems === "number" ? p.totalItems : 0,
+    itemsPerPage: typeof p.itemsPerPage === "number" ? p.itemsPerPage : 50,
+    hasNextPage: typeof p.hasNextPage === "boolean" ? p.hasNextPage : false,
+    hasPreviousPage: typeof p.hasPreviousPage === "boolean" ? p.hasPreviousPage : false,
+    nextPage: typeof p.nextPage === "number" ? p.nextPage : null,
+    previousPage: typeof p.previousPage === "number" ? p.previousPage : null,
+  };
+}
+
 export function parseContractsListResponse(data: unknown): ContractsListResponse {
-  if (!Array.isArray(data)) throw new Error("Respuesta inválida de contratos");
-  return data.map(parseContractListRow);
+  if (data === null || typeof data !== "object") {
+    throw new Error("Respuesta inválida de contratos");
+  }
+  const o = data as Record<string, unknown>;
+  if (!Array.isArray(o.contracts)) {
+    throw new Error("Se esperaba un listado de contratos");
+  }
+  return {
+    contracts: o.contracts.map(parseContractListRow),
+    pagination: parsePagination(o.pagination),
+  };
 }

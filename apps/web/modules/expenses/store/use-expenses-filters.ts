@@ -6,6 +6,7 @@ interface ExpensesFiltersStore {
   propertyId?: string;
   year?: number;
   month?: number;
+  page: number;
 }
 
 interface ExpensesFiltersActions {
@@ -13,6 +14,7 @@ interface ExpensesFiltersActions {
   setPropertyId: (propertyId?: string) => void;
   setYear: (year?: number) => void;
   setMonth: (month?: number) => void;
+  setPage: (page: number) => void;
   resetFilters: () => void;
 }
 
@@ -21,15 +23,17 @@ const initial: ExpensesFiltersStore = {
   propertyId: undefined,
   year: undefined,
   month: undefined,
+  page: 1,
 };
 
 export const useExpensesFilters = create<
   ExpensesFiltersStore & ExpensesFiltersActions
 >((set) => ({
   ...initial,
-  setCategory: (category) => set({ category }),
-  setPropertyId: (propertyId) => set({ propertyId }),
-  setYear: (year) => set({ year, month: undefined }),
-  setMonth: (month) => set({ month }),
+  setCategory: (category) => set({ category, page: 1 }),
+  setPropertyId: (propertyId) => set({ propertyId, page: 1 }),
+  setYear: (year) => set({ year, month: undefined, page: 1 }),
+  setMonth: (month) => set({ month, page: 1 }),
+  setPage: (page) => set({ page }),
   resetFilters: () => set({ ...initial }),
 }));

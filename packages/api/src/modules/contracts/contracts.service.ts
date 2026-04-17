@@ -3,6 +3,7 @@ import {
   eq,
   and,
   ilike,
+  count,
   contracts,
   tenants,
   rooms,
@@ -10,23 +11,60 @@ import {
 } from "@reentwise/database";
 
 export class ContractsService {
-  async getContractsByOwner(ownerId: string, filters: { search?: string } = {}) {
+  async getContractsByOwner(
+    ownerId: string,
+    filters: { search?: string; page?: number; limit?: number } = {},
+  ) {
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 50;
+    const offset = (page - 1) * limit;
+
     const conditions = [eq(contracts.ownerId, ownerId)];
     if (filters.search?.trim()) {
       conditions.push(ilike(tenants.name, `%${filters.search.trim()}%`));
     }
-    return db
-      .select({
-        contract: contracts,
-        tenant: { id: tenants.id, name: tenants.name, whatsapp: tenants.whatsapp, email: tenants.email },
-        room: { id: rooms.id, roomNumber: rooms.roomNumber },
-        property: { id: properties.id, name: properties.name },
-      })
-      .from(contracts)
-      .innerJoin(tenants, eq(contracts.tenantId, tenants.id))
-      .innerJoin(rooms, eq(contracts.roomId, rooms.id))
-      .innerJoin(properties, eq(rooms.propertyId, properties.id))
-      .where(and(...conditions));
+    const whereClause = and(...conditions);
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select({
+          contract: contracts,
+          tenant: { id: tenants.id, name: tenants.name, whatsapp: tenants.whatsapp, email: tenants.email },
+          room: { id: rooms.id, roomNumber: rooms.roomNumber },
+          property: { id: properties.id, name: properties.name },
+        })
+        .from(contracts)
+        .innerJoin(tenants, eq(contracts.tenantId, tenants.id))
+        .innerJoin(rooms, eq(contracts.roomId, rooms.id))
+        .innerJoin(properties, eq(rooms.propertyId, properties.id))
+        .where(whereClause)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(contracts)
+        .innerJoin(tenants, eq(contracts.tenantId, tenants.id))
+        .innerJoin(rooms, eq(contracts.roomId, rooms.id))
+        .innerJoin(properties, eq(rooms.propertyId, properties.id))
+        .where(whereClause),
+    ]);
+
+    const total = Number(totalResult[0]?.count ?? 0);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      contracts: rows,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+        nextPage: page < totalPages ? page + 1 : null,
+        previousPage: page > 1 ? page - 1 : null,
+      },
+    };
   }
 
   async updateContract(

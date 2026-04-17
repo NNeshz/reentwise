@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useContractsQuery, useActivateContract, useTerminateContract } from "@/modules/contracts/hooks/use-contracts";
+import { useContractsFilters } from "@/modules/contracts/store/use-contracts-filters";
 import type { ContractListRow } from "@/modules/contracts/types/contracts.types";
 import { CONTRACTS_LIST_STACK_CLASS } from "@/modules/contracts/lib/contract-display";
 import {
@@ -12,6 +13,7 @@ import { ContractEditSheet } from "@/modules/contracts/components/contract-edit-
 import { ContractsListSkeleton } from "@/modules/contracts/components/contracts-list-skeleton";
 import { ContractsListEmpty } from "@/modules/contracts/components/contracts-list-empty";
 import { ContractsListError } from "@/modules/contracts/components/contracts-list-error";
+import { ContractsPagination } from "@/modules/contracts/components/contracts-pagination";
 
 type DialogTarget = {
   row: ContractListRow;
@@ -20,12 +22,14 @@ type DialogTarget = {
 
 export function ContractsList() {
   const { data, isPending, error, refetch, isRefetching } = useContractsQuery();
+  const { setPage } = useContractsFilters();
   const activateContract = useActivateContract();
   const terminateContract = useTerminateContract();
 
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
 
-  const contracts = data ?? [];
+  const contracts = data?.contracts ?? [];
+  const pagination = data?.pagination;
   const activeRow = dialogTarget?.row ?? null;
 
   function closeDialog() {
@@ -61,7 +65,7 @@ export function ContractsList() {
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        {contracts.length} contrato{contracts.length !== 1 ? "s" : ""}
+        {pagination?.totalItems ?? contracts.length} contrato{(pagination?.totalItems ?? contracts.length) !== 1 ? "s" : ""}
       </p>
 
       <ul className={CONTRACTS_LIST_STACK_CLASS} role="list">
@@ -71,6 +75,14 @@ export function ContractsList() {
           </li>
         ))}
       </ul>
+
+      {pagination && (
+        <ContractsPagination
+          pagination={pagination}
+          onPrevious={() => setPage(pagination.currentPage - 1)}
+          onNext={() => setPage(pagination.currentPage + 1)}
+        />
+      )}
 
       <ContractEditSheet
         row={activeRow}

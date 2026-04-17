@@ -26,6 +26,18 @@ function invalidateAfterTenantMutation(
   });
 }
 
+export function useTenantsForAssignment(search: string) {
+  const trimmed = search.trim() || undefined;
+
+  return useQuery({
+    queryKey: [...queryKeys.tenants.all, "assignment", { search: trimmed }],
+    queryFn: () =>
+      tenantsService.getTenants({ search: trimmed, page: 1, limit: 500 }),
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 5,
+  });
+}
+
 export function useTenantsQuery() {
   const { search, status, propertyId, page } = useTenantsFilters();
 

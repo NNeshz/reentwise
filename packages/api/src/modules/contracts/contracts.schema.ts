@@ -35,6 +35,7 @@ export const updateContractBodySchema = t.Partial(
 
 export const contractsListQuerySchema = t.Object({
   search: t.Optional(t.String()),
+  page: t.Optional(t.Numeric()),
 });
 
 export const contractsSuccessSchema = apiSuccessAnyDataSchema;

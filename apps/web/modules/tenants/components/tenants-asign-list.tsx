@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   useReassignTenant,
-  useTenantsQuery,
+  useTenantsForAssignment,
 } from "@/modules/tenants/hooks/use-tenants";
 import { Card } from "@reentwise/ui/src/components/card";
 import { Avatar, AvatarFallback } from "@reentwise/ui/src/components/avatar";
@@ -28,20 +28,24 @@ import {
 import { Button } from "@reentwise/ui/src/components/button";
 import { Label } from "@reentwise/ui/src/components/label";
 import { Input } from "@reentwise/ui/src/components/input";
-import { IconDoor } from "@tabler/icons-react";
+import { IconDoor, IconSearch } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { TenantListRow } from "@/modules/tenants/types/tenants.types";
 import { TenantsAsignListSkeleton } from "@/modules/tenants/components/tenants-asign-list-skeleton";
 import { TenantsAsignListError } from "@/modules/tenants/components/tenants-asign-list-error";
+import { useDebounce } from "@/utils/use-debounce";
 
 export function TenantsAsignList({ roomId }: { roomId: string }) {
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 300);
+
   const {
     data,
     isPending,
     error,
     refetch,
     isRefetching,
-  } = useTenantsQuery();
+  } = useTenantsForAssignment(debouncedSearch);
   const { mutate: reassignTenant, isPending: isReassigning } =
     useReassignTenant(roomId);
 
@@ -68,14 +72,6 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
   }
 
   const tenantsList: TenantListRow[] = data?.tenants ?? [];
-
-  if (tenantsList.length === 0) {
-    return (
-      <div className="flex justify-center p-4 text-sm text-muted-foreground">
-        No hay inquilinos registrados en tus propiedades.
-      </div>
-    );
-  }
 
   const handleTenantClick = (tenant: TenantListRow) => {
     const currentRoomId = tenant.roomId ?? tenant.room?.id ?? null;
@@ -135,6 +131,25 @@ export function TenantsAsignList({ roomId }: { roomId: string }) {
 
   return (
     <div className="mt-4 space-y-3 px-4">
+      <div className="relative">
+        <IconSearch className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre o WhatsApp"
+          className="pl-9"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          autoFocus
+        />
+      </div>
+
+      {tenantsList.length === 0 && (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          {debouncedSearch.trim()
+            ? "Sin resultados para esa búsqueda."
+            : "No hay inquilinos registrados."}
+        </p>
+      )}
+
       {tenantsList.map((tenant) => (
         <Card
           key={tenant.id}

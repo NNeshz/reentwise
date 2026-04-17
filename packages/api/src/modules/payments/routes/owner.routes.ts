@@ -44,12 +44,14 @@ export const ownerPaymentsRoutes = new Elysia({
         const { month, year } = parsePaymentsListQuery(query);
         const search = query.search?.trim() || undefined;
         const status = query.status as PaymentStatusFilter | undefined;
+        const page = query.page ? Number(query.page) : 1;
         const data = await paymentsService.getPayments(
           user.id,
           month,
           year,
           search,
           status,
+          page,
         );
         return apiSuccess("Payments retrieved successfully", data);
       } catch (e) {

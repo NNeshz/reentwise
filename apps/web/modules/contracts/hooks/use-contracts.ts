@@ -7,11 +7,11 @@ import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
 export function useContractsQuery() {
-  const { search } = useContractsFilters();
+  const { search, page } = useContractsFilters();
 
   return useQuery({
-    queryKey: [...queryKeys.contracts.all, { search }],
-    queryFn: () => contractsService.getContracts({ search }),
+    queryKey: [...queryKeys.contracts.all, { search, page }],
+    queryFn: () => contractsService.getContracts({ search, page }),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
   });

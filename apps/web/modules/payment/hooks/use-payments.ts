@@ -6,14 +6,14 @@ import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import { toast } from "sonner";
 
 export function usePayments() {
-  const { search, status, month, year } = usePaymentsFilters();
+  const { search, status, month, year, page } = usePaymentsFilters();
 
   const trimmedSearch = search?.trim() || undefined;
 
   return useQuery({
     queryKey: [
       ...queryKeys.payments.all,
-      { month, year, search: trimmedSearch, status },
+      { month, year, search: trimmedSearch, status, page },
     ],
     queryFn: () =>
       paymentService.getPayments({
@@ -21,6 +21,7 @@ export function usePayments() {
         year,
         search: trimmedSearch,
         status,
+        page,
       }),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,

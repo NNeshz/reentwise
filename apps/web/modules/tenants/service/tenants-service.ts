@@ -38,12 +38,14 @@ class TenantsService {
     status?: TenantPaymentFilterStatus;
     propertyId?: string;
     page?: number;
+    limit?: number;
   }): Promise<TenantsListResponse> {
     const query: Record<string, string | number> = {};
     if (params.search?.trim()) query.search = params.search.trim();
     if (params.status) query.status = params.status;
     if (params.propertyId?.trim()) query.propertyId = params.propertyId.trim();
     if (params.page != null) query.page = params.page;
+    if (params.limit != null) query.limit = params.limit;
 
     const response = await apiClient.tenants.owner.get({
       query: query as {

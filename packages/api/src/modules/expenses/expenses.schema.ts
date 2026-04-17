@@ -32,6 +32,7 @@ export const expensesListQuerySchema = t.Object({
       t.Literal("other"),
     ]),
   ),
+  page: t.Optional(t.Numeric()),
 });
 
 export const createExpenseBodySchema = t.Object({

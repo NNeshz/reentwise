@@ -4,9 +4,10 @@ import type {
   CreateExpenseInput,
   ExpenseCategory,
   ExpenseListRow,
+  ExpensesListResponse,
   UpdateExpenseInput,
 } from "@/modules/expenses/types/expenses.types";
-import { parseExpensesList } from "@/modules/expenses/lib/validate-expense-payload";
+import { parseExpensesListResponse } from "@/modules/expenses/lib/validate-expense-payload";
 
 function toServiceError(value: unknown, fallback: string): Error {
   return new Error(errorMessageFromUnknown(value, fallback));
@@ -38,13 +39,15 @@ class ExpensesService {
     propertyId?: string;
     year?: number;
     month?: number;
-  } = {}): Promise<ExpenseListRow[]> {
+    page?: number;
+  } = {}): Promise<ExpensesListResponse> {
     const response = await apiClient.expenses.owner.get({
       query: {
         category: params.category,
         propertyId: params.propertyId,
         year: params.year,
         month: params.month,
+        page: params.page,
       },
     });
 
@@ -56,7 +59,7 @@ class ExpensesService {
     }
 
     const unwrapped = unwrapEnvelopeData(response.data);
-    return parseExpensesList(unwrapped);
+    return parseExpensesListResponse(unwrapped);
   }
 
   async createExpense(data: CreateExpenseInput): Promise<unknown> {

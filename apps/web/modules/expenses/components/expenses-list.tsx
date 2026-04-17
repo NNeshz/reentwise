@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useExpenses } from "@/modules/expenses/hooks/use-expenses";
+import { useExpensesFilters } from "@/modules/expenses/store/use-expenses-filters";
 import type { ExpenseListRow } from "@/modules/expenses/types/expenses.types";
 import { ExpenseRow, type ExpenseRowAction } from "@/modules/expenses/components/expense-row";
 import { ExpensesTableHeader } from "@/modules/expenses/components/expenses-table-header";
@@ -10,6 +11,7 @@ import { ExpenseDeleteDialog } from "@/modules/expenses/components/expense-delet
 import { ExpensesListSkeleton } from "@/modules/expenses/components/expenses-list-skeleton";
 import { ExpensesListEmpty } from "@/modules/expenses/components/expenses-list-empty";
 import { ExpensesListError } from "@/modules/expenses/components/expenses-list-error";
+import { ExpensesPagination } from "@/modules/expenses/components/expenses-pagination";
 
 type DialogTarget = {
   expense: ExpenseListRow;
@@ -18,10 +20,12 @@ type DialogTarget = {
 
 export function ExpensesList() {
   const { data, isPending, error, refetch, isRefetching, isFetching } = useExpenses();
+  const { setPage } = useExpensesFilters();
 
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
 
-  const expenses = data ?? [];
+  const expenses = data?.expenses ?? [];
+  const pagination = data?.pagination;
   const activeExpense = dialogTarget?.expense ?? null;
 
   function closeDialog() {
@@ -50,7 +54,7 @@ export function ExpensesList() {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
-          {expenses.length} gasto{expenses.length !== 1 ? "s" : ""}
+          {pagination?.totalItems ?? expenses.length} gasto{(pagination?.totalItems ?? expenses.length) !== 1 ? "s" : ""}
           {isFetching ? " · actualizando…" : ""}
         </span>
       </div>
@@ -63,6 +67,14 @@ export function ExpensesList() {
           ))}
         </ul>
       </div>
+
+      {pagination && (
+        <ExpensesPagination
+          pagination={pagination}
+          onPrevious={() => setPage(pagination.currentPage - 1)}
+          onNext={() => setPage(pagination.currentPage + 1)}
+        />
+      )}
 
       <ExpenseEditSheet
         row={activeExpense}
