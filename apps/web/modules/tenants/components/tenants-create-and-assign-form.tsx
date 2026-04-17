@@ -234,36 +234,58 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
 
   React.useImperativeHandle(ref, () => ({ reset: () => form.reset() }))
 
-  // Calcula prorrateo del primer mes automáticamente
+  // Calcula prorrateo del primer mes desde contractStartsAt hasta el primer día de cobro
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       const shouldRecalc =
-        (name === "adjustFirstMonth" && value.adjustFirstMonth) ||
-        (name === "paymentDay" && value.adjustFirstMonth)
+        value.adjustFirstMonth &&
+        (name === "adjustFirstMonth" ||
+          name === "paymentDay" ||
+          name === "contractStartsAt")
 
       if (shouldRecalc && roomPrice !== undefined && roomPrice > 0) {
-        const today = new Date()
-        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+        const startDate = value.contractStartsAt
+          ? parseDateString(value.contractStartsAt)
+          : new Date()
+
+        if (!startDate) return
+
+        const daysInMonth = new Date(
+          startDate.getFullYear(),
+          startDate.getMonth() + 1,
+          0,
+        ).getDate()
         const dailyPrice = roomPrice / daysInMonth
         const payDay = value.paymentDay ?? 1
 
+        // Primer intento: día de cobro en el mismo mes que la fecha de inicio
         let nextPayDate = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          payDay === 0 ? daysInMonth : payDay,
+          startDate.getFullYear(),
+          startDate.getMonth(),
+          payDay === 0 ? daysInMonth : Math.min(payDay, daysInMonth),
         )
-        if (nextPayDate <= today) {
-          const nm = today.getMonth() + 1
-          const daysInNm = new Date(today.getFullYear(), nm + 1, 0).getDate()
+
+        // Si el día de cobro ya pasó (o es igual al inicio), mover al mes siguiente
+        if (nextPayDate <= startDate) {
+          const firstOfNextMonth = new Date(
+            startDate.getFullYear(),
+            startDate.getMonth() + 1,
+            1,
+          )
+          const daysInNextMonth = new Date(
+            firstOfNextMonth.getFullYear(),
+            firstOfNextMonth.getMonth() + 1,
+            0,
+          ).getDate()
           nextPayDate = new Date(
-            today.getFullYear(),
-            nm,
-            payDay === 0 ? daysInNm : Math.min(payDay, daysInNm),
+            firstOfNextMonth.getFullYear(),
+            firstOfNextMonth.getMonth(),
+            payDay === 0 ? daysInNextMonth : Math.min(payDay, daysInNextMonth),
           )
         }
 
         const diffDays = Math.ceil(
-          (nextPayDate.getTime() - today.getTime()) / 86_400_000,
+          (nextPayDate.getTime() - startDate.getTime()) / 86_400_000,
         )
         form.setValue(
           "firstMonthRent",
