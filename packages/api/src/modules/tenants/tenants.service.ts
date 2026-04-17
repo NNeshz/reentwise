@@ -6,6 +6,7 @@ import {
   gte,
   tenants,
   contracts,
+  audits,
   and,
   rooms,
   properties,
@@ -397,6 +398,11 @@ export class TenantsService {
         ? new Date(body.contractStartsAt)
         : new Date();
 
+      await tx
+        .update(tenants)
+        .set({ startDate: startsAt })
+        .where(eq(tenants.id, newTenant.id));
+
       const [contract] = await tx
         .insert(contracts)
         .values({
@@ -709,21 +715,27 @@ export class TenantsService {
       }
     }
 
-    const [deleted] = await db
-      .delete(tenants)
-      .where(eq(tenants.id, tenantId))
-      .returning();
+    const deleted = await db.transaction(async (tx) => {
+      await tx.delete(audits).where(eq(audits.tenantId, tenantId));
+      await tx.delete(payments).where(eq(payments.tenantId, tenantId));
+      await tx.delete(contracts).where(eq(contracts.tenantId, tenantId));
 
-    if (!deleted) {
-      throw new TenantNotFoundError("Failed to delete tenant");
-    }
+      const [row] = await tx
+        .delete(tenants)
+        .where(eq(tenants.id, tenantId))
+        .returning();
 
-    if (tenant.roomId) {
-      await db
-        .update(rooms)
-        .set({ status: "vacant" })
-        .where(eq(rooms.id, tenant.roomId));
-    }
+      if (!row) throw new TenantNotFoundError("Failed to delete tenant");
+
+      if (tenant.roomId) {
+        await tx
+          .update(rooms)
+          .set({ status: "vacant" })
+          .where(eq(rooms.id, tenant.roomId));
+      }
+
+      return row;
+    });
 
     return deleted;
   }

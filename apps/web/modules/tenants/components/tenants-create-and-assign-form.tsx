@@ -431,7 +431,9 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
                 </SelectContent>
               </Select>
               <FormDescription>
-                Días 29-31 y &quot;Final de mes&quot; se ajustan en meses cortos.
+                Día del mes en que se genera el cobro, independientemente de
+                cuándo inició el contrato. Días 29-31 y &quot;Final de mes&quot;
+                se ajustan en meses cortos.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -542,6 +544,11 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
                   placeholder="Selecciona fecha de inicio"
                 />
               </FormControl>
+              <FormDescription>
+                Fecha en que inicia el arrendamiento (entrada del inquilino). El{" "}
+                <strong>día de pago</strong> es independiente: solo indica en qué
+                día del mes se genera el cobro mensual.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
