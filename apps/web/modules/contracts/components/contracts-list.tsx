@@ -9,7 +9,7 @@ import {
   ContractRowCard,
   type ContractRowAction,
 } from "@/modules/contracts/components/contract-row-card";
-import { ContractEditSheet } from "@/modules/contracts/components/contract-edit-sheet";
+import { ContractDetailSheet } from "@/modules/contracts/components/contract-detail-sheet";
 import { ContractsListSkeleton } from "@/modules/contracts/components/contracts-list-skeleton";
 import { ContractsListEmpty } from "@/modules/contracts/components/contracts-list-empty";
 import { ContractsListError } from "@/modules/contracts/components/contracts-list-error";
@@ -84,9 +84,9 @@ export function ContractsList() {
         />
       )}
 
-      <ContractEditSheet
+      <ContractDetailSheet
         row={activeRow}
-        open={dialogTarget?.action === "edit"}
+        open={dialogTarget?.action === "view"}
         onOpenChange={(open) => {
           if (!open) closeDialog();
         }}

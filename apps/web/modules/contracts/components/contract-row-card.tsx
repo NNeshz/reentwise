@@ -13,7 +13,7 @@ import {
 } from "@reentwise/ui/src/components/dropdown-menu";
 import {
   IconDotsVertical,
-  IconPencil,
+  IconEye,
   IconCheck,
   IconX,
 } from "@tabler/icons-react";
@@ -25,7 +25,7 @@ import {
   formatContractDate,
 } from "@/modules/contracts/lib/contract-display";
 
-export type ContractRowAction = "edit" | "activate" | "terminate";
+export type ContractRowAction = "view" | "activate" | "terminate";
 
 type DialogTarget = {
   row: ContractListRow;
@@ -90,10 +90,10 @@ export function ContractRowCard({ row, onAction }: Props) {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuGroup>
               <DropdownMenuItem
-                onSelect={() => onAction({ row, action: "edit" })}
+                onSelect={() => onAction({ row, action: "view" })}
               >
-                <IconPencil className="size-4" />
-                Editar contrato
+                <IconEye className="size-4" />
+                Ver detalles
               </DropdownMenuItem>
             </DropdownMenuGroup>
             {(canActivate || canTerminate) && (

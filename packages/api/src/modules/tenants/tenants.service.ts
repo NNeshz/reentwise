@@ -383,20 +383,32 @@ export class TenantsService {
         .set({ status: "occupied", updatedAt: new Date() })
         .where(eq(rooms.id, roomId));
 
-      if (body.firstMonthRent !== undefined) {
-        const currentDate = new Date();
-        await tx.insert(payments).values({
-          tenantId: newTenant.id,
-          amount: body.firstMonthRent.toString(),
-          month: currentDate.getMonth() + 1,
-          year: currentDate.getFullYear(),
-          status: "pending",
-        });
-      }
-
       const startsAt = body.contractStartsAt
         ? new Date(body.contractStartsAt)
         : new Date();
+
+      // Determine first billing month: same month if pay day >= start day, else next month
+      const startYear = startsAt.getFullYear();
+      const startMonth = startsAt.getMonth() + 1;
+      const startDay = startsAt.getDate();
+      const firstDueDay = getPaymentDateForMonth(startYear, startMonth, body.paymentDay);
+      let firstPayMonth = startMonth;
+      let firstPayYear = startYear;
+      if (firstDueDay < startDay) {
+        firstPayMonth = startMonth === 12 ? 1 : startMonth + 1;
+        firstPayYear = startMonth === 12 ? startYear + 1 : startYear;
+      }
+
+      await tx.insert(payments).values({
+        tenantId: newTenant.id,
+        amount:
+          body.firstMonthRent !== undefined
+            ? body.firstMonthRent.toString()
+            : room.price.toString(),
+        month: firstPayMonth,
+        year: firstPayYear,
+        status: "pending",
+      });
 
       await tx
         .update(tenants)

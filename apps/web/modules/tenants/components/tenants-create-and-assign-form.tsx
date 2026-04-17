@@ -265,8 +265,8 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
           payDay === 0 ? daysInMonth : Math.min(payDay, daysInMonth),
         )
 
-        // Si el día de cobro ya pasó (o es igual al inicio), mover al mes siguiente
-        if (nextPayDate <= startDate) {
+        // Si el día de cobro ya pasó antes del inicio, mover al mes siguiente
+        if (nextPayDate < startDate) {
           const firstOfNextMonth = new Date(
             startDate.getFullYear(),
             startDate.getMonth() + 1,
@@ -321,6 +321,41 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
     form.reset()
   }
 
+  const watchedStart = form.watch("contractStartsAt")
+  const watchedPayDay = form.watch("paymentDay")
+
+  const firstBillingLabel = React.useMemo(() => {
+    if (!watchedStart) return null
+    const startDate = parseDateString(watchedStart)
+    if (!startDate) return null
+    const startYear = startDate.getFullYear()
+    const startMonth = startDate.getMonth() + 1
+    const startDay = startDate.getDate()
+    const daysInStartMonth = new Date(startYear, startMonth, 0).getDate()
+    const effectivePayDay =
+      watchedPayDay === 0
+        ? daysInStartMonth
+        : Math.min(watchedPayDay, daysInStartMonth)
+
+    let firstYear = startYear
+    let firstMonth = startMonth
+    let firstDay = effectivePayDay
+
+    if (effectivePayDay < startDay) {
+      firstMonth = startMonth + 1
+      if (firstMonth > 12) {
+        firstMonth = 1
+        firstYear++
+      }
+      const daysInNext = new Date(firstYear, firstMonth, 0).getDate()
+      firstDay =
+        watchedPayDay === 0 ? daysInNext : Math.min(watchedPayDay, daysInNext)
+    }
+
+    const d = new Date(firstYear, firstMonth - 1, firstDay)
+    return format(d, "d 'de' MMMM, yyyy", { locale: es })
+  }, [watchedStart, watchedPayDay])
+
   return (
     <Form {...form}>
       <form
@@ -328,6 +363,14 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
         onSubmit={form.handleSubmit(handleSubmit)}
         className="flex flex-col gap-4 px-4 py-4"
       >
+        {/* ── Información del inquilino ── */}
+        <div className="space-y-1">
+          <p className="text-sm font-semibold">Información del inquilino</p>
+          <p className="text-muted-foreground text-xs">
+            Datos de contacto que se usarán para enviar avisos y recibos.
+          </p>
+        </div>
+
         <FormField
           control={form.control}
           name="name"
@@ -430,10 +473,89 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
 
         <FormField
           control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notas (opcional)</FormLabel>
+              <FormControl>
+                <InputGroup>
+                  <InputGroupTextarea
+                    placeholder="Información adicional sobre el inquilino..."
+                    rows={3}
+                    className="min-h-20 resize-none"
+                    {...field}
+                  />
+                  <InputGroupAddon align="block-end">
+                    <InputGroupText className="tabular-nums">
+                      {(field.value || "").length}/{NOTES_MAX_LENGTH}
+                    </InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Separator />
+
+        {/* ── Contrato ── */}
+        <div className="space-y-1">
+          <p className="text-sm font-semibold">Contrato</p>
+          <p className="text-muted-foreground text-xs">
+            Define cuándo inicia el arrendamiento y en qué día del mes se genera
+            el cobro mensual. El contrato se crea automáticamente al asignar.
+          </p>
+        </div>
+
+        <FormField
+          control={form.control}
+          name="contractStartsAt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fecha de inicio del contrato</FormLabel>
+              <FormControl>
+                <InlineDatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Selecciona fecha de inicio"
+                />
+              </FormControl>
+              <FormDescription>
+                Día en que el inquilino entra a la habitación.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="contractEndsAt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fecha de fin del contrato (opcional)</FormLabel>
+              <FormControl>
+                <InlineDatePicker
+                  value={field.value || undefined}
+                  onChange={field.onChange}
+                  placeholder="Sin fecha de fin (indefinido)"
+                />
+              </FormControl>
+              <FormDescription>
+                Dejar sin seleccionar para contrato por tiempo indefinido.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="paymentDay"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Día de pago</FormLabel>
+              <FormLabel>Día de cobro mensual</FormLabel>
               <Select
                 value={String(field.value)}
                 onValueChange={(val) => field.onChange(parseInt(val, 10))}
@@ -453,14 +575,20 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
                 </SelectContent>
               </Select>
               <FormDescription>
-                Día del mes en que se genera el cobro, independientemente de
-                cuándo inició el contrato. Días 29-31 y &quot;Final de mes&quot;
-                se ajustan en meses cortos.
+                Día del mes en que se genera el cobro cada mes. Días 29–31 y
+                &quot;Final de mes&quot; se ajustan en meses más cortos.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        {firstBillingLabel && (
+          <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+            <span className="font-semibold">Primera fecha de cobro:</span>{" "}
+            {firstBillingLabel}
+          </div>
+        )}
 
         <FormField
           control={form.control}
@@ -469,8 +597,12 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <FormLabel className="text-base">
-                  Cobrar una fracción del primer mes
+                  Cobrar fracción del primer periodo
                 </FormLabel>
+                <p className="text-muted-foreground text-xs">
+                  Activa si el inquilino entra a mitad de mes y quieres cobrar
+                  solo los días proporcionales antes del primer cobro regular.
+                </p>
               </div>
               <FormControl>
                 <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -485,7 +617,7 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
             name="firstMonthRent"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cantidad a cobrar este primer mes</FormLabel>
+                <FormLabel>Monto del primer cobro (fracción)</FormLabel>
                 <FormControl>
                   <InputGroup>
                     <InputGroupAddon align="inline-start">
@@ -506,7 +638,9 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
                   </InputGroup>
                 </FormControl>
                 <FormDescription>
-                  A partir del mes siguiente se cobrará la renta completa.
+                  Calculado automáticamente por los días hasta la primera fecha
+                  de cobro. A partir del siguiente ciclo se cobra la renta
+                  completa.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -537,85 +671,6 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
                       field.onChange(val === "" ? undefined : Number(val))
                     }}
                   />
-                </InputGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Separator />
-
-        <div className="space-y-1">
-          <p className="text-sm font-medium">Contrato</p>
-          <p className="text-muted-foreground text-xs">
-            Fechas del arrendamiento. El contrato se crea automáticamente al asignar.
-          </p>
-        </div>
-
-        <FormField
-          control={form.control}
-          name="contractStartsAt"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Inicio del contrato</FormLabel>
-              <FormControl>
-                <InlineDatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Selecciona fecha de inicio"
-                />
-              </FormControl>
-              <FormDescription>
-                Fecha en que inicia el arrendamiento (entrada del inquilino). El{" "}
-                <strong>día de pago</strong> es independiente: solo indica en qué
-                día del mes se genera el cobro mensual.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="contractEndsAt"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fin del contrato (opcional)</FormLabel>
-              <FormControl>
-                <InlineDatePicker
-                  value={field.value || undefined}
-                  onChange={field.onChange}
-                  placeholder="Sin fecha de fin (indefinido)"
-                />
-              </FormControl>
-              <FormDescription>
-                Dejar sin seleccionar para contrato indefinido.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas (opcional)</FormLabel>
-              <FormControl>
-                <InputGroup>
-                  <InputGroupTextarea
-                    placeholder="Información adicional sobre el inquilino..."
-                    rows={3}
-                    className="min-h-20 resize-none"
-                    {...field}
-                  />
-                  <InputGroupAddon align="block-end">
-                    <InputGroupText className="tabular-nums">
-                      {(field.value || "").length}/{NOTES_MAX_LENGTH}
-                    </InputGroupText>
-                  </InputGroupAddon>
                 </InputGroup>
               </FormControl>
               <FormMessage />
