@@ -1,6 +1,5 @@
-"use client";
-
 import { Badge } from "@reentwise/ui/src/components/badge";
+import { cn } from "@reentwise/ui/src/lib/utils";
 import type {
   PaymentMonthRow,
   PaymentTenantRow,
@@ -10,6 +9,21 @@ import {
   nextCollectionBadgeLabel,
 } from "@/modules/payment/lib/payment-display";
 
+function statusClassName(status: string | null): string {
+  switch (status) {
+    case "paid":
+      return "border-emerald-500/60 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
+    case "partial":
+      return "border-amber-500/60 bg-amber-500/10 text-amber-900 dark:text-amber-200";
+    case "late":
+      return "border-red-500/60 bg-red-500/10 text-red-800 dark:text-red-300";
+    case "pending":
+      return "border-orange-500/60 bg-orange-500/10 text-orange-900 dark:text-orange-300";
+    default:
+      return "border-slate-400/50 bg-slate-500/10 text-slate-800 dark:text-slate-300";
+  }
+}
+
 type Props = {
   payment: PaymentMonthRow | null;
   tenant: PaymentTenantRow;
@@ -17,15 +31,10 @@ type Props = {
   year: number;
 };
 
-export function PaymentListStatusBadge({
-  payment,
-  tenant,
-  month,
-  year,
-}: Props) {
+export function PaymentListStatusBadge({ payment, tenant, month, year }: Props) {
   if (!payment) {
     return (
-      <Badge className="border border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+      <Badge variant="outline" className={cn("w-fit font-medium", statusClassName(null))}>
         {nextCollectionBadgeLabel(tenant, month, year)}
       </Badge>
     );
@@ -36,7 +45,7 @@ export function PaymentListStatusBadge({
 
   if (payment.status === "paid") {
     return (
-      <Badge className="border border-green-200 bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-900/40 dark:text-green-400">
+      <Badge variant="outline" className={cn("w-fit font-medium", statusClassName("paid"))}>
         Pagado
       </Badge>
     );
@@ -44,16 +53,23 @@ export function PaymentListStatusBadge({
 
   if (payment.status === "partial") {
     return (
-      <Badge className="border border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-400">
-        Abono {formatPaymentCurrency(amountPaid)} /{" "}
-        {formatPaymentCurrency(amount)}
+      <Badge variant="outline" className={cn("w-fit font-medium", statusClassName("partial"))}>
+        Abono {formatPaymentCurrency(amountPaid)} / {formatPaymentCurrency(amount)}
+      </Badge>
+    );
+  }
+
+  if (payment.status === "late") {
+    return (
+      <Badge variant="outline" className={cn("w-fit font-medium", statusClassName("late"))}>
+        Mora
       </Badge>
     );
   }
 
   return (
-    <Badge className="border border-red-200 bg-red-100 text-red-700 dark:border-red-800 dark:bg-red-900/40 dark:text-red-400">
-      Debe {formatPaymentCurrency(amount)}
+    <Badge variant="outline" className={cn("w-fit font-medium", statusClassName("pending"))}>
+      Pendiente
     </Badge>
   );
 }

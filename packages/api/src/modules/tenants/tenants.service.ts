@@ -335,6 +335,7 @@ export class TenantsService {
       notes?: string;
       firstMonthRent?: number;
       deposit?: number;
+      graceDays?: number;
       contractStartsAt?: string;
       contractEndsAt?: string;
     },
@@ -369,7 +370,6 @@ export class TenantsService {
           whatsapp: body.whatsapp,
           email: body.email,
           paymentDay: body.paymentDay,
-          deposit: body.deposit?.toString() ?? "0.00",
           notes: body.notes,
         })
         .returning();
@@ -399,6 +399,7 @@ export class TenantsService {
         firstPayYear = startMonth === 12 ? startYear + 1 : startYear;
       }
 
+      // First payment: prorated amount if adjustFirstMonth, else full rent
       await tx.insert(payments).values({
         tenantId: newTenant.id,
         amount:
@@ -409,6 +410,18 @@ export class TenantsService {
         year: firstPayYear,
         status: "pending",
       });
+
+      // When a prorated first period exists, also pre-create the full-rent payment
+      // for the same month — both are due on the first billing date (e.g. April 23).
+      if (body.firstMonthRent !== undefined) {
+        await tx.insert(payments).values({
+          tenantId: newTenant.id,
+          amount: room.price.toString(),
+          month: firstPayMonth,
+          year: firstPayYear,
+          status: "pending",
+        });
+      }
 
       await tx
         .update(tenants)
@@ -424,6 +437,7 @@ export class TenantsService {
           rentAmount: room.price.toString(),
           paymentDay: body.paymentDay,
           deposit: body.deposit?.toString() ?? "0.00",
+          graceDays: body.graceDays ?? 2,
           startsAt,
           endsAt: body.contractEndsAt ? new Date(body.contractEndsAt) : null,
           status: "active",
@@ -842,21 +856,32 @@ export class TenantsService {
 
     const { year: fy, month: fm } = firstBillableYearMonth(tenant);
 
-    const result = await db
-      .select()
-      .from(payments)
-      .where(
-        and(
-          eq(payments.tenantId, tenantId),
-          or(
-            gt(payments.year, fy),
-            and(eq(payments.year, fy), gte(payments.month, fm)),
+    const [result, activeContract] = await Promise.all([
+      db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.tenantId, tenantId),
+            or(
+              gt(payments.year, fy),
+              and(eq(payments.year, fy), gte(payments.month, fm)),
+            ),
           ),
-        ),
-      )
-      .orderBy(desc(payments.year), desc(payments.month));
+        )
+        .orderBy(desc(payments.year), desc(payments.month)),
+      db.query.contracts.findFirst({
+        where: and(eq(contracts.tenantId, tenantId), eq(contracts.status, "active")),
+        columns: {
+          id: true,
+          deposit: true,
+          depositCollectedAt: true,
+          depositAmountCollected: true,
+        },
+      }),
+    ]);
 
-    return { payments: result };
+    return { payments: result, contract: activeContract ?? null };
   }
 
   async getAccountStatus(

@@ -3,6 +3,7 @@ import { errorMessageFromUnknown } from "@/utils/normalize-error";
 import type {
   ContractsListResponse,
   UpdateContractInput,
+  MarkDepositCollectedInput,
 } from "@/modules/contracts/types/contracts.types";
 import { parseContractsListResponse } from "@/modules/contracts/lib/validate-contract-payload";
 
@@ -90,6 +91,16 @@ class ContractsService {
       throw toServiceError(response.error.value, "No se pudo terminar el contrato");
     }
 
+    return unwrapEnvelopeData(response.data);
+  }
+
+  async markDepositCollected(contractId: string, data: MarkDepositCollectedInput): Promise<unknown> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = apiClient as any;
+    const response = await client.contracts.owner[contractId].deposit.collect.post(data);
+    if (response.error) {
+      throw toServiceError(response.error.value, "No se pudo registrar el depósito");
+    }
     return unwrapEnvelopeData(response.data);
   }
 }

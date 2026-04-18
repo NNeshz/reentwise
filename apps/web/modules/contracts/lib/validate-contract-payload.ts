@@ -26,6 +26,9 @@ function parseContractRecord(value: unknown): ContractRecord {
     signedAt: typeof c.signedAt === "string" ? c.signedAt : null,
     terminatedAt: typeof c.terminatedAt === "string" ? c.terminatedAt : null,
     notes: typeof c.notes === "string" ? c.notes : null,
+    graceDays: typeof c.graceDays === "number" ? c.graceDays : 2,
+    depositCollectedAt: typeof c.depositCollectedAt === "string" ? c.depositCollectedAt : null,
+    depositAmountCollected: c.depositAmountCollected != null ? String(c.depositAmountCollected) : null,
     createdAt: typeof c.createdAt === "string" ? c.createdAt : null,
     updatedAt: typeof c.updatedAt === "string" ? c.updatedAt : null,
   };

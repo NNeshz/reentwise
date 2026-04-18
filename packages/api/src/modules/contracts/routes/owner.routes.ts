@@ -9,6 +9,7 @@ import {
   createContractBodySchema,
   updateContractBodySchema,
   setPdfUrlBodySchema,
+  markDepositCollectedBodySchema,
   contractsSuccessSchema,
   contractsError404Schema,
   contractsError500Schema,
@@ -189,6 +190,37 @@ export const ownerContractRoutes = new Elysia({
       detail: {
         tags: [openApiTags.Contracts],
         summary: "Terminar contrato",
+      },
+      response: {
+        200: contractsSuccessSchema,
+        404: contractsError404Schema,
+        500: contractsError500Schema,
+      },
+    },
+  )
+  .post(
+    "/:contractId/deposit/collect",
+    async ({ user, params, body, contractsService, set }) => {
+      try {
+        const data = await contractsService.markDepositCollected(
+          params.contractId,
+          user.id,
+          body.amountCollected,
+          body.collectedAt ? new Date(body.collectedAt) : undefined,
+        );
+        if (!data) throw new ContractNotFoundError();
+        return apiSuccess("Depósito marcado como cobrado", data);
+      } catch (e) {
+        return mapContractRouteError(e, set);
+      }
+    },
+    {
+      authenticated: true,
+      params: contractIdParamsSchema,
+      body: markDepositCollectedBodySchema,
+      detail: {
+        tags: [openApiTags.Contracts],
+        summary: "Registrar cobro del depósito en garantía",
       },
       response: {
         200: contractsSuccessSchema,

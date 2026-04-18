@@ -16,11 +16,12 @@ export type ReminderTrigger = {
  * - T-7: entre 7 y 4 días antes del vencimiento
  * - T-3: entre 3 y 1 días antes
  * - Hoy: día de vencimiento
- * - Mora: +2 días civiles después del vencimiento
+ * - Mora: +graceDays civiles después del vencimiento (default 2)
  */
 export function buildReminderTriggersForDay(
   today: WallYmd,
   paymentDay: number,
+  graceDays = 2,
 ): ReminderTrigger[] {
   const y = today.y;
   const m = today.m;
@@ -63,8 +64,8 @@ export function buildReminderTriggersForDay(
     });
   }
 
-  // +2 días de mora respecto al vencimiento de este mes
-  if (diffThisMonth === -2) {
+  // +graceDays de mora respecto al vencimiento de este mes
+  if (diffThisMonth === -graceDays) {
     triggers.push({
       targetDate: utcNoonForWallYmd(thisDue.y, thisDue.m, thisDue.d),
       kind: "late",

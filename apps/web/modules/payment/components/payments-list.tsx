@@ -4,35 +4,29 @@ import * as React from "react";
 import { usePayments } from "@/modules/payment/hooks/use-payments";
 import { usePaymentsFilters } from "@/modules/payment/store/use-payments-filters";
 import type { PaymentListRow } from "@/modules/payment/types/payment.types";
-import { PAYMENTS_LIST_STACK_CLASS } from "@/modules/payment/lib/payment-display";
 import { PaymentModal } from "@/modules/payment/components/payment-modal";
-import { PaymentRowCard } from "@/modules/payment/components/payment-row-card";
+import { PaymentRow } from "@/modules/payment/components/payment-row";
+import { PaymentsListFrame } from "@/modules/payment/components/payments-list-frame";
+import { PaymentsTableHeader } from "@/modules/payment/components/payments-table-header";
 import { PaymentsListSkeleton } from "@/modules/payment/components/payments-list-skeleton";
 import { PaymentsListEmpty } from "@/modules/payment/components/payments-list-empty";
 import { PaymentsListError } from "@/modules/payment/components/payments-list-error";
 import { PaymentsResultSummary } from "@/modules/payment/components/payments-result-summary";
 import { PaymentsPagination } from "@/modules/payment/components/payments-pagination";
+import { TenantPaymentsSheet } from "@/modules/tenants/components/tenant-payments-sheet";
 
 export function PaymentsList() {
-  const {
-    data,
-    isPending,
-    error,
-    isFetching,
-    refetch,
-    isRefetching,
-  } = usePayments();
+  const { data, isPending, error, isFetching, refetch, isRefetching } =
+    usePayments();
   const { month, year, setPage } = usePaymentsFilters();
-  const [selectedRow, setSelectedRow] = React.useState<PaymentListRow | null>(
-    null,
-  );
+
+  const [payRow, setPayRow] = React.useState<PaymentListRow | null>(null);
+  const [viewRow, setViewRow] = React.useState<PaymentListRow | null>(null);
 
   const rows = data?.payments ?? [];
   const pagination = data?.pagination;
 
-  if (isPending) {
-    return <PaymentsListSkeleton />;
-  }
+  if (isPending) return <PaymentsListSkeleton />;
 
   if (error) {
     return (
@@ -44,29 +38,30 @@ export function PaymentsList() {
     );
   }
 
-  if (rows.length === 0) {
-    return <PaymentsListEmpty />;
-  }
+  if (rows.length === 0) return <PaymentsListEmpty />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <PaymentsResultSummary
         count={pagination?.totalItems ?? rows.length}
         isFetching={isFetching && !isPending}
       />
 
-      <ul className={PAYMENTS_LIST_STACK_CLASS} role="list">
-        {rows.map((row) => (
-          <li key={row.tenant.id}>
-            <PaymentRowCard
+      <PaymentsListFrame>
+        <PaymentsTableHeader />
+        <ul className="flex flex-col gap-1" role="list">
+          {rows.map((row) => (
+            <PaymentRow
+              key={row.payment?.id ?? row.tenant.id}
               row={row}
               month={month}
               year={year}
-              onRegisterPayment={setSelectedRow}
+              onRegisterPayment={setPayRow}
+              onViewPayments={setViewRow}
             />
-          </li>
-        ))}
-      </ul>
+          ))}
+        </ul>
+      </PaymentsListFrame>
 
       {pagination && (
         <PaymentsPagination
@@ -76,17 +71,24 @@ export function PaymentsList() {
         />
       )}
 
-      {selectedRow?.payment ? (
+      {payRow?.payment && (
         <PaymentModal
-          isOpen={!!selectedRow}
-          onClose={() => setSelectedRow(null)}
+          isOpen
+          onClose={() => setPayRow(null)}
           onSuccess={() => void refetch()}
-          paymentId={selectedRow.payment.id}
-          tenantName={selectedRow.tenant.name}
-          totalAmount={Number(selectedRow.payment.amount)}
-          amountPaid={Number(selectedRow.payment.amountPaid ?? 0)}
+          paymentId={payRow.payment.id}
+          tenantName={payRow.tenant.name}
+          totalAmount={Number(payRow.payment.amount)}
+          amountPaid={Number(payRow.payment.amountPaid ?? 0)}
         />
-      ) : null}
+      )}
+
+      <TenantPaymentsSheet
+        tenantId={viewRow?.tenant.id ?? null}
+        tenantName={viewRow?.tenant.name ?? ""}
+        open={!!viewRow}
+        onOpenChange={(open) => { if (!open) setViewRow(null); }}
+      />
     </div>
   );
 }

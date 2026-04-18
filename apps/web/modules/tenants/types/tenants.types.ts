@@ -54,8 +54,16 @@ export type TenantPaymentRecord = {
   createdAt?: string | Date | null;
 };
 
+export type TenantPaymentsContract = {
+  id: string;
+  deposit: string | null;
+  depositCollectedAt: string | null;
+  depositAmountCollected: string | null;
+};
+
 export type TenantPaymentsResponse = {
   payments: TenantPaymentRecord[];
+  contract: TenantPaymentsContract | null;
 };
 
 /** Mínimo para filas devueltas por GET room tenants (sin join de cuarto). */

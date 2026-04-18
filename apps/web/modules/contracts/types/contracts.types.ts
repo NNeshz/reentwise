@@ -28,6 +28,9 @@ export type ContractRecord = {
   rentAmount: string;
   paymentDay: number;
   deposit: string | null;
+  graceDays: number;
+  depositCollectedAt: string | null;
+  depositAmountCollected: string | null;
   startsAt: string;
   endsAt: string | null;
   signedAt: string | null;
@@ -64,6 +67,12 @@ export type UpdateContractInput = {
   rentAmount?: string;
   paymentDay?: number;
   deposit?: string;
+  graceDays?: number;
   endsAt?: string | null;
   notes?: string | null;
+};
+
+export type MarkDepositCollectedInput = {
+  amountCollected: string;
+  collectedAt?: string;
 };

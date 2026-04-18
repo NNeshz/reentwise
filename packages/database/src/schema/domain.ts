@@ -104,6 +104,12 @@ export const contracts = pgTable("contracts", {
   rentAmount: decimal("rent_amount", { precision: 10, scale: 2 }).notNull(),
   paymentDay: integer("payment_day").notNull(),
   deposit: decimal("deposit", { precision: 10, scale: 2 }).default("0.00"),
+  /** Días de tolerancia después del vencimiento antes de marcar el cobro como 'late'. Default 2. */
+  graceDays: integer("grace_days").notNull().default(2),
+  /** Cuándo se cobró el depósito al inquilino (puede quedar null si no se ha cobrado). */
+  depositCollectedAt: timestamp("deposit_collected_at", { mode: "date", withTimezone: true }),
+  /** Monto real cobrado como depósito (puede diferir del acordado en `deposit`). */
+  depositAmountCollected: decimal("deposit_amount_collected", { precision: 10, scale: 2 }),
   startsAt: timestamp("starts_at", { mode: "date", withTimezone: true }).notNull(),
   endsAt: timestamp("ends_at", { mode: "date", withTimezone: true }),
   signedAt: timestamp("signed_at", { mode: "date", withTimezone: true }),

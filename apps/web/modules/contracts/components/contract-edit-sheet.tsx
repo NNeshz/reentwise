@@ -17,6 +17,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -55,6 +56,7 @@ const formSchema = z.object({
     .string()
     .refine((v) => v === "" || Number(v) >= 0, "El depósito no puede ser negativo.")
     .optional(),
+  graceDays: z.number().int().min(0).max(30),
   endsAt: z.string().optional(),
   notes: z.string().max(500).optional(),
 });
@@ -87,6 +89,7 @@ export function ContractEditSheet({
       rentAmount: "",
       paymentDay: 1,
       deposit: "",
+      graceDays: 2,
       endsAt: "",
       notes: "",
     },
@@ -100,6 +103,7 @@ export function ContractEditSheet({
         rentAmount: row.contract.rentAmount,
         paymentDay: row.contract.paymentDay,
         deposit: row.contract.deposit ?? "",
+        graceDays: row.contract.graceDays ?? 2,
         endsAt: toDateInput(row.contract.endsAt),
         notes: row.contract.notes ?? "",
       });
@@ -114,6 +118,7 @@ export function ContractEditSheet({
       rentAmount: values.rentAmount,
       paymentDay: values.paymentDay,
       deposit: values.deposit?.trim() || "0.00",
+      graceDays: values.graceDays,
       endsAt: values.endsAt
         ? new Date(values.endsAt).toISOString()
         : null,
@@ -214,6 +219,32 @@ export function ContractEditSheet({
                       />
                     </InputGroup>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="graceDays"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Días de gracia para pago</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="2"
+                      min={0}
+                      max={30}
+                      className="tabular-nums"
+                      {...field}
+                      value={field.value}
+                      onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Días después del vencimiento antes de marcar como mora.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

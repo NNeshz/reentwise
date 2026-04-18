@@ -123,6 +123,7 @@ const formSchema = z.object({
   adjustFirstMonth: z.boolean(),
   firstMonthRent: z.number().min(0, "El monto no puede ser negativo").optional(),
   deposit: z.number().min(0, "El depósito no puede ser negativo").optional(),
+  graceDays: z.number().int().min(0).max(30),
   contractStartsAt: z.string().optional(),
   contractEndsAt: z.string().optional(),
 })
@@ -137,6 +138,7 @@ export type CreateAndAssignData = {
   notes?: string
   firstMonthRent?: number
   deposit?: number
+  graceDays?: number
   contractStartsAt?: string
   contractEndsAt?: string
 }
@@ -227,6 +229,7 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
       adjustFirstMonth: false,
       firstMonthRent: undefined,
       deposit: undefined,
+      graceDays: 2,
       contractStartsAt: new Date().toISOString().slice(0, 10),
       contractEndsAt: "",
     },
@@ -311,6 +314,7 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
           ? values.firstMonthRent
           : undefined,
       deposit: values.deposit ?? undefined,
+      graceDays: values.graceDays,
       contractStartsAt: values.contractStartsAt
         ? new Date(values.contractStartsAt).toISOString()
         : undefined,
@@ -324,7 +328,7 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
   const watchedStart = form.watch("contractStartsAt")
   const watchedPayDay = form.watch("paymentDay")
 
-  const firstBillingLabel = React.useMemo(() => {
+  const billingDates = React.useMemo(() => {
     if (!watchedStart) return null
     const startDate = parseDateString(watchedStart)
     if (!startDate) return null
@@ -352,9 +356,23 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
         watchedPayDay === 0 ? daysInNext : Math.min(watchedPayDay, daysInNext)
     }
 
-    const d = new Date(firstYear, firstMonth - 1, firstDay)
-    return format(d, "d 'de' MMMM, yyyy", { locale: es })
+    const firstDate = new Date(firstYear, firstMonth - 1, firstDay)
+
+    // Second billing date: one month after the first
+    const secondMonth = firstMonth === 12 ? 1 : firstMonth + 1
+    const secondYear = firstMonth === 12 ? firstYear + 1 : firstYear
+    const daysInSecondMonth = new Date(secondYear, secondMonth, 0).getDate()
+    const secondDay =
+      watchedPayDay === 0 ? daysInSecondMonth : Math.min(watchedPayDay, daysInSecondMonth)
+    const secondDate = new Date(secondYear, secondMonth - 1, secondDay)
+
+    return {
+      first: format(firstDate, "d 'de' MMMM, yyyy", { locale: es }),
+      second: format(secondDate, "d 'de' MMMM, yyyy", { locale: es }),
+    }
   }, [watchedStart, watchedPayDay])
+
+  const firstBillingLabel = billingDates?.first ?? null
 
   return (
     <Form {...form}>
@@ -612,40 +630,60 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
         />
 
         {form.watch("adjustFirstMonth") && (
-          <FormField
-            control={form.control}
-            name="firstMonthRent"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Monto del primer cobro (fracción)</FormLabel>
-                <FormControl>
-                  <InputGroup>
-                    <InputGroupAddon align="inline-start">
-                      <InputGroupText>$</InputGroupText>
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      type="number"
-                      placeholder="0.00"
-                      className="tabular-nums"
-                      step="0.01"
-                      {...field}
-                      value={field.value === undefined ? "" : field.value}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        field.onChange(val === "" ? undefined : Number(val))
-                      }}
-                    />
-                  </InputGroup>
-                </FormControl>
-                <FormDescription>
-                  Calculado automáticamente por los días hasta la primera fecha
-                  de cobro. A partir del siguiente ciclo se cobra la renta
-                  completa.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
+          <>
+            <FormField
+              control={form.control}
+              name="firstMonthRent"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monto del primer cobro (fracción)</FormLabel>
+                  <FormControl>
+                    <InputGroup>
+                      <InputGroupAddon align="inline-start">
+                        <InputGroupText>$</InputGroupText>
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        type="number"
+                        placeholder="0.00"
+                        className="tabular-nums"
+                        step="0.01"
+                        {...field}
+                        value={field.value === undefined ? "" : field.value}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          field.onChange(val === "" ? undefined : Number(val))
+                        }}
+                      />
+                    </InputGroup>
+                  </FormControl>
+                  <FormDescription>
+                    Calculado automáticamente por los días hasta la primera
+                    fecha de cobro.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {billingDates && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                <p className="font-semibold mb-1">
+                  Se generarán 2 cobros el {billingDates.first}:
+                </p>
+                <ol className="list-decimal list-inside space-y-0.5">
+                  <li>Fracción del primer periodo — monto arriba</li>
+                  <li>
+                    {roomPrice
+                      ? `Primer mes completo — $${roomPrice.toLocaleString("es-MX")}`
+                      : "Primer mes completo — renta completa"}
+                  </li>
+                </ol>
+                <p className="mt-1.5 text-amber-700 dark:text-amber-400">
+                  A partir de {billingDates.second} se cobran mensualidades regulares.
+                </p>
+              </div>
             )}
-          />
+          </>
         )}
 
         <FormField
@@ -673,6 +711,32 @@ export const TenantsCreateAndAssignForm = React.forwardRef<
                   />
                 </InputGroup>
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="graceDays"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Días de gracia para pago</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="2"
+                  min={0}
+                  max={30}
+                  className="tabular-nums"
+                  {...field}
+                  value={field.value}
+                  onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
+                />
+              </FormControl>
+              <FormDescription>
+                Días después del vencimiento antes de marcar como mora. Por defecto 2.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

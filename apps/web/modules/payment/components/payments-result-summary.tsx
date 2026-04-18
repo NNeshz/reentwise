@@ -1,7 +1,3 @@
-"use client";
-
-import { tenantCountLabel } from "@/modules/payment/lib/payment-display";
-
 type Props = {
   count: number;
   isFetching?: boolean;
@@ -9,11 +5,11 @@ type Props = {
 
 export function PaymentsResultSummary({ count, isFetching }: Props) {
   return (
-    <div className="flex items-center justify-between text-xs text-muted-foreground">
-      <span>{tenantCountLabel(count)}</span>
-      {isFetching ? (
-        <span className="text-muted-foreground/80">Actualizando…</span>
-      ) : null}
+    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+      <span>
+        {count} inquilino{count !== 1 ? "s" : ""}
+        {isFetching ? " · actualizando…" : ""}
+      </span>
     </div>
   );
 }

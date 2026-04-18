@@ -1,9 +1,10 @@
-import { db, eq, and, isNull } from "@reentwise/database";
+import { db, eq, and, isNull, lte } from "@reentwise/database";
 import {
   tenants,
   payments,
   rooms,
   properties,
+  contracts,
   user,
 } from "@reentwise/database";
 import { getPaymentDateForMonth } from "@reentwise/api/src/modules/tenants/tenants.service";
@@ -63,11 +64,21 @@ export class CronService {
         room: rooms,
         property: properties,
         owner: user,
+        contract: {
+          id: contracts.id,
+          graceDays: contracts.graceDays,
+          endsAt: contracts.endsAt,
+          status: contracts.status,
+        },
       })
       .from(tenants)
       .innerJoin(rooms, eq(tenants.roomId, rooms.id))
       .innerJoin(properties, eq(rooms.propertyId, properties.id))
       .innerJoin(user, eq(properties.ownerId, user.id))
+      .leftJoin(
+        contracts,
+        and(eq(contracts.tenantId, tenants.id), eq(contracts.status, "active")),
+      )
       .where(and(eq(rooms.status, "occupied"), isNull(rooms.archivedAt)));
 
     const ownerIds = [...new Set(activeRows.map((r) => r.property.ownerId))];
@@ -80,6 +91,9 @@ export class CronService {
     // 3. Upgrade / re-pago: reactiva propiedades y cuartos si el plan tiene espacio
     await reactivatePropertiesForOwners(logs);
     await reactivateRoomsForOwners(logs);
+
+    // 4. Expiración automática de contratos cuya fecha de fin ya pasó
+    await this.expireContracts(logs);
 
     for (const { tenant, room, owner } of activeRows) {
       const tz = ownerWallClockTz(owner.timezone);
@@ -98,7 +112,7 @@ export class CronService {
       { owner: typeof user.$inferSelect; items: OwnerCronSummaryItem[] }
     >();
 
-    for (const { tenant, room, property, owner } of activeRows) {
+    for (const { tenant, room, property, owner, contract } of activeRows) {
       const limitsCtx = limitsByOwner.get(property.ownerId);
       if (!limitsCtx) {
         logs.push(`[skip] sin contexto de plan owner=${property.ownerId}`);
@@ -106,7 +120,8 @@ export class CronService {
       }
 
       const todayWall = wallYmdForOwner(new Date(), owner.timezone);
-      const triggers = buildReminderTriggersForDay(todayWall, tenant.paymentDay);
+      const graceDays = contract?.graceDays ?? 2;
+      const triggers = buildReminderTriggersForDay(todayWall, tenant.paymentDay, graceDays);
       for (const t of triggers) {
         const item = await this.processTenant(
           tenant,
@@ -170,6 +185,76 @@ export class CronService {
         idempotencyKey: `cron|owner-summary|${ymd}|${owner.id}`,
       });
       logs.push(`[SUMMARY] Resumen enviado a ${owner.name} (${items.length} inquilinos)`);
+    }
+  }
+
+  private async expireContracts(logs: string[]): Promise<void> {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    const toExpire = await db
+      .select({
+        contract: contracts,
+        owner: { id: user.id, email: user.email, name: user.name },
+        tenant: { name: tenants.name },
+      })
+      .from(contracts)
+      .innerJoin(tenants, eq(contracts.tenantId, tenants.id))
+      .innerJoin(user, eq(contracts.ownerId, user.id))
+      .where(
+        and(
+          eq(contracts.status, "active"),
+          lte(contracts.endsAt, todayStart),
+        ),
+      );
+
+    if (toExpire.length === 0) return;
+
+    const byOwner = new Map<string, { ownerEmail: string | null; ownerName: string | null; tenantNames: string[] }>();
+
+    for (const { contract, owner, tenant } of toExpire) {
+      await db
+        .update(contracts)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(contracts.id, contract.id));
+
+      logs.push(`[EXPIRE] Contrato ${contract.id} expirado (inquilino: ${tenant.name})`);
+
+      const existing = byOwner.get(owner.id);
+      if (existing) {
+        existing.tenantNames.push(tenant.name);
+      } else {
+        byOwner.set(owner.id, {
+          ownerEmail: owner.email ?? null,
+          ownerName: owner.name ?? null,
+          tenantNames: [tenant.name],
+        });
+      }
+    }
+
+    const frontendUrl = env.NEXT_PUBLIC_FRONTEND_URL ?? "https://reentwise.com";
+    const today = new Date().toLocaleDateString("es-MX", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "America/Mexico_City",
+    });
+
+    for (const [ownerId, { ownerEmail, ownerName, tenantNames }] of byOwner) {
+      if (!ownerEmail) continue;
+      const list = tenantNames.map((n) => `• ${n}`).join("\n");
+      const subject = `${tenantNames.length === 1 ? "Un contrato ha" : `${tenantNames.length} contratos han`} vencido — ${today}`;
+      const html = `<p>Hola ${ownerName ?? ""},</p><p>Los siguientes contratos vencieron hoy (${today}):</p><pre>${list}</pre><p>Ingresa a <a href="${frontendUrl}/dashboard/contracts">${frontendUrl}/dashboard/contracts</a> para gestionarlos.</p>`;
+      const text = `Hola ${ownerName ?? ""}, los siguientes contratos vencieron hoy (${today}):\n${list}\n\nIngresa a ${frontendUrl}/dashboard/contracts para gestionarlos.`;
+      await emailService.sendHtml({
+        to: ownerEmail,
+        subject,
+        html,
+        text,
+        tags: [{ name: "type", value: "contract_expired" }, { name: "module", value: "cron" }],
+        idempotencyKey: `cron|contract-expired|${today}|${ownerId}`,
+      });
+      logs.push(`[EXPIRE] Email de vencimiento enviado a ${ownerName} (${tenantNames.length} contratos)`);
     }
   }
 

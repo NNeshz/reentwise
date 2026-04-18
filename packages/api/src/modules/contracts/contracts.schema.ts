@@ -28,10 +28,16 @@ export const updateContractBodySchema = t.Partial(
     rentAmount: t.String(),
     paymentDay: t.Number(),
     deposit: t.String(),
+    graceDays: t.Number({ minimum: 0, maximum: 30 }),
     endsAt: t.Nullable(t.String({ format: "date-time" })),
     notes: t.Nullable(t.String()),
   }),
 );
+
+export const markDepositCollectedBodySchema = t.Object({
+  amountCollected: t.String(),
+  collectedAt: t.Optional(t.String({ format: "date-time" })),
+});
 
 export const contractsListQuerySchema = t.Object({
   search: t.Optional(t.String()),

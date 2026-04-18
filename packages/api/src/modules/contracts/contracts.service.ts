@@ -74,6 +74,7 @@ export class ContractsService {
       rentAmount?: string;
       paymentDay?: number;
       deposit?: string;
+      graceDays?: number;
       endsAt?: string | null;
       notes?: string | null;
     },
@@ -82,12 +83,31 @@ export class ContractsService {
     if (patch.rentAmount !== undefined) updatePayload.rentAmount = patch.rentAmount;
     if (patch.paymentDay !== undefined) updatePayload.paymentDay = patch.paymentDay;
     if (patch.deposit !== undefined) updatePayload.deposit = patch.deposit;
+    if (patch.graceDays !== undefined) updatePayload.graceDays = patch.graceDays;
     if ("endsAt" in patch) updatePayload.endsAt = patch.endsAt ? new Date(patch.endsAt) : null;
     if ("notes" in patch) updatePayload.notes = patch.notes ?? null;
 
     const [updated] = await db
       .update(contracts)
       .set(updatePayload)
+      .where(and(eq(contracts.id, contractId), eq(contracts.ownerId, ownerId)))
+      .returning();
+    return updated ?? null;
+  }
+
+  async markDepositCollected(
+    contractId: string,
+    ownerId: string,
+    amountCollected: string,
+    collectedAt?: Date,
+  ) {
+    const [updated] = await db
+      .update(contracts)
+      .set({
+        depositCollectedAt: collectedAt ?? new Date(),
+        depositAmountCollected: amountCollected,
+        updatedAt: new Date(),
+      })
       .where(and(eq(contracts.id, contractId), eq(contracts.ownerId, ownerId)))
       .returning();
     return updated ?? null;

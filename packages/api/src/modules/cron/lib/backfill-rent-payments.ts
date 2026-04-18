@@ -1,5 +1,5 @@
 import { db, eq, and, inArray } from "@reentwise/database";
-import { payments, tenants, rooms } from "@reentwise/database";
+import { payments, tenants, rooms, contracts } from "@reentwise/database";
 import { getPaymentDateForMonth } from "@reentwise/api/src/modules/tenants/tenants.service";
 import {
   type WallYmd,
@@ -25,7 +25,8 @@ function wallYmdFromDateField(d: Date, tz: string): WallYmd {
 
 /**
  * Si el cron no corrió el día de cobro, crea el `payment` pendiente/mora.
- * Si ya existe pendiente o parcial y ya pasaron ≥2 días del vencimiento, marca `late` (sin reenviar avisos).
+ * Si ya existe pendiente o parcial y ya pasaron ≥graceDays del vencimiento, marca `late` (sin reenviar avisos).
+ * `graceDays` se lee del contrato activo del inquilino; si no hay contrato, se usa 2.
  */
 export async function backfillRentPaymentsForTenant(
   tenant: typeof tenants.$inferSelect,
@@ -34,6 +35,11 @@ export async function backfillRentPaymentsForTenant(
   logs: string[],
   wallClockTz: string,
 ): Promise<void> {
+  const activeContract = await db.query.contracts.findFirst({
+    where: and(eq(contracts.tenantId, tenant.id), eq(contracts.status, "active")),
+    columns: { graceDays: true },
+  });
+  const graceDays = activeContract?.graceDays ?? 2;
   const startWall = tenant.startDate
     ? wallYmdFromDateField(new Date(tenant.startDate), wallClockTz)
     : wallYmdFromDateField(new Date(tenant.createdAt ?? Date.now()), wallClockTz);
@@ -86,7 +92,7 @@ export async function backfillRentPaymentsForTenant(
 
   for (const { year, month, dueWall } of periodsToCheck) {
     const daysPastDue = calendarDaysBetween(dueWall, todayWall);
-    const shouldBeLate = daysPastDue >= 2;
+    const shouldBeLate = daysPastDue >= graceDays;
     const existing = byPeriod.get(periodKey(year, month));
 
     if (!existing) {

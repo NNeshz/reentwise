@@ -10,6 +10,7 @@ import type {
   TenantDetailRoom,
   TenantListRow,
   TenantPaymentRecord,
+  TenantPaymentsContract,
   TenantPaymentsResponse,
   TenantRoomSummary,
   TenantsListPagination,
@@ -179,7 +180,19 @@ export function parseTenantPaymentsResponse(
   if (!Array.isArray(o.payments)) {
     throw new Error("Respuesta inválida de pagos");
   }
-  return { payments: o.payments.map(parseTenantPaymentRecord) };
+
+  let contract: TenantPaymentsResponse["contract"] = null;
+  if (o.contract !== null && o.contract !== undefined && typeof o.contract === "object") {
+    const c = o.contract as Record<string, unknown>;
+    contract = {
+      id: typeof c.id === "string" ? c.id : "",
+      deposit: c.deposit != null ? String(c.deposit) : null,
+      depositCollectedAt: typeof c.depositCollectedAt === "string" ? c.depositCollectedAt : null,
+      depositAmountCollected: c.depositAmountCollected != null ? String(c.depositAmountCollected) : null,
+    };
+  }
+
+  return { payments: o.payments.map(parseTenantPaymentRecord), contract };
 }
 
 function parseTenantDetailRecord(value: unknown): TenantDetailRecord {
