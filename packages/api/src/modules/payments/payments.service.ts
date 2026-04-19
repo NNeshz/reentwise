@@ -9,6 +9,7 @@ import {
   exists,
   count,
   payments,
+  paymentTransactions,
   tenants,
   rooms,
   properties,
@@ -199,6 +200,12 @@ export class PaymentsService {
       .returning();
 
     if (!updatedPayment) throw new Error("Failed to update payment");
+
+    await db.insert(paymentTransactions).values({
+      paymentId,
+      amount: paymentAmount.toString(),
+      method,
+    });
 
     const msgRow = await this.getPaymentRowWithMessaging(ownerId, paymentId);
     if (

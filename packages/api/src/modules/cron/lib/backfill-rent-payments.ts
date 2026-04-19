@@ -98,6 +98,8 @@ export async function backfillRentPaymentsForTenant(
     if (!existing) {
       await db.insert(payments).values({
         tenantId: tenant.id,
+        tenantName: tenant.name,
+        reason: "rent",
         amount: room.price.toString(),
         month,
         year,

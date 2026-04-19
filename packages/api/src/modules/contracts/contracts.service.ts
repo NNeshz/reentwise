@@ -8,6 +8,7 @@ import {
   tenants,
   rooms,
   properties,
+  payments,
 } from "@reentwise/database";
 
 export class ContractsService {
@@ -158,6 +159,26 @@ export class ContractsService {
       .set({ status: "active", signedAt: new Date(), updatedAt: new Date() })
       .where(and(eq(contracts.id, contractId), eq(contracts.ownerId, ownerId)))
       .returning();
+
+    if (updated && Number(updated.deposit) > 0) {
+      const [tenant] = await db
+        .select({ name: tenants.name })
+        .from(tenants)
+        .where(eq(tenants.id, updated.tenantId))
+        .limit(1);
+      const now = new Date();
+      await db.insert(payments).values({
+        tenantId: updated.tenantId,
+        contractId: updated.id,
+        tenantName: tenant?.name ?? "",
+        reason: "deposit",
+        amount: updated.deposit!,
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        status: "pending",
+      });
+    }
+
     return updated ?? null;
   }
 

@@ -21,7 +21,7 @@ import { emailService } from "@reentwise/api/src/modules/email/email.service";
 import { auditsService } from "@reentwise/api/src/modules/audits/audits.service";
 import {
   sendKapsoTemplate,
-  normalizeKapsoRecipient,
+  formatWhatsappForKapso,
   formatKapsoPropertyLabel,
   formatKapsoCurrencyMx,
   formatKapsoPaymentCutoffDay,
@@ -184,6 +184,7 @@ export class TenantsService {
           eq(payments.month, currentMonth),
           eq(payments.year, currentYear),
           eq(payments.isAnnulled, false),
+          eq(payments.reason, "rent"),
         ),
       )
       .where(and(...conditions));
@@ -280,17 +281,6 @@ export class TenantsService {
     }
 
     const createdTenant = tenantResult[0]!;
-    if (createdTenant.email) {
-      await this.sendTenantCreatedEmailSafe({
-        tenantId: createdTenant.id,
-        tenantEmail: createdTenant.email,
-        tenantName: createdTenant.name,
-        paymentDay: createdTenant.paymentDay,
-        propertyName: roomRow.propertyName,
-        roomNumber: roomRow.roomNumber,
-        monthlyRentFormatted: formatKapsoCurrencyMx(roomRow.price),
-      });
-    }
 
     const propertyLabel = formatKapsoPropertyLabel({
       propertyName: roomRow.propertyName,
@@ -305,21 +295,43 @@ export class TenantsService {
       ),
     });
 
-    await auditsService.withWhatsAppAudit(
-      {
+    if (createdTenant.email) {
+      void this.sendTenantCreatedEmailSafe({
+        tenantId: createdTenant.id,
+        tenantEmail: createdTenant.email,
+        tenantName: createdTenant.name,
+        paymentDay: createdTenant.paymentDay,
+        propertyName: roomRow.propertyName,
+        roomNumber: roomRow.roomNumber,
+        monthlyRentFormatted: formatKapsoCurrencyMx(roomRow.price),
+      });
+    }
+
+    const waTo = formatWhatsappForKapso(body.whatsapp);
+    if (waTo) {
+      void auditsService.withWhatsAppAudit(
+        {
+          tenantId: createdTenant.id,
+          tenantName: createdTenant.name,
+          note: "Bienvenida inquilino nuevo",
+        },
+        () =>
+          sendKapsoTemplate({
+            to: waTo,
+            templateName: kapsoTemplateName("reminder_confirmation"),
+            components: welcomeComponents,
+          }),
+        (err) =>
+          console.error("[WhatsApp][Tenants] Error enviando bienvenida:", err),
+      );
+    } else {
+      void auditsService.createFailedAudit({
         tenantId: createdTenant.id,
         tenantName: createdTenant.name,
-        note: "Bienvenida inquilino nuevo",
-      },
-      () =>
-        sendKapsoTemplate({
-          to: normalizeKapsoRecipient(body.whatsapp),
-          templateName: kapsoTemplateName("reminder_confirmation"),
-          components: welcomeComponents,
-        }),
-      (err) =>
-        console.error("[WhatsApp][Tenants] Error enviando bienvenida:", err),
-    );
+        channel: "whatsapp",
+        note: "Sin número de WhatsApp válido · Bienvenida",
+      });
+    }
 
     return createdTenant;
   }
@@ -402,6 +414,8 @@ export class TenantsService {
       // First payment: prorated amount if adjustFirstMonth, else full rent
       await tx.insert(payments).values({
         tenantId: newTenant.id,
+        tenantName: newTenant.name,
+        reason: "rent",
         amount:
           body.firstMonthRent !== undefined
             ? body.firstMonthRent.toString()
@@ -410,18 +424,6 @@ export class TenantsService {
         year: firstPayYear,
         status: "pending",
       });
-
-      // When a prorated first period exists, also pre-create the full-rent payment
-      // for the same month — both are due on the first billing date (e.g. April 23).
-      if (body.firstMonthRent !== undefined) {
-        await tx.insert(payments).values({
-          tenantId: newTenant.id,
-          amount: room.price.toString(),
-          month: firstPayMonth,
-          year: firstPayYear,
-          status: "pending",
-        });
-      }
 
       await tx
         .update(tenants)
@@ -444,6 +446,19 @@ export class TenantsService {
           signedAt: startsAt,
         })
         .returning();
+
+      if (body.deposit && body.deposit > 0 && contract) {
+        await tx.insert(payments).values({
+          tenantId: newTenant.id,
+          contractId: contract.id,
+          tenantName: newTenant.name,
+          reason: "deposit",
+          amount: body.deposit.toString(),
+          month: startMonth,
+          year: startYear,
+          status: "pending",
+        });
+      }
 
       return {
         newTenant,
@@ -474,23 +489,33 @@ export class TenantsService {
       ),
     });
 
-    await auditsService.withWhatsAppAudit(
-      {
+    const waToAssign = formatWhatsappForKapso(resultTenant.whatsapp);
+    if (waToAssign) {
+      void auditsService.withWhatsAppAudit(
+        {
+          tenantId: resultTenant.id,
+          tenantName: resultTenant.name,
+          note: "Bienvenida inquilino nuevo",
+        },
+        () =>
+          sendKapsoTemplate({
+            to: waToAssign,
+            templateName: kapsoTemplateName("reminder_confirmation"),
+            components: welcomeComponents,
+          }),
+        (err) => console.error("[WhatsApp] Error sending welcome message:", err),
+      );
+    } else {
+      void auditsService.createFailedAudit({
         tenantId: resultTenant.id,
         tenantName: resultTenant.name,
-        note: "Bienvenida inquilino nuevo",
-      },
-      () =>
-        sendKapsoTemplate({
-          to: normalizeKapsoRecipient(resultTenant.whatsapp),
-          templateName: kapsoTemplateName("reminder_confirmation"),
-          components: welcomeComponents,
-        }),
-      (err) => console.error("[WhatsApp] Error sending welcome message:", err),
-    );
+        channel: "whatsapp",
+        note: "Sin número de WhatsApp válido · Bienvenida",
+      });
+    }
 
     if (resultTenant?.email) {
-      await this.sendTenantCreatedEmailSafe({
+      void this.sendTenantCreatedEmailSafe({
         tenantId: resultTenant.id,
         tenantEmail: resultTenant.email,
         tenantName: resultTenant.name,
@@ -628,6 +653,10 @@ export class TenantsService {
   async deleteTenant(roomId: string, tenantId: string, ownerId: string) {
     await this.requireRoomOwnership(roomId, ownerId);
 
+    // Borrar audits y contratos primero (payments se preservan vía FK SET NULL)
+    await db.delete(audits).where(eq(audits.tenantId, tenantId));
+    await db.delete(contracts).where(eq(contracts.tenantId, tenantId));
+
     const tenantResult = await db
       .delete(tenants)
       .where(and(eq(tenants.id, tenantId), eq(tenants.roomId, roomId)))
@@ -743,7 +772,7 @@ export class TenantsService {
 
     const deleted = await db.transaction(async (tx) => {
       await tx.delete(audits).where(eq(audits.tenantId, tenantId));
-      await tx.delete(payments).where(eq(payments.tenantId, tenantId));
+      // payments NO se borran — el FK SET NULL preserva el historial de cobros
       await tx.delete(contracts).where(eq(contracts.tenantId, tenantId));
 
       const [row] = await tx

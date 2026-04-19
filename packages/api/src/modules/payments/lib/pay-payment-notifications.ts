@@ -6,7 +6,7 @@ import {
 } from "@reentwise/api/src/modules/email/lib/kapso-aligned-html";
 import {
   sendKapsoTemplate,
-  normalizeKapsoRecipient,
+  formatWhatsappForKapso,
   formatKapsoCurrencyMx,
   formatKapsoMonthNameSpanish,
   formatKapsoDateShortSpanish,
@@ -50,9 +50,17 @@ export async function sendPayReceiptNotifications(
 
   const sendWaPartial = limits?.allowWhatsappPaymentReceipt && limits?.allowWhatsappAbonoReceipt;
   const sendWaFull = limits?.allowWhatsappPaymentReceipt;
+  const waTo = formatWhatsappForKapso(msgRow.tenant.whatsapp);
 
   if (newStatus === "partial" ? sendWaPartial : sendWaFull) {
-    if (newStatus === "partial") {
+    if (!waTo) {
+      await auditsService.createFailedAudit({
+        tenantId: msgRow.tenant.id,
+        tenantName: msgRow.tenant.name,
+        channel: "whatsapp",
+        note: `Sin número de WhatsApp válido · ${newStatus === "partial" ? "Abono" : "Pago"} ${updatedPayment.month}/${updatedPayment.year}`,
+      });
+    } else if (newStatus === "partial") {
       await auditsService.withWhatsAppAudit(
         {
           tenantId: msgRow.tenant.id,
@@ -61,7 +69,7 @@ export async function sendPayReceiptNotifications(
         },
         () =>
           sendKapsoTemplate({
-            to: normalizeKapsoRecipient(msgRow.tenant.whatsapp),
+            to: waTo,
             templateName: kapsoTemplateName("abono_recived"),
             components: kapsoBodyAbonoRecived({
               ownerName: msgRow.owner.name,
@@ -83,7 +91,7 @@ export async function sendPayReceiptNotifications(
         },
         () =>
           sendKapsoTemplate({
-            to: normalizeKapsoRecipient(msgRow.tenant.whatsapp),
+            to: waTo,
             templateName: kapsoTemplateName("payment_completed"),
             components: kapsoBodyPaymentCompleted({
               ownerName: msgRow.owner.name,

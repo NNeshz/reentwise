@@ -20,7 +20,7 @@ export function PropertiesListEmpty({ variant }: { variant: Variant }) {
   const { title, hint } = COPY[variant];
 
   return (
-    <div className="rounded-xl bg-muted/10 py-16 text-center">
+    <div className="rounded-xl border border-dashed py-16 text-center">
       <p className="text-sm font-medium text-muted-foreground">{title}</p>
       <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>

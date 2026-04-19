@@ -23,6 +23,27 @@ export function formatAuditLoggedAt(loggedAt: string | Date): string {
   }
 }
 
+const CRON_KIND_LABELS: Record<string, string> = {
+  t7: "Recordatorio · 7 días antes del cobro",
+  t3: "Recordatorio · 3 días antes del cobro",
+  t0: "Recordatorio · día de cobro",
+  late: "Recordatorio · pago atrasado",
+};
+
+/**
+ * Transforms internal audit note strings into human-readable display labels.
+ * Cron notes (e.g. "cron|t7|2026-04-19|uuid|wa") are parsed to their kind label.
+ * Payment and error notes are returned as-is.
+ */
+export function parseAuditNoteForDisplay(note: string | null | undefined): string {
+  if (!note) return "—";
+  if (note.startsWith("cron|")) {
+    const kind = note.split("|")[1] ?? "";
+    return CRON_KIND_LABELS[kind] ?? "Recordatorio automático";
+  }
+  return note;
+}
+
 export function auditStatusLabel(status: AuditStatus): string {
   switch (status) {
     case "pending":

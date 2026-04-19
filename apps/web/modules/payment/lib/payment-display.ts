@@ -8,9 +8,9 @@ import type {
 export const PAYMENTS_LIST_STACK_CLASS = "space-y-3";
 
 /** Columnas alineadas entre cabecera y filas; scroll horizontal en pantallas angostas.
- *  1.5fr = Inquilino | 1fr = Habitación | 1.5fr = Estado | 5.5rem = Total | 5.5rem = Pagado | 2.5rem = Acciones */
+ *  1.5fr = Inquilino | 1fr = Habitación | 1.5fr = Estado | 1fr = Razón | 5.5rem = Total | 5.5rem = Pagado | 2.5rem = Acciones */
 export const PAYMENTS_TABLE_GRID_CLASS =
-  "grid w-full min-w-[600px] grid-cols-[1.5fr_1fr_1.5fr_5.5rem_5.5rem_2.5rem] gap-x-3 items-center";
+  "grid w-full min-w-[680px] grid-cols-[1.5fr_1fr_1.5fr_1fr_5.5rem_5.5rem_2.5rem] gap-x-3 items-center";
 
 export function paymentsTableHeaderRowClassName(extra?: string): string {
   return cn(PAYMENTS_TABLE_GRID_CLASS, "py-2.5", extra);

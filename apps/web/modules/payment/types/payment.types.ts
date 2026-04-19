@@ -1,6 +1,8 @@
 /** Filtro de estado en listado owner (mes/año). */
 export type PaymentStatusFilter = "pending" | "partial" | "paid";
 
+export type PaymentReason = "rent" | "deposit" | "extra";
+
 export type PaymentsListPagination = {
   currentPage: number;
   totalPages: number;
@@ -37,6 +39,7 @@ export type PaymentMonthRow = {
   amount: string;
   amountPaid: string | null;
   status: string | null;
+  reason: PaymentReason | null;
 };
 
 /** Fila del listado GET /payments/owner. */

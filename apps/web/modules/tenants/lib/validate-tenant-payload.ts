@@ -138,6 +138,8 @@ export function parseRoomTenantsResponse(data: unknown): RoomTenantsResponse {
   };
 }
 
+const TENANT_PAYMENT_REASONS = ["rent", "deposit", "extra"] as const;
+
 export function parseTenantPaymentRecord(value: unknown): TenantPaymentRecord {
   if (value === null || typeof value !== "object") {
     throw new Error("Formato inválido de pago");
@@ -145,16 +147,28 @@ export function parseTenantPaymentRecord(value: unknown): TenantPaymentRecord {
   const p = value as Record<string, unknown>;
   if (
     typeof p.id !== "string" ||
-    typeof p.tenantId !== "string" ||
     (typeof p.amount !== "string" && typeof p.amount !== "number") ||
     typeof p.month !== "number" ||
     typeof p.year !== "number"
   ) {
     throw new Error("Formato inválido de pago");
   }
+  const tenantId =
+    p.tenantId === null || p.tenantId === undefined
+      ? null
+      : typeof p.tenantId === "string"
+        ? p.tenantId
+        : null;
+  const reason =
+    typeof p.reason === "string" &&
+    TENANT_PAYMENT_REASONS.includes(p.reason as typeof TENANT_PAYMENT_REASONS[number])
+      ? (p.reason as TenantPaymentRecord["reason"])
+      : null;
   return {
     id: p.id,
-    tenantId: p.tenantId,
+    tenantId,
+    tenantName: typeof p.tenantName === "string" ? p.tenantName : null,
+    reason,
     amount: String(p.amount),
     amountPaid:
       p.amountPaid === null || p.amountPaid === undefined

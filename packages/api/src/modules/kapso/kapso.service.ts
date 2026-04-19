@@ -81,6 +81,9 @@ export function formatWhatsappForKapso(
   return d;
 }
 
+const KAPSO_RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const KAPSO_RETRY_DELAYS_MS = [800, 1600];
+
 export async function sendKapsoTemplate(
   payload: SendTemplatePayload,
 ): Promise<void> {
@@ -98,28 +101,54 @@ export async function sendKapsoTemplate(
     },
   };
 
-  const response = await fetch(
-    `${KAPSO_BASE_URL}/${KAPSO_PHONE_NUMBER_ID}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "X-API-Key": KAPSO_API_KEY,
-        "Content-Type": "application/json",
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= KAPSO_RETRY_DELAYS_MS.length; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, KAPSO_RETRY_DELAYS_MS[attempt - 1]));
+    }
+
+    const response = await fetch(
+      `${KAPSO_BASE_URL}/${KAPSO_PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "X-API-Key": KAPSO_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    },
-  );
+    );
 
-  const text = await response.text();
-
-  if (!response.ok) {
+    const text = await response.text();
     const parsed = parseResponseBody(text);
+
+    if (response.ok) {
+      // Meta puede devolver HTTP 200 con un campo `error` en el body
+      // (ej. cuenta restringida, código 368). Lo tratamos como fallo.
+      if (
+        parsed != null &&
+        typeof parsed === "object" &&
+        "error" in (parsed as object)
+      ) {
+        const detail = JSON.stringify((parsed as Record<string, unknown>).error);
+        lastError = new Error(`Kapso API error (200/body): ${detail}`);
+        break;
+      }
+      return;
+    }
+
     const detail =
       parsed == null
         ? "(cuerpo vacío)"
         : typeof parsed === "string"
           ? parsed
           : JSON.stringify(parsed);
-    throw new Error(`Kapso API error (${response.status}): ${detail}`);
+
+    lastError = new Error(`Kapso API error (${response.status}): ${detail}`);
+
+    if (!KAPSO_RETRYABLE_STATUSES.has(response.status)) break;
   }
+
+  throw lastError!;
 }

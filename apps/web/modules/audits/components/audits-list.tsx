@@ -42,6 +42,7 @@ export function AuditsList() {
       <AuditsResultSummary
         totalItems={pagination?.totalItems ?? 0}
         isFetching={isFetching}
+        failedCount={data?.failedCount}
       />
 
       <AuditsListFrame>

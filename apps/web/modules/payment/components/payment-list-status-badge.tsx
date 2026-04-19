@@ -46,7 +46,7 @@ export function PaymentListStatusBadge({ payment, tenant, month, year }: Props) 
   if (payment.status === "paid") {
     return (
       <Badge variant="outline" className={cn("w-fit font-medium", statusClassName("paid"))}>
-        Pagado
+        {payment.reason === "deposit" ? "Depósito cobrado" : "Pagado"}
       </Badge>
     );
   }

@@ -42,7 +42,9 @@ export type TenantsListResponse = {
 
 export type TenantPaymentRecord = {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  reason: "rent" | "deposit" | "extra" | null;
   amount: string;
   amountPaid: string | null;
   method: string | null;

@@ -42,6 +42,7 @@ const auditsListDataSchema = t.Object({
   audits: t.Array(auditRowSchema),
   count: t.Number(),
   pagination: listPaginationMetaSchema,
+  failedCount: t.Number(),
 });
 
 export const auditsListSuccessSchema =

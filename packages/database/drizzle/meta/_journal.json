@@ -22,6 +22,20 @@
       "when": 1776600000000,
       "tag": "0002_fix_plan_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776700000000,
+      "tag": "0003_contract_grace_deposit",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776800000000,
+      "tag": "0004_payment_reason_transactions",
+      "breakpoints": true
     }
   ]
 }

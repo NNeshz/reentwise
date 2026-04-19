@@ -17,9 +17,10 @@ export function PaymentsTableHeader() {
       <Col>Inquilino</Col>
       <Col>Habitación</Col>
       <Col>Estado</Col>
+      <Col>Razón</Col>
       <Col>Total</Col>
       <Col>Pagado</Col>
-      <Col>Acciones</Col>
+      <div />
     </div>
   );
 }

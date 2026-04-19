@@ -1,6 +1,6 @@
 export function AuditsListEmpty() {
   return (
-    <div className="rounded-xl bg-muted/10 py-16 text-center">
+    <div className="rounded-xl border border-dashed py-16 text-center">
       <p className="text-sm font-medium text-muted-foreground">
         No hay registros con estos filtros
       </p>

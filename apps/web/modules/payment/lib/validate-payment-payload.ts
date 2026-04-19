@@ -3,11 +3,17 @@ import type {
   PaymentMethod,
   PaymentMonthRow,
   PaymentMutationRow,
+  PaymentReason,
   PaymentRoomSummary,
   PaymentTenantRow,
   PaymentsListPagination,
   PaymentsListResponse,
 } from "@/modules/payment/types/payment.types";
+
+const PAYMENT_REASONS: readonly PaymentReason[] = ["rent", "deposit", "extra"];
+function isPaymentReason(v: unknown): v is PaymentReason {
+  return typeof v === "string" && PAYMENT_REASONS.includes(v as PaymentReason);
+}
 
 function parsePaymentTenant(value: unknown): PaymentTenantRow {
   if (value === null || typeof value !== "object") {
@@ -66,6 +72,7 @@ function parsePaymentMonth(value: unknown): PaymentMonthRow | null {
         ? null
         : String(p.amountPaid),
     status: typeof p.status === "string" ? p.status : null,
+    reason: isPaymentReason(p.reason) ? p.reason : null,
   };
 }
 

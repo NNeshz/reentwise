@@ -43,9 +43,12 @@ export async function dispatchCronReminderAudits(input: {
       (err) => console.error(`[Cron][WA][${logKind}] ${tenant.name}:`, err),
     );
   } else if (!kapsoTo && !waAlreadySent) {
-    console.warn(
-      `[Cron][WA][${logKind}] ${tenant.name}: sin número WhatsApp válido (se omite Kapso)`,
-    );
+    await auditsService.createFailedAudit({
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      channel: "whatsapp",
+      note: "Sin número de WhatsApp válido registrado",
+    });
   }
 
   const emailTo = tenant.email?.trim() || null;

@@ -14,6 +14,7 @@ export type AuditRow = {
 
 export type AuditsListResponse = {
   audits: AuditRow[];
+  failedCount: number;
   pagination: {
     currentPage: number;
     totalPages: number;

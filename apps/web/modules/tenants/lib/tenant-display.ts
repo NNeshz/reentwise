@@ -29,6 +29,8 @@ export function formatTenantPaymentCurrency(value: string | number | null) {
 }
 
 export function tenantPaymentPeriodLabel(payment: TenantPaymentRecord): string {
+  if (payment.reason === "deposit") return "Depósito en garantía";
+  if (payment.reason === "extra") return "Cobro adicional";
   const monthName = TENANT_MONTH_NAMES[payment.month - 1] ?? String(payment.month);
   return `${monthName} ${payment.year}`;
 }

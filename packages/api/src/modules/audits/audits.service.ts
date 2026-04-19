@@ -16,6 +16,60 @@ import {
 import type { ResendLikeResponse } from "@reentwise/api/src/modules/audits/lib/resend-types";
 import { buildListPagination } from "@reentwise/api/src/modules/audits/utils/pagination";
 
+/** Maps Meta/Kapso error codes and HTTP statuses to readable Spanish messages. */
+function normalizeWaError(error: unknown): string {
+  if (!(error instanceof Error)) return "Error desconocido en WhatsApp";
+  const msg = error.message;
+
+  const codeMatch = msg.match(/"code":(\d+)/);
+  const code = codeMatch?.[1] != null ? parseInt(codeMatch[1], 10) : null;
+
+  if (code != null) {
+    switch (code) {
+      case 132000: return "Plantilla de WhatsApp no encontrada";
+      case 132001: return "Parámetros incorrectos en la plantilla";
+      case 131030: return "Número no autorizado en modo de prueba";
+      case 131047: return "Ventana de conversación de 24h expiró";
+      case 131048: return "Plantilla pausada o deshabilitada por Meta";
+      case 133010: return "Número requiere re-registro en WhatsApp";
+      case 368:    return "Cuenta de WhatsApp restringida por Meta";
+      case 80007:  return "Límite de envíos de WhatsApp alcanzado";
+      case 100:
+      case 190:    return "Clave de API de WhatsApp inválida o expirada";
+    }
+  }
+
+  if (msg.includes("(401)")) return "Clave de API de WhatsApp inválida";
+  if (msg.includes("(429)")) return "Límite de envíos alcanzado (intenta más tarde)";
+  if (msg.includes("(500)") || msg.includes("(502)") || msg.includes("(503)") || msg.includes("(504)"))
+    return "Error temporal del servidor de WhatsApp";
+  if (msg.includes("(400)")) return "Solicitud inválida a WhatsApp";
+  if (msg.includes("(404)")) return "Recurso no encontrado en WhatsApp";
+
+  return msg.slice(0, 120);
+}
+
+/** Maps Resend response error codes to readable Spanish messages. */
+function normalizeResendResponseError(message: string | null | undefined): string {
+  const msg = message ?? "";
+  if (!msg) return "Error al enviar correo";
+  if (msg.includes("validation_error") || msg.toLowerCase().includes("invalid email"))
+    return "Dirección de correo inválida";
+  if (msg.includes("rate_limit")) return "Límite de envíos de correo alcanzado";
+  if (msg.includes("missing_required")) return "Falta configuración del remitente";
+  if (msg.includes("not_found")) return "Dominio de correo no verificado";
+  return msg.slice(0, 120);
+}
+
+/** Maps network/exception errors on email send to readable Spanish messages. */
+function normalizeEmailError(error: unknown): string {
+  if (!(error instanceof Error)) return "Error desconocido al enviar correo";
+  const msg = error.message;
+  if (msg.includes("rate_limit")) return "Límite de envíos de correo alcanzado";
+  if (msg.includes("ECONNREFUSED") || msg.includes("fetch")) return "No se pudo conectar con el servidor de correo";
+  return msg.slice(0, 120);
+}
+
 export type { CronReminderKind } from "@reentwise/api/src/modules/audits/lib/cron-reminder-prefix";
 
 export type CreateAuditInput = {
@@ -92,6 +146,20 @@ export class AuditsService {
     return row;
   }
 
+  /** Creates a failed audit directly (e.g. missing phone, pre-send validation). */
+  async createFailedAudit(ctx: {
+    tenantId: string;
+    tenantName: string;
+    channel: AuditChannel;
+    note: string;
+  }): Promise<void> {
+    try {
+      await this.create({ ...ctx, status: "failed" });
+    } catch (e) {
+      console.error("[Audits] createFailedAudit failed", e);
+    }
+  }
+
   /**
    * Wraps email send: audit row goes sending → sent/failed (Resend).
    * Does not rethrow send errors; logs via `logError` like before.
@@ -122,8 +190,7 @@ export class AuditsService {
       const response = await send();
       if (!row?.id) return;
       if (response.error) {
-        const msg =
-          response.error.message?.slice(0, 160) ?? "Error al enviar correo";
+        const msg = normalizeResendResponseError(response.error.message);
         await this.updateResult(row.id, { status: "failed", note: msg });
         logError(response.error);
       } else {
@@ -131,15 +198,13 @@ export class AuditsService {
       }
     } catch (error) {
       if (row?.id) {
-        const msg =
-          error instanceof Error ? error.message.slice(0, 160) : "Excepción";
-        await this.updateResult(row.id, { status: "failed", note: msg });
+        await this.updateResult(row.id, { status: "failed", note: normalizeEmailError(error) });
       }
       logError(error);
     }
   }
 
-  /** WhatsApp send wrapper: sending → sent/failed (future integration / stub). */
+  /** WhatsApp send wrapper: sending → sent/failed. */
   async withWhatsAppAudit(
     ctx: { tenantId: string; tenantName: string; note: string },
     send: () => Promise<void>,
@@ -167,9 +232,7 @@ export class AuditsService {
       if (row?.id) await this.updateStatus(row.id, "sent");
     } catch (error) {
       if (row?.id) {
-        const msg =
-          error instanceof Error ? error.message.slice(0, 160) : "Excepción WA";
-        await this.updateResult(row.id, { status: "failed", note: msg });
+        await this.updateResult(row.id, { status: "failed", note: normalizeWaError(error) });
       }
       logError(error);
     }
@@ -220,17 +283,7 @@ export class AuditsService {
 
     const whereClause = and(...filters);
 
-    const [countRow] = await db
-      .select({ total: count() })
-      .from(audits)
-      .innerJoin(tenants, eq(audits.tenantId, tenants.id))
-      .leftJoin(rooms, eq(tenants.roomId, rooms.id))
-      .leftJoin(properties, eq(rooms.propertyId, properties.id))
-      .where(whereClause);
-
-    const totalItems = Number(countRow?.total ?? 0);
-
-    const rows = await db
+    const rowsQuery = db
       .select({
         id: audits.id,
         tenantId: audits.tenantId,
@@ -249,10 +302,35 @@ export class AuditsService {
       .limit(limit)
       .offset(offset);
 
+    const countQuery = db
+      .select({ total: count() })
+      .from(audits)
+      .innerJoin(tenants, eq(audits.tenantId, tenants.id))
+      .leftJoin(rooms, eq(tenants.roomId, rooms.id))
+      .leftJoin(properties, eq(rooms.propertyId, properties.id))
+      .where(whereClause);
+
+    const failedCountQuery = db
+      .select({ total: count() })
+      .from(audits)
+      .innerJoin(tenants, eq(audits.tenantId, tenants.id))
+      .leftJoin(rooms, eq(tenants.roomId, rooms.id))
+      .leftJoin(properties, eq(rooms.propertyId, properties.id))
+      .where(and(ownerScope, eq(audits.status, "failed")));
+
+    const [[countRow], [failedRow], rows] = await Promise.all([
+      countQuery,
+      failedCountQuery,
+      rowsQuery,
+    ]);
+
+    const totalItems = Number(countRow?.total ?? 0);
+
     return {
       audits: rows,
       count: rows.length,
       pagination: buildListPagination(page, limit, totalItems),
+      failedCount: Number(failedRow?.total ?? 0),
     };
   }
 }

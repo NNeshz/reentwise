@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   text,
   timestamp,
   integer,
@@ -19,6 +20,12 @@ import {
   auditChannelEnum,
   auditStatusEnum,
 } from "../enums/app";
+
+export const paymentReasonEnum = pgEnum("payment_reason", [
+  "rent",
+  "deposit",
+  "extra",
+]);
 
 /** Límites y flags de mensajería por tier (semilla en migración). */
 export const planLimits = pgTable("plan_limits", {
@@ -124,11 +131,16 @@ export const contracts = pgTable("contracts", {
 
 export const payments = pgTable("payments", {
   id: uuid("id").defaultRandom().primaryKey(),
-  tenantId: uuid("tenant_id")
-    .notNull()
-    .references(() => tenants.id),
-  /** Nullable para compatibilidad con cobros pre-contratos; nuevos cobros deben llenarlo. */
-  contractId: uuid("contract_id").references(() => contracts.id),
+  /** Nullable: SET NULL cuando el inquilino se elimina para preservar historial. */
+  tenantId: uuid("tenant_id").references(() => tenants.id, {
+    onDelete: "set null",
+  }),
+  contractId: uuid("contract_id").references(() => contracts.id, {
+    onDelete: "set null",
+  }),
+  /** Snapshot del nombre del inquilino para preservar historial tras borrado. */
+  tenantName: varchar("tenant_name", { length: 255 }),
+  reason: paymentReasonEnum("reason").notNull().default("rent"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).default(
     "0.00",
@@ -161,6 +173,21 @@ export const audits = pgTable("audits", {
     .notNull()
     .defaultNow(),
   note: varchar("note", { length: 160 }).notNull(),
+});
+
+/**
+ * Movimientos de dinero de un cobro (abonos y pagos completos).
+ * `payments` es la deuda; `payment_transactions` es el historial de lo cobrado.
+ */
+export const paymentTransactions = pgTable("payment_transactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  paymentId: uuid("payment_id")
+    .notNull()
+    .references(() => payments.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  method: paymentMethodEnum("method"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 /** Gastos del dueño (mantenimiento, impuestos, seguros, etc.). */

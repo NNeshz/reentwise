@@ -1,7 +1,8 @@
 "use client";
 
-import { IconDotsVertical, IconEye, IconCash } from "@tabler/icons-react";
+import { IconDotsVertical, IconEye, IconCash, IconShieldCheck, IconReceipt, IconHome } from "@tabler/icons-react";
 import { Button } from "@reentwise/ui/src/components/button";
+import { Badge } from "@reentwise/ui/src/components/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,13 +11,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@reentwise/ui/src/components/dropdown-menu";
-import type { PaymentListRow } from "@/modules/payment/types/payment.types";
+import type { PaymentListRow, PaymentReason } from "@/modules/payment/types/payment.types";
 import {
   PAYMENTS_TABLE_GRID_CLASS,
   formatPaymentCurrency,
   paymentRowHasPendingDebt,
 } from "@/modules/payment/lib/payment-display";
 import { PaymentListStatusBadge } from "@/modules/payment/components/payment-list-status-badge";
+
+export const REASON_META: Record<PaymentReason, { label: string; icon: typeof IconHome; className: string }> = {
+  rent: {
+    label: "Renta",
+    icon: IconHome,
+    className: "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400",
+  },
+  deposit: {
+    label: "Depósito",
+    icon: IconShieldCheck,
+    className: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  },
+  extra: {
+    label: "Extra",
+    icon: IconReceipt,
+    className: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  },
+};
 
 type Props = {
   row: PaymentListRow;
@@ -35,6 +54,9 @@ export function PaymentRow({
 }: Props) {
   const { tenant, room, payment } = row;
   const hasPendingDebt = paymentRowHasPendingDebt(row);
+  const reason = payment?.reason ?? "rent";
+  const meta = REASON_META[reason];
+  const ReasonIcon = meta.icon;
 
   return (
     <li className="py-1 text-sm">
@@ -58,6 +80,14 @@ export function PaymentRow({
             month={month}
             year={year}
           />
+        </div>
+
+        {/* Razón */}
+        <div>
+          <Badge variant="outline" className={`flex w-fit items-center gap-1 text-[10px] ${meta.className}`}>
+            <ReasonIcon className="size-3" />
+            {meta.label}
+          </Badge>
         </div>
 
         {/* Total */}

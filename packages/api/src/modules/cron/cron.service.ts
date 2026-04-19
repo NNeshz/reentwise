@@ -301,6 +301,8 @@ export class CronService {
     ) {
       await db.insert(payments).values({
         tenantId: tenant.id,
+        tenantName: tenant.name,
+        reason: "rent",
         amount: room.price.toString(),
         month: targetMonth,
         year: targetYear,
@@ -399,6 +401,8 @@ export class CronService {
       if (!existingPayment) {
         await db.insert(payments).values({
           tenantId: tenant.id,
+          tenantName: tenant.name,
+          reason: "rent",
           amount: room.price.toString(),
           month: targetMonth,
           year: targetYear,
